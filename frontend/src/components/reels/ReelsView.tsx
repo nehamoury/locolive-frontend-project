@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Compass, Loader2, ChevronUp, ChevronDown, MessageCircle } from 'lucide-react';
+import { Camera, Compass, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import ReelItem from './ReelItem';
 import { CommentsModal } from '../ui/CommentsModal';
@@ -28,6 +29,7 @@ interface ReelsViewProps {
 }
 
 const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
+  const { user } = useAuth();
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -112,14 +114,6 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => setIsCommentsOpen(!isCommentsOpen)}
-                className="text-white hover:text-primary transition-colors"
-              >
-                <MessageCircle className="w-6 h-6 drop-shadow-md" />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
                 onClick={onCreateReel}
                 className="text-white hover:text-primary transition-colors"
               >
@@ -141,6 +135,7 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
                   reel={reel} 
                   isActive={idx === activeIndex} 
                   onToggleComments={() => setIsCommentsOpen(!isCommentsOpen)}
+                  currentUserID={user?.id}
                 />
               ))
             ) : (

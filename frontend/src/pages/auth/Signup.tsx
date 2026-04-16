@@ -113,7 +113,39 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
       };
 
       const response = await api.post('/users', payload);
-      const { access_token, user } = response.data;
+      let { access_token, user } = response.data;
+
+      // Handle Avatar Upload if selected
+      if (form.avatar && access_token) {
+        try {
+          // 1. Upload the image
+          const formData = new FormData();
+          formData.append('file', form.avatar);
+          
+          // We must set the token in the temporary header or use the api instance directly 
+          // if it handles the token. Since login() hasn't been called yet to set the global token,
+          // we should provide it in the headers for these specific calls.
+          const uploadRes = await api.post('/upload', formData, {
+            headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'multipart/form-data' }
+          });
+          
+          const avatarUrl = uploadRes.data.url;
+
+          // 2. Update the profile with the returned URL
+          const profileRes = await api.put('/profile', { avatar_url: avatarUrl }, {
+            headers: { 'Authorization': `Bearer ${access_token}` }
+          });
+          
+          // Use the updated user object for the final login
+          if (profileRes.data) {
+             user = { ...user, avatar_url: avatarUrl };
+          }
+        } catch (uploadErr) {
+          console.error('Avatar upload/update failed:', uploadErr);
+          // We continue anyway, as the account was created successfully
+        }
+      }
+
       if (access_token && user) {
         login(access_token, user);
       }

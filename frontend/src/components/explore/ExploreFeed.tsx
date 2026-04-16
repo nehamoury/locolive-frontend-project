@@ -49,6 +49,16 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
             stories={data.mapStories}
             loading={data.loading.nearby || data.loading.crossings || data.loading.stories}
             onUserSelect={onUserSelect}
+            onMatch={async (id) => {
+              try {
+                await api.post('/connections/request', { target_user_id: id });
+              } catch (err) {
+                console.error('Match failed:', err);
+              }
+            }}
+            onPass={(id) => {
+              console.log('Pass for', id);
+            }}
           />
         );
       case 'nearby':
@@ -74,21 +84,15 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
           <CastingGrid 
             users={data.suggestedUsers}
             loading={data.loading.suggested}
-onMatch={async (id) => {
+            onMatch={async (id) => {
               try {
-                await api.post(`/connections/match/${id}`);
-                console.log('Match sent for', id);
+                await api.post('/connections/request', { target_user_id: id });
               } catch (err) {
                 console.error('Match failed:', err);
               }
             }}
-            onPass={async (id) => {
-              try {
-                await api.post(`/connections/pass/${id}`);
-                console.log('Pass sent for', id);
-              } catch (err) {
-                console.error('Pass failed:', err);
-              }
+            onPass={(id) => {
+              console.log('Pass for', id);
             }}
             onViewProfile={onUserSelect || (() => {})}
           />

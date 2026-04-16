@@ -11,11 +11,10 @@ interface HomeViewProps {
   loading: boolean;
   onCreateStory: () => void;
   onStoryClick: (userStories: any[], index: number) => void;
-  unreadNotificationsCount?: number;
   unreadMessagesCount?: number;
 }
 
-const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, onStoryClick, unreadNotificationsCount = 0, unreadMessagesCount = 0 }) => {
+const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, onStoryClick, unreadMessagesCount = 0 }) => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
@@ -59,7 +58,7 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/dashboard/notifications')} className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-base text-text-muted hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer">
             <Bell className="w-5 h-5" />
-            {unreadNotificationsCount > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}</span>}
+            {unreadMessagesCount > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</span>}
           </button>
 
           <button onClick={() => navigate('/dashboard/messages')} className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-base text-text-muted hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer">
@@ -110,8 +109,8 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
               </p>
             </div>
           ) : (
-            posts.map((post: any) => (
-              <div key={post.id} className="w-full max-w-full md:max-w-3xl">
+            posts.map((post: any, index: number) => (
+              <div key={post.id || `post-${index}`} className="w-full max-w-full md:max-w-3xl">
                 <PostCard
                   post={post}
                   currentUserID={user?.id}

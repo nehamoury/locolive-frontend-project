@@ -322,7 +322,6 @@ const Dashboard = () => {
               setViewingStories(userStories);
               setViewingStoryIndex(index);
             }}
-            unreadNotificationsCount={totalUnreadCount}
             unreadMessagesCount={unreadMessagesCount}
           />
         } />
@@ -506,9 +505,9 @@ const Dashboard = () => {
                     >
                       <div className="relative w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                         <Bell className="w-5 h-5" />
-                        {totalUnreadCount > 0 && (
+                        {unreadMessagesCount > 0 && (
                           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full border-2 border-white dark:border-black flex items-center justify-center shadow-sm">
-                            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                            {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
                           </span>
                         )}
                       </div>

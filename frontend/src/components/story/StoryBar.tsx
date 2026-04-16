@@ -61,13 +61,13 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
       </div>
 
       {/* Dynamic User Stories */}
-      {uniqueOtherStories.map((story) => {
+      {uniqueOtherStories.map((story, index) => {
         const isViewed = getViewedStatus(story.username);
         const thisUserStories = stories.filter(s => s.username === story.username);
 
         return (
           <div 
-            key={story.id} 
+            key={story.id || story.username || `story-${index}`} 
             onClick={() => onStoryClick(thisUserStories, 0)}
             className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer w-[86px]"
           >

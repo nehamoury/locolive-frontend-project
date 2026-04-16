@@ -10,6 +10,8 @@ interface ExploreAllFeedProps {
   stories: any[];
   loading: boolean;
   onUserSelect?: (id: string) => void;
+  onMatch: (id: string) => void;
+  onPass: (id: string) => void;
 }
 
 export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({ 
@@ -17,7 +19,9 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
   crossings, 
   stories, 
   loading,
-  onUserSelect
+  onUserSelect,
+  onMatch,
+  onPass
 }) => {
   const allStories = (stories || []).flatMap(cluster => cluster.stories || []).slice(0, 8);
   const featuredUsers = (nearbyUsers || []).slice(0, 6);
@@ -46,7 +50,7 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-2 px-2">
           {allStories.map((story, idx) => (
             <motion.div
-              key={story.id}
+              key={story.id || `story-${idx}`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05 }}
@@ -85,15 +89,15 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {featuredUsers.map((user, idx) => (
             <motion.div
-              key={user.id}
+              key={user.id || `user-${idx}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + idx * 0.05 }}
             >
               <CastingCard 
                 user={user}
-                onMatch={() => {}}
-                onPass={() => {}}
+                onMatch={onMatch}
+                onPass={onPass}
                 onViewProfile={onUserSelect || (() => {})}
               />
             </motion.div>
@@ -111,7 +115,7 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
         <div className="space-y-3 max-w-2xl">
           {recentCrossings.map((crossing, idx) => (
              <motion.div
-                key={crossing.user_id}
+                key={crossing.user_id || `crossing-${idx}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + idx * 0.05 }}

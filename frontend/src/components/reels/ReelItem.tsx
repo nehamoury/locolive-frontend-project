@@ -27,9 +27,10 @@ interface ReelItemProps {
   reel: Reel;
   isActive: boolean;
   onToggleComments: () => void;
+  currentUserID?: string;
 }
 
-const ReelItem = ({ reel, isActive, onToggleComments }: ReelItemProps) => {
+const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemProps) => {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const bgVideoRef = useRef<HTMLVideoElement>(null);
@@ -102,11 +103,26 @@ const ReelItem = ({ reel, isActive, onToggleComments }: ReelItemProps) => {
   };
 
   const handleMore = () => {
-    // Simple placeholder for more options (e.g. Report)
-    const action = window.confirm('Would you like to report this reel?');
-    if (action) {
-      // Future logic for ReportModal could go here
-      window.alert('Thank you for your report. Our team will review it.');
+    if (reel.user_id === currentUserID) {
+      if (window.confirm('Are you sure you want to delete this reel? This action cannot be undone.')) {
+        handleDelete();
+      }
+    } else {
+      // For other users, we can just show a message or do nothing.
+      // The user requested to remove reporting.
+      window.alert("More options coming soon.");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await api.delete(`/reels/${reel.id}`);
+      window.alert('Reel deleted successfully.');
+      // Refresh or navigate back
+      window.location.reload(); 
+    } catch (err) {
+      console.error('Delete failed:', err);
+      window.alert('Failed to delete reel.');
     }
   };
 

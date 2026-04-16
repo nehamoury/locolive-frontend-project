@@ -11,13 +11,16 @@ import {
     Sparkles,
     Users as UsersIcon,
     History,
-    Camera
+    Camera,
+    Heart,
+    MessageCircle
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { cn } from '../../utils/helpers';
+import { BACKEND } from '../../utils/config';
 
 import ProfileQR from '../../components/profile/ProfileQR';
 import Highlights from '../../components/profile/Highlights';
@@ -75,6 +78,7 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [visitors, setVisitors] = useState<Visitor[]>([]);
     const [posts, setPosts] = useState<any[]>([]);
+    const [userReels, setUserReels] = useState<any[]>([]);
     const [highlights, setHighlights] = useState<Highlight[]>([]);
     const [connections, setConnections] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -97,6 +101,7 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
         fetchProfile();
         fetchVisitors();
         fetchMyPosts();
+        fetchMyReels();
         fetchHighlights();
         fetchConnections();
     }, [userId]);
@@ -130,6 +135,16 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
             setPosts(data.posts || []);
         } catch (error) {
             console.error('Failed to load posts', error);
+        }
+    };
+
+    const fetchMyReels = async () => {
+        if (!userId) return;
+        try {
+            const { data } = await api.get(`/users/${userId}/reels`);
+            setUserReels(data.reels || []);
+        } catch (error) {
+            console.error('Failed to load reels', error);
         }
     };
 
@@ -436,7 +451,7 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                             <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-text-base flex items-center gap-3">
                                 {activeTab === 'moments' ? 'Gallery' : activeTab === 'reels' ? 'Reels' : activeTab === 'timeline' ? 'Crossings' : 'Connections'} 
                                 <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest animate-pulse-slow">
-                                    {activeTab === 'moments' ? posts.length : activeTab === 'reels' ? profile?.reels_count : activeTab === 'timeline' ? visitors.length : connections.length} Items
+                                    {activeTab === 'moments' ? posts.length : activeTab === 'reels' ? userReels.length : activeTab === 'timeline' ? visitors.length : connections.length} Items
                                 </div>
                             </h2>
                         </div>
@@ -484,6 +499,46 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                                             <LayoutGrid className="w-8 h-8 text-slate-300" />
                                         </div>
                                         <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No moments captured yet</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* TAB CONTENT: REELS GRID */}
+                        {activeTab === 'reels' && (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {userReels.length > 0 ? (
+                                    userReels.map((reel, idx) => (
+                                        <motion.div 
+                                            key={reel.id}
+                                            whileHover={{ y: -5, scale: 1.02 }}
+                                            onClick={() => navigate('/dashboard/reels', { state: { initialIndex: idx, initialReels: userReels } })}
+                                            className="aspect-[9/16] rounded-[28px] bg-slate-200 dark:bg-white/5 overflow-hidden group cursor-pointer relative border border-white/40 dark:border-white/5"
+                                        >
+                                            <video 
+                                                src={`${BACKEND}${reel.video_url}`}
+                                                className="w-full h-full object-cover"
+                                                muted loop
+                                                onMouseEnter={(e) => e.currentTarget.play()}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.pause();
+                                                    e.currentTarget.currentTime = 0;
+                                                }}
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center gap-3 text-white font-black text-[10px] uppercase">
+                                                    <span className="flex items-center gap-1.5"><Heart className="w-3 h-3 text-pink-400 fill-pink-400" /> {reel.likes_count || 0}</span>
+                                                    <span className="flex items-center gap-1.5"><MessageCircle className="w-3 h-3" /> {reel.comments_count || 0}</span>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                ) : (
+                                    <div className="col-span-full py-24 text-center m-auto">
+                                        <div className="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-[24px] flex items-center justify-center mx-auto mb-6">
+                                            <Camera className="w-8 h-8 text-slate-300" />
+                                        </div>
+                                        <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No reels published</p>
                                     </div>
                                 )}
                             </div>
