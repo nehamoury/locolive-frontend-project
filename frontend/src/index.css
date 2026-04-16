@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+:root {
+  --color-bg-base: #FFF5F7;
+  --color-bg-sidebar: #ffffff;
+  --color-bg-card: #ffffff;
+  --color-text-base: #1F1122;
+  --color-text-muted: #6B5E6E;
+  --color-border-base: #FFDFE8;
+  --color-primary-rgb: 255, 0, 110;
+  --color-secondary-rgb: 131, 58, 180;
+  --color-accent-rgb: 253, 29, 29;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-input-bg: rgba(255, 255, 255, 0.95);
+  --glass-input-border: rgba(255, 0, 110, 0.1);
+  --font-brand: "Plus Jakarta Sans", "Inter", sans-serif;
+}
+
+.dark {
+  --color-bg-base: #020617;
+  --color-bg-sidebar: #0f172a;
+  --color-bg-card: #1e293b;
+  --color-text-base: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-border-base: #1e293b;
+  --color-primary-rgb: 236, 72, 153;
+  --color-accent-rgb: 168, 85, 247;
+  --glass-bg: rgba(15, 23, 42, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-input-bg: rgba(30, 41, 59, 0.9);
+  --glass-input-border: rgba(255, 255, 255, 0.12);
+}
+
+@theme {
+  --color-primary: #FF006E;
+  --color-secondary: #833AB4;
+  --color-accent: #FD1D1D;
+  --font-brand: var(--font-brand);
+  --font-poppins: var(--font-brand);
+
+  --color-bg-base: var(--color-bg-base);
+  --color-bg-sidebar: var(--color-bg-sidebar);
+  --color-bg-card: var(--color-bg-card);
+  --color-text-base: var(--color-text-base);
+  --color-text-muted: var(--color-text-muted);
+  --color-border-base: var(--color-border-base);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-base);
+    font-family: var(--font-poppins);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 10px 40px -10px rgba(255, 0, 110, 0.08);
+  }
+
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, #FF006E, #833AB4);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #FF006E, #833AB4);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .glass-input {
+    background: var(--glass-input-bg);
+    border: 1px solid var(--glass-input-border);
+    color: var(--color-text-base);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .glass-premium {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  .dark .glass-premium {
+    background: rgba(15, 23, 42, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-dark {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .pulse-status {
+    animation: status-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Responsive & Safe Area Utilities */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 24px);
+  }
+
+  .mobile-card-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6;
+  }
+
+  .mobile-padding {
+    @apply px-4 sm:px-6 md:px-8;
+  }
+
+  /* Contrast Improvements */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 10px 40px -10px rgba(var(--color-primary-rgb), 0.08);
+    background-clip: padding-box;
+  }
+
+  @keyframes status-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(0.9);
+    }
+  }
+}
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

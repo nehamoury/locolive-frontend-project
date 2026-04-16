@@ -1,0 +1,15 @@
+﻿
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/components/chat/MessageItem.tsx(11,55): error TS6133: 'sender' is declared but its value is never read.
+src/components/map/Marker.tsx(1,1): error TS6133: 'FC' is declared but its value is never read.
+src/components/story/StoryBar.tsx(1,1): error TS6133: 'FC' is declared but its value is never read.
+src/hooks/useAuth.ts(1,20): error TS6133: 'useEffect' is declared but its value is never read.
+src/hooks/useAuth.ts(4,16): error TS6133: 'setUser' is declared but its value is never read.
+src/hooks/useAuth.ts(5,19): error TS6133: 'setLoading' is declared but its value is never read.
+src/layouts/AuthLayout.tsx(1,1): error TS6133: 'FC' is declared but its value is never read.
+src/layouts/MainLayout.tsx(1,1): error TS6133: 'FC' is declared but its value is never read.
+src/pages/CreatePost.tsx(2,27): error TS6133: 'ImageIcon' is declared but its value is never read.
+src/pages/dashboard/Profile.tsx(11,36): error TS6133: 'onLogout' is declared but its value is never read.
+src/pages/dashboard/Profile.tsx(15,10): error TS6133: 'archivedStories' is declared but its value is never read.
