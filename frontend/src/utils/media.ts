@@ -1,10 +1,17 @@
-const BACKEND_URL = 'http://localhost:8080';
+// Get backend URL from environment variable or use fallback
+const getBackendUrl = () => {
+  if (typeof window !== 'undefined' && import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  return 'http://localhost:8080';
+};
 
 /**
  * Safely constructs a full URL for media assets.
  * Handles absolute URLs, relative paths, and provides fallback for null/undefined.
  */
 export const getMediaUrl = (path: string | null | undefined, fallback: string = ''): string => {
+  const BACKEND_URL = getBackendUrl();
   if (!path || typeof path !== 'string') {
     return fallback;
   }
