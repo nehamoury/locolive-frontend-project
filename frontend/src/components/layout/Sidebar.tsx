@@ -3,7 +3,7 @@ import { Home, Compass, User, Plus, Users, LogOut, ChevronLeft, ChevronRight, Vi
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePWA } from '../../hooks/usePWA';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 
 interface NavItemProps {
@@ -20,11 +20,11 @@ const NavItem = ({ icon, label, active, badge, onClick, color, isCollapsed }: Na
     onClick={onClick}
     className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} px-4 py-3 rounded-2xl transition-all duration-300 relative group cursor-pointer
       ${active
-        ? 'bg-brand-gradient text-white shadow-lg shadow-primary/20'
+        ? 'text-primary bg-primary/5'
         : 'text-text-muted hover:bg-primary/5 hover:text-primary'
       }`}
   >
-    <div className={`relative flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${active ? 'text-white' : color || 'text-text-muted group-hover:text-primary'}`}>
+    <div className={`relative flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${active ? 'text-primary' : color || 'text-text-muted group-hover:text-primary'}`}>
       {icon}
       {badge !== undefined && badge > 0 && (
         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary rounded-full text-[10px] font-bold text-white flex items-center justify-center border-2 border-bg-sidebar">
@@ -33,12 +33,12 @@ const NavItem = ({ icon, label, active, badge, onClick, color, isCollapsed }: Na
       )}
     </div>
     {!isCollapsed && (
-      <span className={`ml-3.5 font-semibold text-[14px] tracking-tight ${active ? 'text-white' : 'text-text-muted group-hover:text-primary'}`}>
+      <span className={`ml-3.5 font-bold text-[14px] tracking-tight ${active ? 'text-primary' : 'text-text-muted group-hover:text-primary'}`}>
         {label}
       </span>
     )}
     {active && !isCollapsed && (
-      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white/80" />
+      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
     )}
   </button>
 );
@@ -160,13 +160,11 @@ const Sidebar: FC<SidebarProps> = ({
               onClick={() => setActiveTab('profile')}
             >
               <div className="w-full h-full rounded-full bg-bg-sidebar overflow-hidden">
-                {user?.avatar_url ? (
-                  <img src={`${BACKEND}${user.avatar_url}`} alt="avatar" className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary font-black text-sm">
-                    {user?.username?.charAt(0)?.toUpperCase()}
-                  </div>
-                )}
+                <img 
+                  src={getMediaUrl(user?.avatar_url, FALLBACKS.AVATAR(user?.username))} 
+                  alt="avatar" 
+                  className="w-full h-full rounded-full object-cover" 
+                />
               </div>
             </div>
 

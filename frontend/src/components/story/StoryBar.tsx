@@ -1,6 +1,6 @@
 import { type FC } from 'react';
 import { Plus } from 'lucide-react';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 interface StoryBarProps {
   stories: any[];
@@ -34,7 +34,7 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
           <div className="w-full h-full rounded-full border-[2.5px] border-bg-card bg-bg-card overflow-hidden flex items-center justify-center">
             {user?.avatar_url || (hasMyStories && myStories[0].avatar_url) ? (
               <img 
-                src={user?.avatar_url?.startsWith('http') ? user.avatar_url : `${BACKEND}${user?.avatar_url || myStories[0].avatar_url}`} 
+                src={getMediaUrl(user?.avatar_url || myStories[0]?.avatar_url, FALLBACKS.AVATAR(user?.username))} 
                 alt="My Story" 
                 className="w-full h-full object-cover" 
               />
@@ -78,7 +78,7 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
               <div className="w-full h-full rounded-full border-[2.5px] border-bg-card bg-bg-card overflow-hidden">
                 {story?.avatar_url ? (
                   <img 
-                    src={story.avatar_url.startsWith('http') ? story.avatar_url : `${BACKEND}${story.avatar_url}`} 
+                    src={getMediaUrl(story.avatar_url, FALLBACKS.AVATAR(story.username))} 
                     alt={story.username} 
                     className="w-full h-full object-cover" 
                   />

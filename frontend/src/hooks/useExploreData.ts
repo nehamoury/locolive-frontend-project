@@ -174,8 +174,24 @@ export const useExploreData = (position: { lat: number; lng: number } | null) =>
     };
   }, [fetchCrossings]);
 
+  const removeSuggestedUser = useCallback((userId: string) => {
+    setData(prev => ({
+      ...prev,
+      suggestedUsers: prev.suggestedUsers.filter(u => u.id !== userId)
+    }));
+  }, []);
+
+  const removeNearbyUser = useCallback((userId: string) => {
+    setData(prev => ({
+      ...prev,
+      nearbyUsers: prev.nearbyUsers.filter(u => u.id !== userId)
+    }));
+  }, []);
+
   return {
     ...data,
+    removeSuggestedUser,
+    removeNearbyUser,
     refresh: {
       nearby: fetchNearby,
       crossings: fetchCrossings,

@@ -3,6 +3,7 @@ import { Heart, CheckCircle2, User, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../../utils/helpers';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
+import { isUserOnline } from '../../utils/presence';
 
 interface CastingUser {
   id: string;
@@ -69,7 +70,7 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
         </button>
 
         {/* Online Status Indicator */}
-        {user.is_online && (
+        {isUserOnline(user.last_active_at, user.is_online) && (
           <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-bg-card/80 backdrop-blur-md rounded-full shadow-sm border border-border-base/50">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
             <span className="text-[9px] font-black text-text-base uppercase tracking-tighter">Live</span>

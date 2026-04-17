@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import api from '../../services/api';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 interface Reel {
   id: string;
@@ -41,6 +41,19 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [showFullCaption, setShowFullCaption] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (!isActive || !videoRef.current) return;
+    
+    const video = videoRef.current;
+    const updateProgress = () => {
+      setProgress((video.currentTime / video.duration) * 100);
+    };
+    
+    video.addEventListener('timeupdate', updateProgress);
+    return () => video.removeEventListener('timeupdate', updateProgress);
+  }, [isActive]);
 
   useEffect(() => {
     if (isActive) {
@@ -150,7 +163,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <video
           ref={bgVideoRef}
-          src={`${BACKEND}${reel.video_url}`}
+          src={getMediaUrl(reel.video_url)}
           className="w-full h-full object-cover blur-2xl scale-110 opacity-40 brightness-75"
           muted
           playsInline
@@ -162,7 +175,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
       {/* Primary High-Fidelity Video Foreground */}
       <video
         ref={videoRef}
-        src={`${BACKEND}${reel.video_url}`}
+        src={getMediaUrl(reel.video_url)}
         className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
         loop
         muted={muted}
@@ -188,121 +201,124 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent via-40% to-black pointer-events-none" />
 
       {/* Right Side Actions: High-Impact Vertical Stack */}
-      <div className="absolute right-3.5 bottom-20 flex flex-col items-center gap-7 z-20">
+      <div className="absolute right-4 bottom-28 flex flex-col items-center gap-6 z-20">
+        <div className="flex flex-col items-center gap-7">
+            {/* Like */}
+            <div className="flex flex-col items-center gap-1.5">
+            <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleLike}
+                aria-label={liked ? "Unlike" : "Like"}
+                className={`flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${liked ? 'bg-primary/20' : 'bg-white/5'}`}
+            >
+                <Heart 
+                strokeWidth={2.8} 
+                className={`w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${liked ? 'fill-primary text-primary drop-shadow-[0_0_8px_rgba(255,0,110,0.5)]' : 'text-white'}`} 
+                />
+            </motion.button>
+            <span className="text-[12px] font-black text-white uppercase tracking-tighter drop-shadow-md">{likesCount}</span>
+            </div>
 
-        {/* Like */}
-        <div className="flex flex-col items-center gap-1.5">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleLike}
-            aria-label={liked ? "Unlike" : "Like"}
-            className="flex items-center justify-center transition-all duration-300"
-          >
-            <Heart 
-              strokeWidth={2.8} 
-              className={`w-7 h-7 ${liked ? 'fill-primary text-primary drop-shadow-[0_0_8px_rgba(255,0,110,0.5)]' : 'text-white'}`} 
-            />
-          </motion.button>
-          <span className="text-[11px] font-bold text-white drop-shadow-lg">{likesCount}</span>
-        </div>
+            {/* Comment */}
+            <div className="flex flex-col items-center gap-1.5">
+            <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onToggleComments}
+                aria-label="View comments"
+                className="flex items-center justify-center w-12 h-12 rounded-full bg-white/5 text-white transition-all"
+            >
+                <MessageCircle strokeWidth={2.8} className="w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+            </motion.button>
+            <span className="text-[12px] font-black text-white uppercase tracking-tighter drop-shadow-md">{reel.comments_count}</span>
+            </div>
 
-        {/* Comment */}
-        <div className="flex flex-col items-center gap-1.5">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onToggleComments}
-            aria-label="View comments"
-            className="flex items-center justify-center text-white transition-all"
-          >
-            <MessageCircle strokeWidth={2.8} className="w-7 h-7" />
-          </motion.button>
-          <span className="text-[11px] font-bold text-white drop-shadow-lg">{reel.comments_count}</span>
-        </div>
+            {/* Share */}
+            <div className="flex flex-col items-center gap-1.5">
+            <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleShare}
+                aria-label="Share reel"
+                className="flex items-center justify-center w-12 h-12 rounded-full bg-white/5 text-white transition-all"
+            >
+                <Share2 strokeWidth={2.8} className="w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+            </motion.button>
+            </div>
 
-        {/* Share */}
-        <div className="flex flex-col items-center gap-1.5">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleShare}
-            aria-label="Share reel"
-            className="flex items-center justify-center text-white transition-all"
-          >
-            <Share2 strokeWidth={2.8} className="w-7 h-7" />
-          </motion.button>
-          <span className="text-[11px] font-bold text-white drop-shadow-lg">{reel.shares_count || 0}</span>
-        </div>
-
-        {/* Save */}
-        <div className="flex flex-col items-center gap-1.5">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleSave}
-            aria-label={saved ? "Unsave" : "Save"}
-            className="flex items-center justify-center transition-all duration-300"
-          >
-            <Bookmark 
-              strokeWidth={2.8} 
-              className={`w-7 h-7 ${saved ? 'fill-yellow-500 text-yellow-500' : 'text-white'}`} 
-            />
-          </motion.button>
-          <span className="text-[11px] font-bold text-white drop-shadow-lg">{reel.saves_count || 0}</span>
+            {/* Save */}
+            <div className="flex flex-col items-center gap-1.5">
+            <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleSave}
+                aria-label={saved ? "Unsave" : "Save"}
+                className={`flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${saved ? 'bg-yellow-500/20' : 'bg-white/5'}`}
+            >
+                <Bookmark 
+                strokeWidth={2.8} 
+                className={`w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${saved ? 'fill-yellow-500 text-yellow-500' : 'text-white'}`} 
+                />
+            </motion.button>
+            </div>
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.1 }}
+          whileHover={{ scale: 1.1, rotate: 90 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleMore}
           aria-label="More options"
-          className="flex items-center justify-center text-white/50 hover:text-white transition-all pt-1"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 text-white/50 hover:text-white transition-all"
         >
           <MoreVertical strokeWidth={2} className="w-5 h-5" />
         </motion.button>
       </div>
 
       {/* Bottom Information: Compace & Low-profile */}
-      <div className="absolute bottom-10 left-4 right-16 z-20 flex flex-col gap-2.5">
+      <div className="absolute bottom-8 left-4 right-16 z-20 flex flex-col gap-3 py-4">
         
         {/* Identity & Follow Layer */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={handleProfileClick}>
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={handleProfileClick}>
           <div className="relative">
-            <div className="w-9 h-9 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600">
-              <div className="w-full h-full rounded-full border border-black overflow-hidden bg-gray-900">
-                {reel.avatar_url ? (
-                  <img src={`${BACKEND}${reel.avatar_url}`} alt={reel.username} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white font-black text-sm bg-gray-800">
-                    {reel.username.charAt(0).toUpperCase()}
-                  </div>
-                )}
+            <div className="w-11 h-11 rounded-[16px] p-0.5 bg-gradient-to-tr from-primary via-accent to-secondary shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
+              <div className="w-full h-full rounded-[14px] border border-black overflow-hidden bg-gray-900">
+                <img 
+                  src={getMediaUrl(reel.avatar_url, FALLBACKS.AVATAR(reel.username))} 
+                  alt={reel.username} 
+                  className="w-full h-full object-cover" 
+                />
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <h4 className="text-white font-bold text-sm tracking-tight drop-shadow-md">@{reel.username}</h4>
-            <span className="w-1 h-1 rounded-full bg-white/40" />
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleFollow();
-              }}
-              className="text-[12px] font-bold text-white hover:text-white/80 transition-all drop-shadow-md"
-            >
-              {isFollowing ? 'Unfollow' : 'Follow'}
-            </motion.button>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+                <h4 className="text-white font-black text-sm uppercase tracking-widest font-brand drop-shadow-md">@{reel.username}</h4>
+                <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollow();
+                }}
+                className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/20 transition-all"
+                >
+                {isFollowing ? 'Joined' : 'Join'}
+                </motion.button>
+            </div>
+            {reel.location_name && (
+                <p className="text-[10px] font-bold text-white/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
+                    <Sparkles className="w-2.5 h-2.5 text-primary" /> {reel.location_name}
+                </p>
+            )}
           </div>
         </div>
 
         {/* Caption Layer with Read More */}
         {reel.caption && (
-          <div className="max-w-[280px]">
-            <p className={`text-white text-[13px] font-medium leading-normal drop-shadow-md ${!showFullCaption ? 'line-clamp-2' : ''}`}>
+          <div className="max-w-[320px]">
+            <p className={`text-white text-[14px] font-medium leading-[1.6] font-body drop-shadow-lg ${!showFullCaption ? 'line-clamp-2' : ''}`}>
               {reel.caption}
             </p>
             {reel.caption.length > 60 && !showFullCaption && (
@@ -311,45 +327,40 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
                   e.stopPropagation();
                   setShowFullCaption(true);
                 }}
-                className="text-white/60 text-[12px] font-bold mt-0.5 hover:text-white transition-colors"
+                className="text-primary text-[10px] font-black uppercase tracking-widest mt-2 hover:text-primary/80 transition-colors"
               >
-                ... more
-              </button>
-            )}
-            {showFullCaption && (
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowFullCaption(false);
-                }}
-                className="text-white/60 text-[12px] font-bold mt-0.5 hover:text-white transition-colors"
-              >
-                less
+                + read full
               </button>
             )}
           </div>
         )}
 
         {/* Audio Layer - Directly below username/caption */}
-        <div className="flex items-center gap-1.5 text-white/90 drop-shadow-md">
-          <div className="w-3.5 h-3.5 flex items-center justify-center">
-            <Volume2 className="w-3.5 h-3.5" />
-          </div>
-          <div className="text-[11px] font-medium tracking-wide animate-marquee whitespace-nowrap overflow-hidden max-w-[180px]">
-            Original Audio • {reel.username}
-          </div>
-          
-          {reel.is_ai_generated && (
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="flex items-center gap-1 ml-2 px-1.5 py-0.5 bg-white/10 backdrop-blur-md rounded-[4px] border border-white/10"
-            >
-              <Sparkles className="w-2.5 h-2.5 text-primary" />
-              <span className="text-[7px] text-white font-bold uppercase tracking-wider">AI</span>
-            </motion.div>
-          )}
+        <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/5">
+                <Volume2 className="w-3 h-3 text-white/70" />
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/70 whitespace-nowrap overflow-hidden max-w-[140px]">
+                    {reel.username} • Original
+                </div>
+            </div>
+            
+            {reel.is_ai_generated && (
+                <div className="px-3 py-1.5 rounded-full bg-primary/10 backdrop-blur-md border border-primary/20 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+                    <span className="text-[10px] text-primary font-black uppercase tracking-widest">AI Generated</span>
+                </div>
+            )}
         </div>
+      </div>
+
+      {/* Progress Line */}
+      <div className="absolute bottom-0 inset-x-0 h-1 bg-white/10 z-30">
+        <motion.div 
+            className="h-full bg-primary shadow-[0_0_10px_rgba(255,0,110,0.8)]"
+            initial={false}
+            animate={{ width: `${progress}%` }}
+            transition={{ type: 'tween', ease: 'linear' }}
+        />
       </div>
 
       {/* Mute Overlay Toggle */}

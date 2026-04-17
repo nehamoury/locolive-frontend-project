@@ -10,7 +10,7 @@ interface EditProfileModalProps {
 }
 
 const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -47,16 +47,16 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
         avatarUrl = uploadRes.data.url;
       }
 
-      await api.put('/profile', {
+      const { data: updatedProfile } = await api.put('/profile', {
         full_name: fullName,
         bio: bio,
         avatar_url: avatarUrl,
       });
 
+      updateUser(updatedProfile);
       setSuccess(true);
       setTimeout(() => {
         onClose();
-        window.location.reload(); // Refresh to show new data
       }, 500);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to update profile');

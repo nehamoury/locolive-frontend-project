@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { toast } from 'react-hot-toast';
 import type { ExploreTab } from '../../pages/dashboard/ExplorePage';
 import CastingGrid from '../casting/CastingGrid';
 import { ExploreAllFeed } from './feeds/ExploreAllFeed';
@@ -31,13 +32,17 @@ interface ExploreFeedProps {
     stories: () => void;
     heatmap: () => void;
   };
+  onRemoveSuggested: (id: string) => void;
+  onRemoveNearby: (id: string) => void;
 }
 
 export const ExploreFeed: React.FC<ExploreFeedProps> = ({ 
   activeTab, 
   data, 
   onUserSelect,
-  onRefresh
+  onRefresh,
+  onRemoveSuggested,
+  onRemoveNearby
 }) => {
   const renderContent = () => {
     switch (activeTab) {
@@ -51,13 +56,22 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
             onUserSelect={onUserSelect}
             onMatch={async (id) => {
               try {
+                // Optimistic removal
+                onRemoveNearby(id);
+                onRemoveSuggested(id);
                 await api.post('/connections/request', { target_user_id: id });
+                toast.success('Connection Request Sent!');
               } catch (err) {
                 console.error('Match failed:', err);
+                toast.error('Failed to send request');
+                onRefresh.nearby();
+                onRefresh.suggested();
               }
             }}
             onPass={(id) => {
-              console.log('Pass for', id);
+              onRemoveNearby(id);
+              onRemoveSuggested(id);
+              toast.success('User skipped');
             }}
           />
         );
@@ -86,13 +100,18 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
             loading={data.loading.suggested}
             onMatch={async (id) => {
               try {
+                onRemoveSuggested(id);
                 await api.post('/connections/request', { target_user_id: id });
+                toast.success('Connection Request Sent!');
               } catch (err) {
                 console.error('Match failed:', err);
+                toast.error('Failed to send request');
+                onRefresh.suggested();
               }
             }}
             onPass={(id) => {
-              console.log('Pass for', id);
+              onRemoveSuggested(id);
+              toast.success('User skipped');
             }}
             onViewProfile={onUserSelect || (() => {})}
           />

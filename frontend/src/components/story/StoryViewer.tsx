@@ -51,6 +51,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
   const [menuOpen, setMenuOpen] = useState(false);
   const [sendingReply, setSendingReply] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [flyingEmoji, setFlyingEmoji] = useState<{id: number, emoji: string} | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -105,17 +106,30 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
   }, [muted]);
 
   const handleLike = async (emoji: string = '❤️') => {
-    try { await api.post(`/stories/${story.id}/react`, { emoji }); } catch { /* ignore */ }
+    setFlyingEmoji({ id: Date.now(), emoji });
+    setTimeout(() => setFlyingEmoji(null), 1000);
+    try { 
+      await api.post(`/stories/${story.id}/react`, { emoji }); 
+      toast.success(`Reaction ${emoji} sent`);
+    } catch (err: any) { 
+      toast.error(err.response?.data?.error || 'Failed to send reaction'); 
+    }
   };
 
   const handleReply = async () => {
     if (!reply.trim()) return;
     setSendingReply(true);
     try {
-      await api.post('/messages', { receiver_id: story.user_id, content: reply });
-    } catch { /* ignore */ }
-    setReply('');
-    setSendingReply(false);
+      const finalMsg = `[Story Reply]: ${reply}`;
+      await api.post('/messages', { receiver_id: story.user_id, content: finalMsg });
+      toast.success(`Reply sent to ${story.username}`);
+      setReply('');
+      setPaused(false);
+    } catch (err: any) { 
+      toast.error(err.response?.data?.error || 'Failed to send reply'); 
+    } finally {
+      setSendingReply(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -234,6 +248,22 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
             {/* Dark gradient overlay for bottom text */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
           </div>
+
+          {/* Flying Emoji Reaction Overlay */}
+          <AnimatePresence>
+              {flyingEmoji && (
+                  <motion.div 
+                     key={flyingEmoji.id}
+                     initial={{ opacity: 0, y: 100, scale: 0.5 }}
+                     animate={{ opacity: 1, y: -200, scale: 2 }}
+                     exit={{ opacity: 0 }}
+                     className="absolute bottom-32 left-1/2 -translate-x-1/2 text-7xl pointer-events-none z-[6000] drop-shadow-2xl"
+                     transition={{ duration: 0.8, ease: "easeOut" }}
+                  >
+                     {flyingEmoji.emoji}
+                  </motion.div>
+              )}
+          </AnimatePresence>
 
           {/* Top Bar Section */}
           <div className="absolute top-0 inset-x-0 p-5 pt-6 space-y-4 z-[100]">

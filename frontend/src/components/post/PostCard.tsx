@@ -23,7 +23,7 @@ const timeAgo = (date: string) => {
   return new Date(date).toLocaleDateString('en', { month: 'short', day: 'numeric' });
 };
 
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageClick }) => {
   const [liked, setLiked] = useState<boolean>(post.liked_by_viewer ?? false);
@@ -123,19 +123,11 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
           <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-primary to-accent shadow-sm group-hover/header:scale-105 transition-transform duration-300">
             <div className="w-full h-full rounded-full bg-bg-card p-[1.5px]">
               <div className="w-full h-full rounded-full overflow-hidden bg-bg-sidebar flex items-center justify-center">
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl.startsWith('http') ? avatarUrl : `${BACKEND}${avatarUrl}`}
-                    className="w-full h-full object-cover"
-                    alt=""
-                  />
-                ) : (
-                  <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-primary font-black text-sm">
-                      {post.username?.charAt(0)?.toUpperCase()}
-                    </span>
-                  </div>
-                )}
+                <img
+                  src={getMediaUrl(avatarUrl, FALLBACKS.AVATAR(post.username))}
+                  className="w-full h-full object-cover"
+                  alt=""
+                />
               </div>
             </div>
           </div>
@@ -215,7 +207,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             <>
               <video
                 ref={videoRef}
-                src={`${BACKEND}${post.media_url}`}
+                src={getMediaUrl(post.media_url)}
                 className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover transition-all duration-300"
                 muted={isMuted}
                 loop
@@ -234,7 +226,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             </>
           ) : (
             <img
-              src={post.media_url.startsWith('http') ? post.media_url : `${BACKEND}${post.media_url}`}
+              src={getMediaUrl(post.media_url, FALLBACKS.POST)}
               alt=""
               className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover"
             />

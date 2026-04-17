@@ -52,12 +52,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
   };
 
-  const updateUser = (partialUser: Partial<User>) => {
-    setUser(prev => {
+  const updateUser = (userData: Partial<User>) => {
+    setUser((prev) => {
       if (!prev) return null;
-      const updatedUser = { ...prev, ...partialUser };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      return updatedUser;
+      const newUser = { ...prev, ...userData };
+      localStorage.setItem('user', JSON.stringify(newUser));
+      return newUser;
     });
   };
 

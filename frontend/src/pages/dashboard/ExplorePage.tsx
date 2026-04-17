@@ -51,7 +51,9 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
     suggestedUsers, 
     mapStories, 
     loading,
-    refresh
+    refresh,
+    removeSuggestedUser,
+    removeNearbyUser
   } = useExploreData(position);
 
   const tabs = [
@@ -141,6 +143,8 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
                   data={{ nearbyUsers, crossings, suggestedUsers, mapStories, loading }}
                   onUserSelect={onUserSelect}
                   onRefresh={refresh}
+                  onRemoveSuggested={removeSuggestedUser}
+                  onRemoveNearby={removeNearbyUser}
                 />
               </motion.div>
             ) : (

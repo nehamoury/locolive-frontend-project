@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
+import { isUserOnline } from '../../utils/presence';
 
 interface ConnectionsViewProps {
   initialTab?: 'suggestions' | 'requests' | 'my-connections';
@@ -322,7 +323,9 @@ const SuggestionCard = ({ user, onConnect, onView }: any) => {
               <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
             </div>
           </div>
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-bg-card rounded-full shadow-sm" />
+          {isUserOnline(user.last_active_at) && (
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-bg-card rounded-full shadow-sm" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-black text-text-base leading-tight truncate">@{user.username}</h3>
@@ -405,6 +408,9 @@ const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => (
         <div className="w-full h-full rounded-[18px] bg-bg-base overflow-hidden flex items-center justify-center">
           <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
         </div>
+        {isUserOnline(user.last_active_at) && (
+          <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-bg-card rounded-full shadow-sm" />
+        )}
       </div>
       <div className="flex-1 min-w-0 cursor-pointer" onClick={onView}>
         <h4 className="font-black text-text-base text-[15px] leading-tight truncate">@{user.username}</h4>

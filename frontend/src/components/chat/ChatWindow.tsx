@@ -7,9 +7,7 @@ import {
   Video,
   Plus,
   Smile,
-  Paperclip,
-  MessageCircle,
-  MoreHorizontal
+  MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../../hooks/useChat';
@@ -105,14 +103,14 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all">
-            <Phone className="w-5 h-5" />
+          <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-[#f0f2f5] rounded-full transition-all">
+            <Phone className="w-4 h-4" />
           </button>
-          <button className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all">
-            <Video className="w-5 h-5" />
+          <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-[#f0f2f5] rounded-full transition-all">
+            <Video className="w-4 h-4" />
           </button>
-          <button className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all">
-            <MoreHorizontal className="w-5 h-5" />
+          <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-[#f0f2f5] rounded-full transition-all">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
           </button>
         </div>
       </header>
@@ -174,10 +172,10 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
                       <div className="flex flex-col">
                         {/* Bubble */}
                         <div className={`
-                          px-5 py-3 text-[13.5px] font-medium leading-relaxed shadow-sm
+                          px-5 py-3.5 text-[14px] font-medium leading-relaxed
                           ${isMe
-                            ? 'bg-brand-gradient text-white'
-                            : 'bg-white text-gray-800 border border-gray-100'}
+                            ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-[24px] rounded-br-sm shadow-xl shadow-pink-500/20'
+                            : 'bg-[#f0f2f5] dark:bg-white/10 text-gray-800 dark:text-gray-100 rounded-[24px] rounded-tl-sm'}
                         `}>
                           {msg.content}
                         </div>
@@ -206,11 +204,15 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
       </div>
 
       {/* Input Area */}
-      <div className="px-10 py-8 bg-white/40 backdrop-blur-3xl sticky bottom-0">
-        <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-center gap-4 bg-white/80 p-2.5 rounded-[30px] border border-gray-100 shadow-2xl shadow-gray-200/50">
+      <div className="px-6 pb-6 pt-2 bg-transparent sticky bottom-0">
+        <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-center gap-3 bg-white/90 backdrop-blur-xl p-2 rounded-full border border-gray-100/50 shadow-2xl shadow-gray-200/40">
           
-          <button type="button" className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all">
+          <button type="button" className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all">
             <Plus className="w-5 h-5" />
+          </button>
+          
+          <button type="button" className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
           </button>
 
           <input
@@ -219,15 +221,12 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent py-2.5 text-[14px] font-bold text-gray-800 outline-none placeholder:font-bold placeholder:text-gray-300"
+            className="flex-1 bg-transparent py-2.5 text-[14px] font-semibold text-gray-800 outline-none placeholder:font-medium placeholder:text-gray-400"
           />
 
-          <div className="flex items-center gap-1.5 mr-1">
+          <div className="flex items-center gap-1.5 mr-1 shrink-0">
             <button type="button" className="p-2 text-gray-400 hover:text-gray-900 transition-all">
               <Smile className="w-5 h-5" />
-            </button>
-            <button type="button" className="p-2 text-gray-400 hover:text-gray-900 transition-all">
-              <Paperclip className="w-5 h-5" />
             </button>
             
             <motion.button
@@ -237,7 +236,7 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
               whileTap={{ scale: 0.95 }}
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-xl ${
                 content.trim()
-                  ? 'bg-brand-gradient text-white shadow-pink-500/30'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-pink-500/30'
                   : 'bg-gray-100 text-gray-300'
               }`}
             >

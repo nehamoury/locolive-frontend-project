@@ -2,6 +2,7 @@ import React, { useState, useEffect, type FC } from 'react';
 import { Heart, UserPlus, MapPin, Bell, Eye, MessageCircle, ThumbsUp } from 'lucide-react';
 import api from '../../services/api';
 import { BACKEND } from '../../utils/config';
+import { toast } from 'react-hot-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -125,11 +126,21 @@ const NotifCard = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                const reqId = typeof notif.related_user_id === 'string' ? notif.related_user_id : notif.related_user_id?.UUID;
-                if (!reqId) return;
+                const rawId = notif.related_user_id;
+                const reqId = typeof rawId === 'string' ? rawId : (rawId?.UUID || rawId?.uuid || rawId?.String || rawId?.string || null);
+                if (!reqId) {
+                  toast.error('Invalid request ID');
+                  return;
+                }
                 api.post('/connections/update', { requester_id: reqId, status: 'accepted' })
-                  .then(() => onRead(notif.id)) // Mark as read or visually update
-                  .catch(err => console.error('Failed to accept:', err));
+                  .then(() => {
+                    toast.success('Connection request accepted');
+                    onRead(notif.id);
+                  })
+                  .catch(err => {
+                    console.error('Failed to accept:', err);
+                    toast.error(err.response?.data?.error || 'Failed to accept request');
+                  });
               }}
               className="px-4 py-1.5 bg-primary text-white rounded-full text-xs font-bold transition-all shadow-sm shadow-primary/20 active:scale-95 cursor-pointer"
             >
@@ -138,11 +149,21 @@ const NotifCard = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                const reqId = typeof notif.related_user_id === 'string' ? notif.related_user_id : notif.related_user_id?.UUID;
-                if (!reqId) return;
-                api.post('/connections/update', { requester_id: reqId, status: 'blocked' })
-                  .then(() => onRead(notif.id)) // Mark as read or visually update
-                  .catch(err => console.error('Failed to decline:', err));
+                const rawId = notif.related_user_id;
+                const reqId = typeof rawId === 'string' ? rawId : (rawId?.UUID || rawId?.uuid || rawId?.String || rawId?.string || null);
+                if (!reqId) {
+                  toast.error('Invalid request ID');
+                  return;
+                }
+                api.post('/connections/update', { requester_id: reqId, status: 'blocked' }) // Assume 'blocked' is declined
+                  .then(() => {
+                    toast.success('Connection request declined');
+                    onRead(notif.id);
+                  })
+                  .catch(err => {
+                    console.error('Failed to decline:', err);
+                    toast.error(err.response?.data?.error || 'Failed to decline request');
+                  });
               }}
               className="px-4 py-1.5 bg-border-base hover:bg-border-base/80 text-text-base rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer"
             >

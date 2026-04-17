@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Video, MapPin, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -19,6 +19,22 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+
+    // Cleanup: Revoke URL to prevent memory leaks
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [file]);
 
   const handleFileSelect = (selectedFile: File) => {
     setFile(selectedFile);
@@ -113,12 +129,12 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
 
           {/* LEFT: Media Section */}
           <div className="relative w-full md:w-[380px] h-[360px] md:h-auto bg-zinc-950 flex flex-col items-center justify-center border-r border-border-base overflow-hidden">
-            {file ? (
+            {file && previewUrl ? (
               <div className="w-full h-full relative group">
                 {file.type.startsWith('image/') ? (
-                    <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" alt="" />
+                    <img src={previewUrl} className="w-full h-full object-cover" alt="" />
                 ) : (
-                    <video src={URL.createObjectURL(file)} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                    <video src={previewUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
                 )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
                     <button 

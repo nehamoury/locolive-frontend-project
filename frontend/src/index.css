@@ -15,7 +15,8 @@
   --glass-border: rgba(255, 255, 255, 0.4);
   --glass-input-bg: rgba(255, 255, 255, 0.95);
   --glass-input-border: rgba(255, 0, 110, 0.1);
-  --font-brand: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-brand: "Outfit", "Plus Jakarta Sans", sans-serif;
+  --font-body: "Inter", "Inter Variable", sans-serif;
 }
 
 .dark {
@@ -38,6 +39,7 @@
   --color-secondary: #833AB4;
   --color-accent: #FD1D1D;
   --font-brand: var(--font-brand);
+  --font-body: var(--font-body);
   --font-poppins: var(--font-brand);
 
   --color-bg-base: var(--color-bg-base);
@@ -52,12 +54,31 @@
   body {
     background-color: var(--color-bg-base);
     color: var(--color-text-base);
-    font-family: var(--font-poppins);
+    font-family: var(--font-body);
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
 @layer utilities {
+  .glass-border-glow {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .glass-border-glow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.05));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
   .glass {
     background: var(--glass-bg);
     backdrop-filter: blur(16px);
@@ -122,11 +143,52 @@
   }
 
   .mobile-card-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6;
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .mobile-card-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .mobile-card-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .mobile-card-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .mobile-card-grid {
+      gap: 1.5rem;
+    }
   }
 
   .mobile-padding {
-    @apply px-4 sm:px-6 md:px-8;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .mobile-padding {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .mobile-padding {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
   }
 
   /* Contrast Improvements */

@@ -17,7 +17,6 @@ import NotificationsView from './NotificationsView';
 import ConnectionsView from './ConnectionsView';
 import SettingsView from './SettingsView';
 import SearchView from './SearchView';
-import MemberProfileDetail from './MemberProfileDetail';
 import { ManageHighlights } from './ManageHighlights';
 import ExplorePage from './ExplorePage';
 import ReelsView from '../../components/reels/ReelsView';
@@ -31,19 +30,6 @@ import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
 import ChatProfileSidebar from '../../components/chat/ChatProfileSidebar';
 import { IOSInstallBanner } from '../../components/ui/IOSInstallBanner';
-
-const MemberProfileWrapper = ({ onMessage }: { onMessage: (id: string) => void }) => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  if (!id) return <Navigate to="/dashboard/home" replace />;
-  return (
-    <MemberProfileDetail
-      userId={id}
-      onBack={() => navigate(-1)}
-      onMessage={onMessage}
-    />
-  );
-};
 
 const MessageThreadWrapper = ({
   onViewFullProfile,
@@ -350,7 +336,7 @@ const Dashboard = () => {
         } />
         <Route path="settings" element={<SettingsView onBack={() => navigate(`/dashboard/profile/${user?.id}`)} />} />
         <Route path="search" element={<SearchView onUserSelect={handleUserSelect} />} />
-        <Route path="user/:id" element={<MemberProfileWrapper onMessage={handleStartMessage} />} />
+        <Route path="user/:id" element={<Profile onLogout={logout} />} />
         <Route path="crossings" element={<Navigate to="/dashboard/explore?tab=crossings" replace />} />
         <Route path="casting" element={<Navigate to="/dashboard/explore?tab=casting" replace />} />
         <Route path="discovery" element={<Navigate to="/dashboard/explore?tab=all" replace />} />
