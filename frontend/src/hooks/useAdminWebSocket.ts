@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminStore } from '../stores/adminStore';
 import type { LiveActivity, AdminUser } from '../types/admin';
+import { WS_BASE_URL } from '../services/api';
 
 export const useAdminWebSocket = () => {
   const { addActivity } = useAdminStore();
@@ -13,15 +14,7 @@ export const useAdminWebSocket = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    // Get WebSocket URL from HTTP base URL
-    const baseUrl = import.meta.env.VITE_API_URL || (
-      typeof window !== 'undefined' 
-        ? (window.location.hostname === 'localhost' ? 'http://localhost:8080' : `http://${window.location.hostname}:8080`)
-        : 'http://localhost:8080'
-    );
-    const wsBaseUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
-    // Pass token in query string since WS doesn't support headers for auth easily
-    const socket = new WebSocket(`${wsBaseUrl}/admin/activity?token=${token}`);
+    const socket = new WebSocket(`${WS_BASE_URL}/api/admin/activity?token=${token}`);
 
     socket.onopen = () => {
       console.log('Admin Activity WebSocket Connected');

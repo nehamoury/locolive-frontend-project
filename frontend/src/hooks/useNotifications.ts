@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import api from '../services/api';
+import api, { WS_BASE_URL } from '../services/api';
 import toast from 'react-hot-toast';
 import { useSound } from '../context/SoundContext';
 
@@ -155,13 +155,7 @@ export const useNotifications = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const hostname = window.location.hostname;
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-    const fallbackUrl = isLocalhost ? 'http://localhost:8080' : `http://${hostname}:8080`;
-
-    const baseUrl = import.meta.env.VITE_API_URL || fallbackUrl;
-    const wsBaseUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
-    const wsUrl = `${wsBaseUrl}/ws/chat?token=${encodeURIComponent(token)}`;
+    const wsUrl = `${WS_BASE_URL}/api/ws/chat?token=${encodeURIComponent(token)}`;
 
     let isSubscribed = true;
     let reconnectTimeout: any = null;

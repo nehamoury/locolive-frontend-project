@@ -1,31 +1,23 @@
-// Get backend URL from environment variable or use fallback
-// Strips /api suffix since media files are served at the root (e.g., /uploads/...)
-const getBackendUrl = () => {
-  if (typeof window !== 'undefined' && import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '');
-  }
-  return 'http://localhost:8080';
-};
+import { HOST_URL } from '../services/api';
 
 /**
  * Safely constructs a full URL for media assets.
  * Handles absolute URLs, relative paths, and provides fallback for null/undefined.
  */
 export const getMediaUrl = (path: string | null | undefined, fallback: string = ''): string => {
-  const BACKEND_URL = getBackendUrl();
   if (!path || typeof path !== 'string') {
     return fallback;
   }
 
-  // If it's already an absolute URL, return as is
+  // Already an absolute URL — return as-is
   if (path.startsWith('http')) {
     return path;
   }
 
   // Ensure relative path starts with /
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  
-  return `${BACKEND_URL}${normalizedPath}`;
+
+  return `${HOST_URL}${normalizedPath}`;
 };
 
 /**
@@ -35,5 +27,5 @@ export const FALLBACKS = {
   AVATAR: (username?: string) => `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || 'default'}`,
   POST: 'https://api.dicebear.com/7.x/shapes/svg?seed=post',
   HIGHLIGHT: 'https://api.dicebear.com/7.x/shapes/svg?seed=highlight',
-  VAULT: 'https://api.dicebear.com/7.x/shapes/svg?seed=vault'
+  VAULT: 'https://api.dicebear.com/7.x/shapes/svg?seed=vault',
 };
