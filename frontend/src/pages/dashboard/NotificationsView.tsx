@@ -82,6 +82,7 @@ const NotifCard = ({
   notif: Notification;
   onRead: (id: string) => void;
 }) => {
+  const [status, setStatus] = useState<null | 'accepted' | 'declined'>(null);
   const cfg = getTypeConfig(notif.type);
   const initial = (notif.actor_full_name || notif.actor_username || '?').charAt(0).toUpperCase();
 
@@ -122,53 +123,64 @@ const NotifCard = ({
         
         {/* Inline Actions for Connection Requests */}
         {notif.type === 'connection_request' && notif.related_user_id && (
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const rawId = notif.related_user_id;
-                const reqId = typeof rawId === 'string' ? rawId : (rawId?.UUID || rawId?.uuid || rawId?.String || rawId?.string || null);
-                if (!reqId) {
-                  toast.error('Invalid request ID');
-                  return;
-                }
-                api.post('/connections/update', { requester_id: reqId, status: 'accepted' })
-                  .then(() => {
-                    toast.success('Connection request accepted');
-                    onRead(notif.id);
-                  })
-                  .catch(err => {
-                    console.error('Failed to accept:', err);
-                    toast.error(err.response?.data?.error || 'Failed to accept request');
-                  });
-              }}
-              className="px-4 py-1.5 bg-primary text-white rounded-full text-xs font-bold transition-all shadow-sm shadow-primary/20 active:scale-95 cursor-pointer"
-            >
-              Accept
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const rawId = notif.related_user_id;
-                const reqId = typeof rawId === 'string' ? rawId : (rawId?.UUID || rawId?.uuid || rawId?.String || rawId?.string || null);
-                if (!reqId) {
-                  toast.error('Invalid request ID');
-                  return;
-                }
-                api.post('/connections/update', { requester_id: reqId, status: 'blocked' }) // Assume 'blocked' is declined
-                  .then(() => {
-                    toast.success('Connection request declined');
-                    onRead(notif.id);
-                  })
-                  .catch(err => {
-                    console.error('Failed to decline:', err);
-                    toast.error(err.response?.data?.error || 'Failed to decline request');
-                  });
-              }}
-              className="px-4 py-1.5 bg-border-base hover:bg-border-base/80 text-text-base rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer"
-            >
-              Decline
-            </button>
+          <div className="mt-3">
+            {!status ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rawId = notif.related_user_id;
+                    const reqId = typeof rawId === 'string' ? rawId : (rawId?.UUID || rawId?.uuid || rawId?.String || rawId?.string || null);
+                    if (!reqId) {
+                      toast.error('Invalid request ID');
+                      return;
+                    }
+                    api.post('/connections/update', { requester_id: reqId, status: 'accepted' })
+                      .then(() => {
+                        toast.success('Connection request accepted');
+                        setStatus('accepted');
+                        onRead(notif.id);
+                      })
+                      .catch(err => {
+                        console.error('Failed to accept:', err);
+                        toast.error(err.response?.data?.error || 'Failed to accept request');
+                      });
+                  }}
+                  className="px-4 py-1.5 bg-primary text-white rounded-full text-xs font-bold transition-all shadow-sm shadow-primary/20 active:scale-95 cursor-pointer"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rawId = notif.related_user_id;
+                    const reqId = typeof rawId === 'string' ? rawId : (rawId?.UUID || rawId?.uuid || rawId?.String || rawId?.string || null);
+                    if (!reqId) {
+                      toast.error('Invalid request ID');
+                      return;
+                    }
+                    api.post('/connections/update', { requester_id: reqId, status: 'blocked' }) // Assume 'blocked' is declined
+                      .then(() => {
+                        toast.success('Connection request declined');
+                        setStatus('declined');
+                        onRead(notif.id);
+                      })
+                      .catch(err => {
+                        console.error('Failed to decline:', err);
+                        toast.error(err.response?.data?.error || 'Failed to decline request');
+                      });
+                  }}
+                  className="px-4 py-1.5 bg-border-base hover:bg-border-base/80 text-text-base rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                >
+                  Decline
+                </button>
+              </div>
+            ) : (
+              <div className={`text-xs font-black uppercase tracking-widest px-1 py-1 flex items-center gap-2 ${status === 'accepted' ? 'text-green-500' : 'text-slate-400'}`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${status === 'accepted' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-slate-400'}`} />
+                {status === 'accepted' ? 'Accepted' : 'Declined'}
+              </div>
+            )}
           </div>
         )}
       </div>

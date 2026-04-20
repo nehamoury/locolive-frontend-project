@@ -1,9 +1,10 @@
 import { useState, useEffect, type FC } from 'react';
-import { MapPin, Plus, Search, Bell, MessageCircle } from 'lucide-react';
+import { MapPin, Plus, Bell, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { StoryBar } from '../../components/story/StoryBar';
 import PostCard from '../../components/post/PostCard';
 import api from '../../services/api';
+import UserSearch from '../../components/layout/UserSearch';
 
 interface HomeViewProps {
   stories: any[];
@@ -45,13 +46,8 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="hidden md:flex sticky top-0 z-40 bg-bg-card/95 backdrop-blur-xl px-6 pt-5 pb-5 items-center justify-between shrink-0 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border-b border-border-base transition-colors duration-300">
         {/* Search bar on the left */}
-        <div className="flex-1 relative group mr-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 group-focus-within:text-primary transition-colors" />
-          <input
-            type="text"
-            placeholder="Search people, posts, locations..."
-            className="w-full pl-12 pr-4 py-3 bg-bg-base border border-transparent rounded-full text-[13.5px] font-medium text-text-base placeholder-text-muted/50 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] hover:bg-bg-base/80 focus:outline-none focus:bg-bg-card focus:border-primary/20 focus:ring-4 focus:ring-primary/10 transition-all"
-          />
+        <div className="flex-1 mr-6">
+          <UserSearch mode="navbar" />
         </div>
 
         {/* Actions on the right */}

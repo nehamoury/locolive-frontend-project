@@ -2,6 +2,7 @@ import { useState, useRef, type FC, useEffect } from 'react';
 import { X, Camera, Type, MapPin, Zap, Clock, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import UniversalCropModal from '../ui/UniversalCropModal';
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -22,6 +23,8 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [cropSettings, setCropSettings] = useState<any>({ ratio: 'original', zoom: 1, position: { x: 0, y: 0 } });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -36,6 +39,8 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
     setMediaFile(file);
     setMediaPreview(URL.createObjectURL(file));
     setMediaType(file.type.startsWith('video') ? 'video' : 'image');
+    setCropSettings({ ratio: 'original', zoom: 1, position: { x: 0, y: 0 } });
+    setIsCropModalOpen(true);
   };
 
   const handleSubmit = async () => {
@@ -214,11 +219,27 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
                   className="aspect-[4/3] rounded-[24px] bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors overflow-hidden relative"
                 >
                   {mediaPreview ? (
-                    mediaType === 'video' ? (
-                      <video src={mediaPreview} className="w-full h-full object-cover" muted />
-                    ) : (
-                      <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
-                    )
+                    <div className="w-full h-full relative group">
+                        {mediaType === 'video' ? (
+                        <video src={mediaPreview} className="w-full h-full object-cover transition-all" style={{ transform: `scale(${cropSettings.zoom}) translate(${cropSettings.position.x/10}px, ${cropSettings.position.y/10}px)`, aspectRatio: cropSettings.ratio === 'original' ? 'auto' : cropSettings.ratio }} muted />
+                        ) : (
+                        <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover transition-all" style={{ transform: `scale(${cropSettings.zoom}) translate(${cropSettings.position.x/10}px, ${cropSettings.position.y/10}px)`, aspectRatio: cropSettings.ratio === 'original' ? 'auto' : cropSettings.ratio }} />
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); setIsCropModalOpen(true); }}
+                                className="px-6 py-2.5 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-full hover:scale-105 active:scale-95 transition-all"
+                            >
+                                Edit Frame
+                            </button>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                                className="px-6 py-2.5 bg-white/20 backdrop-blur-md text-white font-black uppercase tracking-widest text-[10px] rounded-full hover:scale-105 active:scale-95 transition-all border border-white/30"
+                            >
+                                Change
+                            </button>
+                        </div>
+                    </div>
                   ) : (
                     <>
                       <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-sm mb-3">
@@ -299,6 +320,17 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
             </div>
           </motion.div>
         </motion.div>
+      )}
+      {mediaFile && (
+          <UniversalCropModal
+            isOpen={isCropModalOpen}
+            file={mediaFile}
+            onConfirm={(settings) => {
+                setCropSettings(settings);
+                setIsCropModalOpen(false);
+            }}
+            onCancel={() => setIsCropModalOpen(false)}
+          />
       )}
     </AnimatePresence>
   );

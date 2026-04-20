@@ -72,9 +72,10 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
         setIsCreating(true);
         try {
             // 1. Create the highlight group
+            const selectedStory = archivedStories.find(s => s.id === selectedStories[0]);
             const { data: highlight } = await api.post('/highlights', {
                 title: newHighlight.title,
-                cover_url: newHighlight.cover_url || (archivedStories.find(s => s.id === selectedStories[0])?.media_url)
+                cover_url: newHighlight.cover_url || (selectedStory?.media_url || '')
             });
 
             // 2. Add selected stories to the group
@@ -192,15 +193,15 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
                                     </div>
                                 ))}
                                 {archivedStories.length === 0 && (
-                                    <div className="col-span-full py-32 flex flex-col items-center gap-6 text-center">
-                                        <div className="w-24 h-24 rounded-[45px] bg-slate-100 dark:bg-white/5 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-white/10">
-                                            <ImageIcon className="w-10 h-10 text-slate-300" />
+                                    <div className="col-span-full py-24 flex flex-col items-center gap-6 text-center bg-white/30 dark:bg-white/5 rounded-[40px] border-2 border-dashed border-border-base">
+                                        <div className="w-28 h-28 rounded-[50px] bg-brand-gradient flex items-center justify-center shadow-xl shadow-pink-500/20 rotate-3">
+                                            <FolderPlus className="w-12 h-12 text-white" />
                                         </div>
-                                        <div className="space-y-3">
-                                            <h3 className="text-2xl font-black text-slate-800 dark:text-text-base">Your Vault is Empty</h3>
-                                            <p className="text-sm font-medium text-slate-400 dark:text-text-muted/60 mt-1 max-w-xs mx-auto leading-relaxed">
-                                                To create highlights, you first need to archive your active stories. 
-                                                Open one of your stories and click <strong>"Archive to Vault"</strong>.
+                                        <div className="space-y-4 max-w-sm px-6">
+                                            <h3 className="text-2xl font-black text-slate-800 dark:text-text-base italic uppercase tracking-tight">Your Vault is Empty</h3>
+                                            <p className="text-[11px] font-bold text-slate-400 dark:text-text-muted/60 uppercase tracking-[0.2em] leading-loose">
+                                                Highlights are created from your <span className="text-pink-500">archived stories</span>. 
+                                                Open one of your active stories and click <span className="px-2 py-1 bg-pink-500/10 rounded-md text-pink-500 font-black">Archive to Vault</span> to begin your collection.
                                             </p>
                                         </div>
                                     </div>

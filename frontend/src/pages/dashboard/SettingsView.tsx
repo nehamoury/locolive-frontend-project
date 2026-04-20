@@ -54,8 +54,8 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
           who_can_see_stories: res.data.who_can_see_stories || 'everyone',
           show_location: res.data.show_location ?? true,
         }));
-      } catch (err) {
-        console.error('Failed to fetch privacy settings:', err);
+      } catch (_err) {
+        console.error('Failed to fetch privacy settings:', _err);
       }
     };
     fetchSettings();
@@ -66,7 +66,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
     try {
       await api.put('/profile', accountData);
       toast.success('Profile updated successfully');
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to update profile');
     } finally {
       setLoading(false);
@@ -88,7 +88,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
          });
       }
       toast.success('Privacy settings saved');
-    } catch (err) {
+    } catch (_err) {
       toast.error('Update failed');
     }
   };

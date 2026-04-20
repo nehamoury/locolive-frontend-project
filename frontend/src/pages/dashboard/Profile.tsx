@@ -36,15 +36,7 @@ interface ProfileData {
     interests: string[];
 }
 
-interface Crossing {
-    id: string;
-    user_id: string;
-    username: string;
-    full_name: string;
-    avatar_url: string;
-    last_crossing_at: string;
-    crossing_count: number;
-}
+
 
 interface ProfileProps {
     onLogout?: () => void;
@@ -61,10 +53,9 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
     const [posts, setPosts] = useState<any[]>([]);
     const [reels, setReels] = useState<any[]>([]);
     const [connections, setConnections] = useState<any[]>([]);
-    const [crossings, setCrossings] = useState<Crossing[]>([]);
     const [highlights, setHighlights] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'connections' | 'crossings' | 'posts' | 'reels'>('connections');
+    const [activeTab, setActiveTab] = useState<'connections' | 'posts' | 'reels'>('connections');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [viewingStories, setViewingStories] = useState<any[]>([]);
     
@@ -93,10 +84,9 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
             setProfile(data);
 
             // Fetch other data in parallel
-            const [postsRes, connRes, crossRes, highlightsRes, reelsRes, myConnsRes, mySentRes] = await Promise.all([
+            const [postsRes, connRes, highlightsRes, reelsRes, myConnsRes, mySentRes] = await Promise.all([
                 api.get(isOwnProfile ? '/posts/me' : `/users/${userId}/posts`).catch(() => ({ data: { posts: [] } })),
                 api.get(isOwnProfile ? '/connections' : `/users/${userId}/connections`).catch(() => ({ data: [] })),
-                isOwnProfile ? api.get('/crossings').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
                 api.get(isOwnProfile ? '/highlights/me' : `/users/${userId}/highlights`).catch(() => ({ data: [] })),
                 api.get(`/users/${userId}/reels`).catch(() => ({ data: [] })),
                 api.get('/connections').catch(() => ({ data: [] })),
@@ -105,7 +95,6 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
 
             setPosts(postsRes.data.posts || []);
             setConnections(connRes.data || []);
-            if (isOwnProfile) setCrossings(crossRes.data || []);
             setHighlights(highlightsRes.data || []);
             setReels(reelsRes.data?.reels || reelsRes.data || []);
 
@@ -150,7 +139,7 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
     const handleViewHighlight = async (highlightId: string) => {
         try {
             const res = await api.get(`/highlights/${highlightId}`);
-            const stories = Array.isArray(res.data) ? res.data : (res.data?.stories || []);
+            const stories = Array.isArray(res.data) ? res.data : (res.data?.stories || res.data?.archives || []);
             if (stories.length > 0) {
                 setViewingStories(stories);
             } else {
@@ -313,19 +302,20 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                             )}
                         </div>
 
-                        {/* Highlights Row */}
-                        <div className="bg-white dark:bg-bg-card rounded-[28px] p-2 md:px-6 shadow-sm border border-slate-100 dark:border-white/5">
-                            <HighlightsComponent 
-                                highlights={highlights} 
-                                isOwnProfile={isOwnProfile} 
-                                onAdd={() => navigate('/dashboard/manage-highlights')} 
-                                onView={handleViewHighlight}
-                            />
-                        </div>
+                        {(isOwnProfile || highlights.length > 0) && (
+                            <div className="bg-white dark:bg-bg-card rounded-[28px] p-2 md:px-6 shadow-sm border border-slate-100 dark:border-white/5">
+                                <HighlightsComponent 
+                                    highlights={highlights} 
+                                    isOwnProfile={isOwnProfile} 
+                                    onAdd={() => navigate('/dashboard/manage-highlights')} 
+                                    onView={handleViewHighlight}
+                                />
+                            </div>
+                        )}
 
                         {/* 3. Dashboard Tabs */}
                         <div className="bg-white dark:bg-bg-card rounded-[28px] p-2 md:px-6 md:py-3 shadow-sm border border-slate-100 dark:border-white/5 flex items-center gap-4 overflow-x-auto no-scrollbar">
-                            {(['connections', 'crossings', 'posts', 'reels'] as const).map((tab) => (
+                            {(['connections', 'posts', 'reels'] as const).map((tab) => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -376,38 +366,7 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                                     </motion.div>
                                 )}
 
-                                {activeTab === 'crossings' && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                                    >
-                                         {crossings.length > 0 ? (
-                                            crossings.map(cross => (
-                                                <div key={cross.id} onClick={() => navigate(`/dashboard/user/${cross.user_id}`)} className="bg-white dark:bg-bg-card p-5 rounded-3xl flex items-center justify-between border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all cursor-pointer group">
-                                                    <div className="flex items-center gap-4">
-                                                        <img src={getMediaUrl(cross.avatar_url, FALLBACKS.AVATAR(cross.username))} className="w-14 h-14 rounded-2xl object-cover" alt="" />
-                                                        <div>
-                                                            <h4 className="text-sm font-black text-text-base px-0.5">{cross.full_name || cross.username}</h4>
-                                                            <div className="flex items-center gap-2 mt-1">
-                                                                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-md">
-                                                                    {new Date(cross.last_crossing_at).toLocaleDateString()}
-                                                                </span>
-                                                                <span className="text-[10px] font-black text-orange-500 bg-orange-50 dark:bg-orange-500/10 px-2 py-0.5 rounded-md">
-                                                                    x{cross.crossing_count}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:text-pink-500 transition-colors">
-                                                        <Navigation className="w-4 h-4" />
-                                                    </div>
-                                                </div>
-                                            ))
-                                         ) : (
-                                            <div className="col-span-full py-12 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No crossings found</div>
-                                         )}
-                                    </motion.div>
-                                )}
+
 
                                 {activeTab === 'posts' && (
                                     <motion.div 

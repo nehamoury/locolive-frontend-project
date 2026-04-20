@@ -10,6 +10,7 @@ interface ExploreAllFeedProps {
   stories: any[];
   loading: boolean;
   onUserSelect?: (id: string) => void;
+  onStoryClick?: (stories: any[], index: number) => void;
   onMatch: (id: string) => void;
   onPass: (id: string) => void;
 }
@@ -20,14 +21,38 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
   stories, 
   loading,
   onUserSelect,
+  onStoryClick,
   onMatch,
   onPass
 }) => {
-  const allStories = (stories || []).flatMap(cluster => cluster.stories || []).slice(0, 8);
+  const allStoriesRaw = (stories || []).flatMap(cluster => cluster.stories || []);
+  
+  const storiesByUser = allStoriesRaw.reduce((acc: Record<string, any[]>, s: any) => {
+    if (!s) return acc;
+    const uid = s.user_id || s.userId || s.id || 'unknown';
+    if (!acc[uid]) acc[uid] = [];
+    acc[uid].push(s);
+    return acc;
+  }, {});
+
+  const nearbyUserStories = Object.values(storiesByUser).map((userStories: any) => {
+    const sorted = [...userStories].sort((a, b) => {
+       const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+       const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+       return timeB - timeA;
+    });
+    return {
+      latest: sorted[0],
+      all: sorted
+    };
+  }).filter(group => group.latest);
+
   const featuredUsers = (nearbyUsers || []).slice(0, 6);
   const recentCrossings = (crossings || []).slice(0, 5);
 
-  if (loading && nearbyUsers.length === 0) {
+  const isActuallyLoading = loading && nearbyUsers.length === 0 && nearbyUserStories.length === 0;
+
+  if (isActuallyLoading) {
     return (
       <div className="p-8 space-y-12">
         <div className="h-40 bg-bg-card rounded-[40px] animate-pulse" />
@@ -48,29 +73,32 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
           </h3>
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-2 px-2">
-          {allStories.map((story, idx) => (
+          {nearbyUserStories.map((group, idx) => (
             <motion.div
-              key={story.id || `story-${idx}`}
+              key={group.latest.id || `story-${idx}`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05 }}
-              className="relative w-36 aspect-[9/16] rounded-3xl overflow-hidden shrink-0 border border-border-base bg-bg-sidebar shadow-xl group cursor-pointer"
+              onClick={() => onStoryClick?.(group.all, 0)}
+              className="relative w-36 aspect-[9/16] rounded-3xl overflow-hidden shrink-0 border border-border-base bg-bg-sidebar shadow-xl group cursor-pointer active:scale-95 transition-all"
             >
               <img 
-                src={story.media_url?.startsWith('http') ? story.media_url : `${BACKEND}${story.media_url}`} 
+                src={group.latest.media_url?.startsWith('http') ? group.latest.media_url : `${BACKEND}${group.latest.media_url}`} 
                 alt="" 
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
-                <div className="w-6 h-6 rounded-full border border-primary overflow-hidden">
-                   <img src={`${BACKEND}${story.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                <div className="w-6 h-6 rounded-full border border-primary overflow-hidden bg-bg-card">
+                   {group.latest.avatar_url && (
+                     <img src={`${BACKEND}${group.latest.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                   )}
                 </div>
-                <span className="text-[8px] font-black text-white uppercase truncate max-w-[60px]">@{story.username}</span>
+                <span className="text-[8px] font-black text-white uppercase truncate max-w-[60px]">@{group.latest.username || 'user'}</span>
               </div>
             </motion.div>
           ))}
-          {allStories.length === 0 && (
+          {nearbyUserStories.length === 0 && (
             <div className="w-full py-12 flex flex-col items-center justify-center bg-bg-card/50 rounded-[40px] border border-dashed border-border-base">
                 <PlayCircle className="w-8 h-8 text-text-muted/20 mb-2" />
                 <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">No active stories nearby</p>

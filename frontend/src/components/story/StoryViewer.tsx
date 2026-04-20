@@ -355,10 +355,11 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
                         <button 
                             onClick={handleArchive}
                             disabled={archiving}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-pink-400 hover:bg-pink-500/10 rounded-xl transition-colors disabled:opacity-50"
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-black text-pink-400 hover:bg-pink-500/10 rounded-xl transition-all disabled:opacity-50 group relative overflow-hidden"
                         >
-                            {archiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />} 
-                            Archive to Vault
+                            <div className="absolute inset-0 bg-pink-500/5 animate-pulse opacity-0 group-hover:opacity-100" />
+                            {archiving ? <Loader2 className="w-4 h-4 animate-spin text-pink-500" /> : <Archive className="w-4 h-4 text-pink-500 group-hover:scale-110 transition-transform" />} 
+                            <span className="relative">Archive to Vault</span>
                         </button>
                         <button 
                             onClick={handleDelete}

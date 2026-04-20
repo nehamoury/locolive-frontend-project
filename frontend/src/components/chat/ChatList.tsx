@@ -20,19 +20,24 @@ interface ChatListProps {
 
 const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [following, setFollowing] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'All' | 'Unread' | 'Groups'>('All');
+  const [activeTab, setActiveTab] = useState<'All' | 'Unread' | 'Following' | 'Groups'>('All');
 
   useEffect(() => {
-    const fetchConversations = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get('/conversations');
-        setConversations(response.data || []);
+        const [convRes, followingRes] = await Promise.all([
+          api.get('/conversations'),
+          api.get('/connections')
+        ]);
+        setConversations(convRes.data || []);
+        setFollowing(followingRes.data || []);
       } catch (err) {
-        console.error('Failed to fetch conversations:', err);
+        console.error('Failed to fetch chat data:', err);
       }
     };
-    fetchConversations();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -45,18 +50,38 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
     }
   }, [selectedId]);
 
+  const filtered = () => {
+    if (activeTab === 'Following') {
+      return following
+        .filter(u => 
+          (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (u.username || '').toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .map(u => ({
+          id: u.id,
+          username: u.username,
+          full_name: u.full_name,
+          avatar_url: u.avatar_url,
+          last_message: 'Start a new conversation',
+          last_message_at: new Date().toISOString(),
+          unread_count: 0,
+          isFollowingItem: true
+        }));
+    }
 
-  const filtered = conversations.filter(c => {
-    const matchesSearch = (c.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (c.username || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (!matchesSearch) return false;
+    return conversations.filter(c => {
+      const matchesSearch = (c.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           (c.username || '').toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (!matchesSearch) return false;
 
-    if (activeTab === 'Unread') return c.unread_count > 0;
-    if (activeTab === 'Groups') return false; // Placeholder: No groups logic yet
-    return true;
-  });
+      if (activeTab === 'Unread') return c.unread_count > 0;
+      if (activeTab === 'Groups') return false; 
+      return true;
+    });
+  };
 
+  const displayItems = filtered();
 
   return (
     <div className="flex flex-col h-full bg-white/60 backdrop-blur-3xl w-full border-r border-gray-100 font-poppins overflow-hidden">
@@ -78,12 +103,12 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
 
       {/* Pill Tabs */}
       <div className="px-6 mb-6">
-        <div className="flex items-center gap-1.5 p-1 bg-gray-50/50 rounded-2xl border border-gray-100/50">
-          {(['All', 'Unread', 'Groups'] as const).map((tab) => (
+        <div className="flex items-center gap-1.5 p-1 bg-gray-50/50 rounded-2xl border border-gray-100/50 overflow-x-auto no-scrollbar scroll-smooth flex-nowrap">
+          {(['All', 'Following', 'Unread', 'Groups'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+              className={`flex-1 min-w-[80px] py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
                 activeTab === tab 
                   ? 'bg-white text-gray-900 shadow-sm border border-gray-100/50' 
                   : 'text-gray-400 hover:text-gray-600'
@@ -97,14 +122,14 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-20 px-2 space-y-1">
-        {filtered.length > 0 ? (
-          filtered.map(conv => (
+        {displayItems.length > 0 ? (
+          displayItems.map(conv => (
             <ChatItem key={conv.id} conv={conv} isSelected={selectedId === conv.id} onClick={() => onSelect(conv.id)} />
           ))
         ) : (
           <div className="py-20 text-center px-10 opacity-30">
             <p className="text-[10px] font-black uppercase tracking-widest">
-              {activeTab === 'Unread' ? 'No unread messages' : activeTab === 'Groups' ? 'No groups yet' : 'No results'}
+              {activeTab === 'Unread' ? 'No unread messages' : activeTab === 'Groups' ? 'No groups yet' : activeTab === 'Following' ? 'No following users found' : 'No results'}
             </p>
           </div>
         )}
@@ -144,10 +169,10 @@ const ChatItem = ({ conv, isSelected, onClick }: any) => {
 
       <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[14px] font-black text-gray-900 truncate tracking-tight">{conv.full_name || `@${conv.username}`}</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase">{timeStr}</span>
+          <span className="text-[14px] font-bold text-gray-900 truncate tracking-tight">{conv.full_name || `@${conv.username}`}</span>
+          <span className="text-[10px] font-medium text-gray-400 uppercase">{timeStr}</span>
         </div>
-        <p className={`text-[12px] ${isSelected ? 'text-pink-500 font-bold' : 'text-gray-400 font-medium'} truncate leading-relaxed`}>
+        <p className={`text-[12px] ${isSelected ? 'text-pink-500 font-medium' : 'text-gray-400 font-normal'} truncate leading-relaxed`}>
           {conv.id === 'typing-id' ? 'Typing...' : conv.last_message}
         </p>
       </div>

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
+import ReelOptionsBottomSheet from './ReelOptionsBottomSheet';
 
 interface Reel {
   id: string;
@@ -21,6 +22,7 @@ interface Reel {
   saves_count: number;
   is_liked: boolean;
   is_saved: boolean;
+  connection_status?: string;
 }
 
 interface ReelItemProps {
@@ -40,8 +42,9 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
   const [muted, setMuted] = useState(false);
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [showFullCaption, setShowFullCaption] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(reel.connection_status === 'pending');
   const [progress, setProgress] = useState(0);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
   useEffect(() => {
     if (!isActive || !videoRef.current) return;
@@ -116,15 +119,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
   };
 
   const handleMore = () => {
-    if (reel.user_id === currentUserID) {
-      if (window.confirm('Are you sure you want to delete this reel? This action cannot be undone.')) {
-        handleDelete();
-      }
-    } else {
-      // For other users, we can just show a message or do nothing.
-      // The user requested to remove reporting.
-      window.alert("More options coming soon.");
-    }
+    setIsOptionsOpen(true);
   };
 
   const handleDelete = async () => {
@@ -141,9 +136,12 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
 
   const handleFollow = async () => {
     try {
-      if (isFollowing) {
+      if (isFollowing || reel.connection_status === 'pending') {
         await api.delete(`/connections/${reel.user_id}`);
         setIsFollowing(false);
+        // Force refresh the specific reel status in memory if necessary, 
+        // but state update is usually enough for local UI.
+        if (reel.connection_status) reel.connection_status = 'none';
       } else {
         await api.post('/connections/request', { target_user_id: reel.user_id });
         setIsFollowing(true);
@@ -201,8 +199,8 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent via-40% to-black pointer-events-none" />
 
       {/* Right Side Actions: High-Impact Vertical Stack */}
-      <div className="absolute right-4 bottom-28 flex flex-col items-center gap-6 z-20">
-        <div className="flex flex-col items-center gap-7">
+      <div className="absolute right-4 bottom-28 flex flex-col items-center gap-4 z-20">
+        <div className="flex flex-col items-center gap-4">
             {/* Like */}
             <div className="flex flex-col items-center gap-1.5">
             <motion.button
@@ -265,15 +263,28 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.1, rotate: 90 }}
+          whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleMore}
           aria-label="More options"
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 text-white/50 hover:text-white transition-all"
+          className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all border border-white/5"
         >
-          <MoreVertical strokeWidth={2} className="w-5 h-5" />
+          <MoreVertical strokeWidth={2.5} className="w-5 h-5" />
         </motion.button>
       </div>
+
+      <ReelOptionsBottomSheet
+        isOpen={isOptionsOpen}
+        onClose={() => setIsOptionsOpen(false)}
+        isOwner={reel.user_id === currentUserID}
+        onDelete={() => {
+          if (window.confirm('Are you sure you want to delete this reel?')) {
+            handleDelete();
+            setIsOptionsOpen(false);
+          }
+        }}
+        username={reel.username}
+      />
 
       {/* Bottom Information: Compace & Low-profile */}
       <div className="absolute bottom-8 left-4 right-16 z-20 flex flex-col gap-3 py-4">
@@ -295,17 +306,23 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
                 <h4 className="text-white font-black text-sm uppercase tracking-widest font-brand drop-shadow-md">@{reel.username}</h4>
-                <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleFollow();
-                }}
-                className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/20 transition-all"
-                >
-                {isFollowing ? 'Joined' : 'Join'}
-                </motion.button>
+                {reel.connection_status !== 'accepted' && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleFollow();
+                    }}
+                    className={`px-3 py-1 rounded-full backdrop-blur-md border border-white/10 text-[10px] font-black uppercase tracking-widest transition-all ml-2 ${
+                        (isFollowing || reel.connection_status === 'pending')
+                        ? 'bg-white/30 text-white shadow-lg' 
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
+                    {(isFollowing || reel.connection_status === 'pending') ? 'Following' : 'Follow'}
+                  </motion.button>
+                )}
             </div>
             {reel.location_name && (
                 <p className="text-[10px] font-bold text-white/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">

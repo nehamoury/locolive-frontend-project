@@ -3,7 +3,7 @@ import { X, Video, MapPin, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import UploadComponent from './UploadComponent';
-import CropModal from './CropModal';
+import UniversalCropModal from '../ui/UniversalCropModal';
 
 interface CreateReelModalProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [maxDuration, setMaxDuration] = useState(60); // Default 60s
 
   useEffect(() => {
     if (!file) {
@@ -37,16 +38,30 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
   }, [file]);
 
   const handleFileSelect = (selectedFile: File) => {
-    setFile(selectedFile);
-    setIsEditing(true);
+    // Check duration if it's a video
+    if (selectedFile.type.startsWith('video/')) {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+            window.URL.revokeObjectURL(video.src);
+            if (video.duration > maxDuration) {
+                setError(`Video is too long! Selected limit is ${maxDuration}s, but video is ${Math.round(video.duration)}s.`);
+                setFile(null);
+                setPreviewUrl(null);
+            } else {
+                setFile(selectedFile);
+                setIsEditing(true);
+                setError('');
+            }
+        };
+        video.src = URL.createObjectURL(selectedFile);
+    } else {
+        setFile(selectedFile);
+        setIsEditing(true);
+    }
   };
 
-  const handleCropConfirm = (processed: any) => {
-    setIsEditing(false);
-    // In a real production app, we would process the image/video here
-    // For now, we use the original file but the UI shows the intent
-    setFile(processed);
-  };
+
 
   const handleSubmit = async () => {
     if (!file) {
@@ -162,6 +177,21 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
               <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.3em] pl-11">Advanced Creator Studio</p>
             </div>
 
+            <div className="space-y-4">
+              <label className="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 block">Upload Limit</label>
+              <div className="flex gap-2 p-1 bg-bg-sidebar/50 rounded-2xl border border-border-base">
+                {[15, 30, 60].map((dur) => (
+                  <button
+                    key={dur}
+                    onClick={() => setMaxDuration(dur)}
+                    className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-tighter transition-all ${maxDuration === dur ? 'bg-primary text-white shadow-lg' : 'text-text-muted hover:text-text-base'}`}
+                  >
+                    {dur}s Limit
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-3">
               <label className="text-[11px] font-black uppercase tracking-widest text-text-muted">Caption & Insights</label>
               <textarea
@@ -243,9 +273,13 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
 
       {/* Advanced Crop Tool Overay */}
       {isEditing && file && (
-          <CropModal 
+          <UniversalCropModal
+            isOpen={isEditing}
             file={file} 
-            onConfirm={handleCropConfirm} 
+            onConfirm={(_settings) => {
+                // We'll store settings if needed, but for now Confirm closes it
+                setIsEditing(false);
+            }} 
             onCancel={() => { setFile(null); setIsEditing(false); }} 
           />
       )}

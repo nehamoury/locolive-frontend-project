@@ -142,6 +142,7 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
                   activeTab={activeTab}
                   data={{ nearbyUsers, crossings, suggestedUsers, mapStories, loading }}
                   onUserSelect={onUserSelect}
+                  onStoryClick={onStoryClick}
                   onRefresh={refresh}
                   onRemoveSuggested={removeSuggestedUser}
                   onRemoveNearby={removeNearbyUser}
@@ -166,20 +167,22 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
           </AnimatePresence>
         </main>
 
-        {/* Dynamic Summary Panel */}
-        <aside className="hidden xl:block w-80 border-l border-border-base bg-bg-card/30 backdrop-blur-sm overflow-y-auto no-scrollbar">
-          <ExploreSummary 
-            stats={{
-              nearby: nearbyUsers.length,
-              stories: mapStories.reduce((acc, c) => acc + (c.count || 0), 0),
-              todayCrossings: crossings.filter(c => {
-                const today = new Date().toISOString().split('T')[0];
-                return c.last_crossing_at?.startsWith(today);
-              }).length
-            }}
-            loading={loading.nearby || loading.crossings || loading.stories}
-          />
-        </aside>
+        {/* Dynamic Summary Panel - Hidden in Map View for full-screen experience */}
+        {viewMode !== 'map' && (
+          <aside className="hidden xl:block w-80 border-l border-border-base bg-bg-card/30 backdrop-blur-sm overflow-y-auto no-scrollbar">
+            <ExploreSummary 
+              stats={{
+                nearby: nearbyUsers.length,
+                stories: mapStories.reduce((acc, c) => acc + (c.count || 0), 0),
+                todayCrossings: crossings.filter(c => {
+                  const today = new Date().toISOString().split('T')[0];
+                  return c.last_crossing_at?.startsWith(today);
+                }).length
+              }}
+              loading={loading.nearby || loading.crossings || loading.stories}
+            />
+          </aside>
+        )}
       </div>
     </div>
   );

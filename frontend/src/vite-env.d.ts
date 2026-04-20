@@ -3,7 +3,7 @@ declare module 'virtual:pwa-register' {
     immediate?: boolean;
     onNeedRefresh?: () => void;
     onOfflineReady?: () => void;
-    onRegisterError?: (error: any) => void;
+    onRegisterError?: (error: Error) => void;
     onRegisterSkip?: () => void;
   }
 

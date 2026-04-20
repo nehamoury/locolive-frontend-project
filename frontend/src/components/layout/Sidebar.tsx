@@ -1,9 +1,10 @@
 import { useState, type FC } from 'react';
-import { Home, Compass, User, Plus, Users, LogOut, ChevronLeft, ChevronRight, Video, MessageSquare, Download, Bell } from 'lucide-react';
+import { Home, Compass, Search, User, Plus, Users, LogOut, ChevronLeft, ChevronRight, Video, MessageSquare, Download, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePWA } from '../../hooks/usePWA';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
+import UserSearch from './UserSearch';
 
 
 interface NavItemProps {
@@ -62,6 +63,7 @@ const Sidebar: FC<SidebarProps> = ({
   requestPermission
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { isInstallable, installApp } = usePWA();
@@ -75,7 +77,7 @@ const Sidebar: FC<SidebarProps> = ({
       <aside className="flex-1 flex flex-col px-3 py-6 z-20 h-full overflow-y-auto no-scrollbar font-brand">
 
       {/* Logo Area + Collapse Toggle */}
-      <div className={`mb-8 px-2 flex flex-col ${isCollapsed ? 'items-center' : 'items-start'} cursor-default select-none`}>
+      <div className={`mb-6 px-2 flex flex-col ${isCollapsed ? 'items-center' : 'items-start'} cursor-default select-none`}>
         <div className={`flex ${isCollapsed ? 'flex-col items-center gap-4' : 'flex-row items-center justify-between'} w-full`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/30 flex-shrink-0">
@@ -102,10 +104,19 @@ const Sidebar: FC<SidebarProps> = ({
         </div>
       </div>
 
+      {/* User Search Drawer Component */}
+      <UserSearch 
+        mode="sidebar-drawer" 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        isCollapsed={isCollapsed} 
+      />
+
         {/* Navigation */}
         <nav className="flex-1 space-y-1 mb-6">
-          <NavItem icon={<Home className="w-5 h-5" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} color="text-[#FF4D97]" isCollapsed={isCollapsed} />
-          <NavItem icon={<Compass className="w-5 h-5" />} label="Explore" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} color="text-[#A436EE]" isCollapsed={isCollapsed} />
+          <NavItem icon={<Home className="w-5 h-5" />} label="Home" active={activeTab === 'home' && !isSearchOpen} onClick={() => { setActiveTab('home'); setIsSearchOpen(false); }} color="text-[#FF4D97]" isCollapsed={isCollapsed} />
+          <NavItem icon={<Search className="w-5 h-5" />} label="Search" active={isSearchOpen} onClick={() => setIsSearchOpen(!isSearchOpen)} color="text-[#A436EE]" isCollapsed={isCollapsed} />
+          <NavItem icon={<Compass className="w-5 h-5" />} label="Explore" active={activeTab === 'explore' && !isSearchOpen} onClick={() => { setActiveTab('explore'); setIsSearchOpen(false); }} color="text-[#A436EE]" isCollapsed={isCollapsed} />
           <NavItem icon={<MessageSquare className="w-5 h-5" />} label="Messages" active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} color="text-[#339AF0]" isCollapsed={isCollapsed} badge={unreadMessagesCount} />
           <NavItem icon={<Video className="w-5 h-5" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} color="text-[#FF006E]" isCollapsed={isCollapsed} />
           <NavItem icon={<Users className="w-5 h-5" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} color="text-[#4DABF7]" isCollapsed={isCollapsed} />

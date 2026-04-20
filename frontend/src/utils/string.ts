@@ -1,6 +1,6 @@
-export function nullString(value: any): string {
+export function nullString(value: unknown): string {
   if (typeof value === 'object' && value !== null) {
-    return value.String || '';
+    return (value as { String?: string }).String || '';
   }
-  return value || '';
+  return (value as string) || '';
 }

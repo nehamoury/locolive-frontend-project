@@ -22,6 +22,7 @@ interface Reel {
   saves_count: number;
   is_liked: boolean;
   is_saved: boolean;
+  connection_status?: string;
 }
 
 interface ReelsViewProps {
@@ -102,7 +103,7 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
       <div className="flex items-center gap-6 z-10">
         
         {/* Main Reel Container */}
-        <div className="relative w-full h-full md:w-[420px] md:h-[calc(100vh-80px)] md:max-h-[860px] md:my-4 group bg-black shadow-[0_40px_120px_-20px_rgba(0,0,0,0.4)] overflow-hidden md:rounded-[32px] ring-1 ring-white/10">
+        <div className="relative w-full h-full md:w-[420px] md:h-[calc(100vh-64px)] group bg-black shadow-[0_10px_60px_-10px_rgba(0,0,0,0.4)] overflow-hidden ring-1 ring-white/10">
           
           {/* Top Bar Navigation (IG Style) */}
           <div className="absolute top-4 md:top-6 w-full px-4 md:px-6 flex items-center justify-between z-50 pointer-events-auto">

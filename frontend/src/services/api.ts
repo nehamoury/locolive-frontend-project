@@ -9,7 +9,7 @@ const getApiBaseURL = () => {
   // Fallback: detect based on hostname for development
   const hostname = window.location.hostname;
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const baseURL = isLocalhost ? 'http://localhost:8080' : `http://${hostname}:8080`;
+  const baseURL = isLocalhost ? 'http://localhost:8080/api' : `http://${hostname}:8080/api`;
   return baseURL;
 };
 

@@ -343,8 +343,8 @@ const Dashboard = () => {
         <Route path="reels" element={<ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />} />
 
         <Route path="messages/*" element={
-          <div className="flex flex-col h-full w-full overflow-hidden bg-transparent pt-2 pb-6 px-0 md:px-2">
-            <div className="flex flex-col h-full w-full overflow-hidden bg-bg-card md:rounded-[32px] border border-border-base/50 shadow-2xl relative">
+          <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
+            <div className="flex flex-col h-full w-full overflow-hidden bg-bg-card border border-border-base/50 relative">
               <div className="flex items-center justify-between px-6 py-4 border-b border-border-base bg-bg-card/50 backdrop-blur-md shrink-0 z-20">
                 <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
                 <div className="flex items-center gap-2">

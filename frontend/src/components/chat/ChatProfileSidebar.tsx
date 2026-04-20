@@ -107,9 +107,12 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
         </div>
 
         <div className="space-y-1">
-          <h3 className="text-[18px] font-black text-text-base leading-tight tracking-tight uppercase italic px-2 w-full truncate">
-            {profile.full_name || `@${profile.username}`}
+          <h3 className="text-[18px] font-black text-text-base leading-tight tracking-tight uppercase italic px-2 w-full truncate mb-1">
+            {profile.full_name || 'Locolive User'}
           </h3>
+          <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
+            @{profile.username}
+          </p>
           <div className="flex items-center justify-center gap-1.5">
             <span className="text-[10px] text-primary uppercase tracking-[0.2em] font-black italic">
               {profile.bio ? 'Creative Soul' : 'Locolive Member'}

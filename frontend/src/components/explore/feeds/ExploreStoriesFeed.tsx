@@ -7,16 +7,42 @@ interface ExploreStoriesFeedProps {
   stories: any[];
   loading: boolean;
   onRefresh: () => void;
+  onStoryClick?: (stories: any[], index: number) => void;
 }
 
 export const ExploreStoriesFeed: React.FC<ExploreStoriesFeedProps> = ({ 
   stories, 
   loading, 
-  onRefresh 
+  onRefresh,
+  onStoryClick
 }) => {
-  const allStories = (stories || []).flatMap(cluster => cluster.stories || []);
+  const allStoriesRaw = (stories || []).flatMap(cluster => cluster.stories || []);
+  
+  const storiesByUser = allStoriesRaw.reduce((acc: Record<string, any[]>, s: any) => {
+    if (!s) return acc;
+    const uid = s.user_id || s.userId || s.id || 'unknown';
+    if (!acc[uid]) acc[uid] = [];
+    acc[uid].push(s);
+    return acc;
+  }, {});
 
-  if (loading && allStories.length === 0) {
+  const nearbyUserStories = Object.values(storiesByUser).map((userStories: any) => {
+    const sorted = [...userStories].sort((a, b) => {
+       const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+       const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+       return timeB - timeA;
+    });
+    return {
+      latest: sorted[0],
+      all: sorted
+    };
+  }).filter(group => group.latest);
+
+  const totalStoriesCount = allStoriesRaw.length;
+
+  const isActuallyLoading = loading && nearbyUserStories.length === 0;
+
+  if (isActuallyLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-8">
         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
@@ -35,7 +61,7 @@ export const ExploreStoriesFeed: React.FC<ExploreStoriesFeedProps> = ({
           </div>
           <div>
             <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-base">Live Stories</h2>
-            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{allStories.length} stories near you</p>
+            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{totalStoriesCount} stories from {nearbyUserStories.length} users near you</p>
           </div>
         </div>
         <button
@@ -47,17 +73,18 @@ export const ExploreStoriesFeed: React.FC<ExploreStoriesFeedProps> = ({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {allStories.map((story, idx) => (
+        {nearbyUserStories.map((group, idx) => (
           <motion.div
-            key={story.id}
+            key={group.latest.id}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: idx * 0.03 }}
-            className="group relative aspect-[9/16] rounded-3xl overflow-hidden border border-border-base bg-bg-sidebar shadow-xl cursor-pointer"
+            onClick={() => onStoryClick?.(group.all, 0)}
+            className="group relative aspect-[9/16] rounded-3xl overflow-hidden border border-border-base bg-bg-sidebar shadow-xl cursor-pointer active:scale-95 transition-all"
           >
-            {story.media_url ? (
+            {group.latest.media_url ? (
                <img 
-                src={story.media_url.startsWith('http') ? story.media_url : `${BACKEND}${story.media_url}`} 
+                src={group.latest.media_url.startsWith('http') ? group.latest.media_url : `${BACKEND}${group.latest.media_url}`} 
                 alt="" 
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
               />
@@ -69,12 +96,14 @@ export const ExploreStoriesFeed: React.FC<ExploreStoriesFeedProps> = ({
             
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 p-4 flex flex-col justify-between opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full border-2 border-primary overflow-hidden">
-                  <img src={`${BACKEND}${story.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                <div className="w-8 h-8 rounded-full border-2 border-primary overflow-hidden bg-bg-card">
+                  {group.latest.avatar_url && (
+                    <img src={`${BACKEND}${group.latest.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                  )}
                 </div>
-                <span className="text-[10px] font-black text-white uppercase tracking-wider">@{story.username}</span>
+                <span className="text-[10px] font-black text-white uppercase tracking-wider">@{group.latest.username || 'user'}</span>
               </div>
-              <p className="text-white text-[10px] font-bold line-clamp-2 leading-relaxed">{story.caption || 'Live Moment'}</p>
+              <p className="text-white text-[10px] font-bold line-clamp-2 leading-relaxed">{group.latest.caption || 'Live Moment'}</p>
             </div>
           </motion.div>
         ))}

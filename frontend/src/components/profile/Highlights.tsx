@@ -57,12 +57,7 @@ const Highlights: FC<HighlightsProps> = ({ highlights = [], onAdd, onView, isOwn
                 </motion.button>
             ))}
 
-            {highlights.length === 0 && !isOwnProfile && (
-                <div className="flex flex-col items-center gap-3 px-4 opacity-20 grayscale">
-                   <div className="w-[72px] h-[72px] rounded-full border-2 border-border-base bg-bg-card/20" />
-                   <div className="h-2 w-12 bg-text-muted rounded-full" />
-                </div>
-            )}
+
         </div>
     );
 };

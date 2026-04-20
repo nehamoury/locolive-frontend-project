@@ -13,6 +13,7 @@ export interface ExploreData {
     suggested: boolean;
     stories: boolean;
     heatmap: boolean;
+    connections: boolean;
   };
 }
 
@@ -29,8 +30,11 @@ export const useExploreData = (position: { lat: number; lng: number } | null) =>
       suggested: true,
       stories: true,
       heatmap: true,
+      connections: true,
     },
   });
+  
+  const [connectionIds, setConnectionIds] = useState<Set<string>>(new Set());
 
   const lastFetchRef = useRef<Record<string, number>>({});
 
@@ -43,9 +47,10 @@ export const useExploreData = (position: { lat: number; lng: number } | null) =>
       const res = await api.get('/users/nearby', { 
         params: { lat: position.lat, lng: position.lng, radius: 5 } 
       });
+      const filtered = (res.data || []).filter((u: any) => !connectionIds.has(u.id));
       setData(prev => ({ 
         ...prev, 
-        nearbyUsers: res.data || [], 
+        nearbyUsers: filtered, 
         loading: { ...prev.loading, nearby: false } 
       }));
       lastFetchRef.current.nearby = now;
@@ -53,7 +58,7 @@ export const useExploreData = (position: { lat: number; lng: number } | null) =>
       console.error('[Explore] Failed to fetch nearby:', err);
       setData(prev => ({ ...prev, loading: { ...prev.loading, nearby: false } }));
     }
-  }, [position]);
+  }, [position, connectionIds]);
 
   const fetchCrossings = useCallback(async () => {
     try {
@@ -72,14 +77,42 @@ export const useExploreData = (position: { lat: number; lng: number } | null) =>
   const fetchSuggested = useCallback(async () => {
     try {
       const res = await api.get('/connections/suggested');
+      // res.data is already filtered by backend typically, but we'll re-filter for safety
+      const filtered = (res.data || []).filter((u: any) => !connectionIds.has(u.id));
       setData(prev => ({ 
         ...prev, 
-        suggestedUsers: res.data || [], 
+        suggestedUsers: filtered, 
         loading: { ...prev.loading, suggested: false } 
       }));
     } catch (err) {
       console.error('[Explore] Failed to fetch suggested:', err);
       setData(prev => ({ ...prev, loading: { ...prev.loading, suggested: false } }));
+    }
+  }, [connectionIds]);
+
+  const fetchConnections = useCallback(async () => {
+    try {
+      const [accepted, sent, pending] = await Promise.all([
+        api.get('/connections'),
+        api.get('/connections/sent'),
+        api.get('/connections/requests')
+      ]);
+
+      const ids = new Set<string>();
+      [...(accepted.data || []), ...(sent.data || []), ...(pending.data || [])].forEach(c => {
+        if (c.id) ids.add(c.id);
+        if (c.target_id) ids.add(c.target_id);
+        if (c.requester_id) ids.add(c.requester_id);
+      });
+
+      setConnectionIds(ids);
+      setData(prev => ({ 
+        ...prev, 
+        loading: { ...prev.loading, connections: false } 
+      }));
+    } catch (err) {
+      console.error('[Explore] Failed to fetch connections:', err);
+      setData(prev => ({ ...prev, loading: { ...prev.loading, connections: false } }));
     }
   }, []);
 
@@ -121,34 +154,35 @@ export const useExploreData = (position: { lat: number; lng: number } | null) =>
   // Initial and periodic fetches
   useEffect(() => {
     fetchCrossings();
-    fetchSuggested();
+    fetchConnections();
     fetchHeatmap();
-  }, [fetchCrossings, fetchSuggested, fetchHeatmap]);
+  }, [fetchCrossings, fetchConnections, fetchHeatmap]);
 
   useEffect(() => {
     if (position) {
       fetchNearby();
       fetchStories();
+      fetchSuggested(); // Fetch suggested after connections are known
     }
-  }, [position, fetchNearby, fetchStories]);
+  }, [position, fetchNearby, fetchStories, fetchSuggested]);
+
+  const handleNearbyUpdate = useCallback((e: Event) => {
+    const user = (e as CustomEvent).detail;
+    if (!user?.id || connectionIds.has(user.id)) return;
+    setData(prev => {
+      const idx = prev.nearbyUsers.findIndex(u => u.id === user.id);
+      const updatedUsers = [...prev.nearbyUsers];
+      if (idx >= 0) {
+        updatedUsers[idx] = { ...updatedUsers[idx], ...user };
+      } else {
+        updatedUsers.push(user);
+      }
+      return { ...prev, nearbyUsers: updatedUsers };
+    });
+  }, [connectionIds]);
 
   // WebSocket listeners
   useEffect(() => {
-    const handleNearbyUpdate = (e: Event) => {
-      const user = (e as CustomEvent).detail;
-      if (!user?.id) return;
-      setData(prev => {
-        const idx = prev.nearbyUsers.findIndex(u => u.id === user.id);
-        const updatedUsers = [...prev.nearbyUsers];
-        if (idx >= 0) {
-          updatedUsers[idx] = { ...updatedUsers[idx], ...user };
-        } else {
-          updatedUsers.push(user);
-        }
-        return { ...prev, nearbyUsers: updatedUsers };
-      });
-    };
-
     const handleLeftRadius = (e: Event) => {
       const { user_id } = (e as CustomEvent).detail;
       if (!user_id) return;
@@ -172,7 +206,7 @@ export const useExploreData = (position: { lat: number; lng: number } | null) =>
       window.removeEventListener('user_left_radius', handleLeftRadius);
       window.removeEventListener('crossing_detected', handleCrossing);
     };
-  }, [fetchCrossings]);
+  }, [fetchCrossings, handleNearbyUpdate]);
 
   const removeSuggestedUser = useCallback((userId: string) => {
     setData(prev => ({

@@ -3,8 +3,6 @@ import {
   Send,
   ArrowLeft,
   CheckCheck,
-  Phone,
-  Video,
   Plus,
   Smile,
   MessageCircle
@@ -66,7 +64,7 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
     }
   };
 
-  const displayName = recipient?.full_name || `@${recipient?.username || 'User'}`;
+
 
   return (
     <div className="flex flex-col h-full bg-[#f8f9fc] flex-1 relative overflow-hidden font-poppins">
@@ -93,22 +91,24 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
               </div>
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
             </div>
-            <div className="flex flex-col">
-              <h3 className="text-[15px] font-black text-gray-900 leading-tight group-hover:text-pink-500 transition-colors uppercase italic">{displayName}</h3>
-              <span className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
-                <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /> Online
-              </span>
+            <div className="flex flex-col min-w-0">
+              <h3 className="text-[15px] font-black text-gray-900 leading-tight group-hover:text-pink-500 transition-colors uppercase italic truncate">
+                {recipient?.full_name || 'Locolive User'}
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                  @{recipient?.username}
+                </span>
+                <span className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
+                  <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /> Online
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-[#f0f2f5] rounded-full transition-all">
-            <Phone className="w-4 h-4" />
-          </button>
-          <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-[#f0f2f5] rounded-full transition-all">
-            <Video className="w-4 h-4" />
-          </button>
+
           <button className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-[#f0f2f5] rounded-full transition-all">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
           </button>

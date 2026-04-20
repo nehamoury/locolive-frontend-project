@@ -1,9 +1,6 @@
+// Returns base URL without /api suffix — used for media/asset URLs
+// API calls go through src/services/api.ts which handles the /api prefix
 export const getBackendURL = () => {
-  // Use environment variable if available
-  if (typeof window !== 'undefined' && import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-
   if (typeof window === 'undefined') {
     return 'http://localhost:8080';
   }
@@ -14,4 +11,5 @@ export const getBackendURL = () => {
   return `http://${hostname}:8080`;
 };
 
-export const BACKEND = getBackendURL();
+// BACKEND is used for constructing media/upload URLs (no /api prefix)
+export const BACKEND = getBackendURL();

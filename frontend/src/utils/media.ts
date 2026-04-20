@@ -1,7 +1,8 @@
 // Get backend URL from environment variable or use fallback
+// Strips /api suffix since media files are served at the root (e.g., /uploads/...)
 const getBackendUrl = () => {
   if (typeof window !== 'undefined' && import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+    return import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '');
   }
   return 'http://localhost:8080';
 };

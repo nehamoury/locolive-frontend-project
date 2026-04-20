@@ -25,6 +25,7 @@ interface ExploreFeedProps {
     };
   };
   onUserSelect?: (id: string) => void;
+  onStoryClick?: (stories: any[], index: number) => void;
   onRefresh: {
     nearby: () => void;
     crossings: () => void;
@@ -40,6 +41,7 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
   activeTab, 
   data, 
   onUserSelect,
+  onStoryClick,
   onRefresh,
   onRemoveSuggested,
   onRemoveNearby
@@ -54,6 +56,7 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
             stories={data.mapStories}
             loading={data.loading.nearby || data.loading.crossings || data.loading.stories}
             onUserSelect={onUserSelect}
+            onStoryClick={onStoryClick}
             onMatch={async (id) => {
               try {
                 // Optimistic removal
@@ -122,6 +125,7 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
             stories={data.mapStories}
             loading={data.loading.stories}
             onRefresh={onRefresh.stories}
+            onStoryClick={onStoryClick}
           />
         );
       case 'heatmap':
