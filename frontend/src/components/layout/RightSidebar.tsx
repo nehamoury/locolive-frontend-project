@@ -1,7 +1,6 @@
 import { type FC } from 'react';
-import { MapPin, TrendingUp, Users, Compass, Footprints, ArrowRight, Star, Sparkles, Sun, Moon, Zap } from 'lucide-react';
+import { MapPin, TrendingUp, Users, Footprints, Star, Sparkles, Zap, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useTheme } from '../../context/ThemeContext';
 
 interface RightSidebarProps {
   crossingsToday?: number;
@@ -10,137 +9,104 @@ interface RightSidebarProps {
   isSyncing?: boolean;
 }
 
-const RightSidebar: FC<RightSidebarProps> = ({ 
-  crossingsToday = 14, 
-  nearbyCount = 0, 
+const RightSidebar: FC<RightSidebarProps> = ({
+  crossingsToday = 0,
+  nearbyCount = 0,
   storiesCount = 0
 }) => {
-  const { theme, toggleTheme } = useTheme();
 
   return (
-    <aside className="h-full bg-bg-sidebar flex flex-col overflow-y-auto no-scrollbar font-brand transition-colors duration-300">
-      
-      {/* Top bar: Theme toggle (always visible, won't collapse) */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-border-base sticky top-0 z-10 bg-bg-sidebar backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
-          <span className="text-[10px] font-black text-text-muted uppercase tracking-[2px]">Live</span>
-        </div>
-        <button
-          onClick={toggleTheme}
-          className="w-9 h-9 flex items-center justify-center rounded-xl bg-bg-base border border-border-base text-text-muted hover:text-primary hover:border-primary/30 transition-all shadow-sm cursor-pointer"
-          aria-label="Toggle theme"
-          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-        </button>
-      </div>
+    <aside className="h-full flex flex-col overflow-y-auto no-scrollbar pt-6 pb-8 px-6 gap-6">
 
-      <div className="flex flex-col gap-6 p-5">
+      {/* ── Snap Match Card ── */}
+      <motion.div
+        whileHover={{ y: -3, boxShadow: '0 20px 40px -10px rgba(255,59,142,0.35)' }}
+        transition={{ duration: 0.25 }}
+        className="bg-gradient-to-br from-[#FF3B8E] via-[#C94FD8] to-[#7B2FBE] rounded-[22px] p-5 text-white relative overflow-hidden shadow-xl shadow-pink-500/20 flex-shrink-0 cursor-pointer"
+      >
+        {/* Decorative blobs */}
+        <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 right-2 w-16 h-16 bg-white/5 rounded-full pointer-events-none" />
 
-        {/* Fast Connect Widget */}
-        <motion.div 
-          whileHover={{ y: -4 }}
-          className="bg-brand-gradient rounded-[28px] p-6 text-white relative overflow-hidden shadow-xl shadow-primary/20"
-        >
-          <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-          <div className="relative z-10 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-white/80" />
-              <h3 className="text-lg font-black italic tracking-tighter">Fast Connect</h3>
-            </div>
-            <p className="text-xs font-medium text-white/75 leading-snug">Instantly match with people attending the same events today.</p>
-            <button className="mt-1 w-full py-3 bg-white text-primary font-black rounded-xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer text-sm">
-              Discover Matches
-            </button>
+        <div className="relative z-10">
+          <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center mb-3 backdrop-blur-sm">
+            <Zap className="w-5 h-5 text-white" />
           </div>
-        </motion.div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Nearby" count={nearbyCount} icon={<Users size={16} className="text-primary" />} color="bg-primary/5 border-primary/10" />
-          <StatCard label="Stories" count={storiesCount} icon={<Sparkles size={16} className="text-secondary" />} color="bg-secondary/5 border-secondary/10" />
-          <StatCard label="Crossings" count={crossingsToday} icon={<Footprints size={16} className="text-[#20C997]" />} color="bg-[#20C997]/5 border-[#20C997]/10" />
-          <StatCard label="Saved" count={0} icon={<Star size={16} className="text-amber-500" />} color="bg-amber-50 border-amber-100 dark:bg-amber-500/5 dark:border-amber-500/10" />
-        </div>
-
-        {/* Trending Circles */}
-        <div className="bg-bg-card rounded-[24px] border border-border-base p-5 flex flex-col gap-5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <h3 className="text-[13px] font-black text-text-base italic">Trending Circles</h3>
-          </div>
-          <div className="flex flex-col gap-4">
-            <TrendingItem icon="🎨" title="Art & Design" members="1.2k" color="bg-pink-100 dark:bg-pink-500/10" />
-            <TrendingItem icon="🍴" title="Foodie Explorers" members="850" color="bg-red-100 dark:bg-red-500/10" />
-            <TrendingItem icon="🏋️" title="Fitness Hub" members="2.4k" color="bg-purple-100 dark:bg-purple-500/10" />
-          </div>
-        </div>
-
-        {/* Popular Nearby */}
-        <div className="bg-bg-card rounded-[24px] border border-border-base p-5 flex flex-col gap-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Compass className="w-4 h-4 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-[13px] font-black text-text-base italic leading-tight">Popular Nearby</h3>
-              <p className="text-[10px] text-text-muted font-medium">This weekend's hotspot</p>
-            </div>
-          </div>
-
-          <div className="aspect-video bg-bg-base rounded-xl overflow-hidden relative border border-border-base">
-            <img 
-              src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=400&h=200" 
-              className="w-full h-full object-cover grayscale opacity-50" 
-              alt="Popular location" 
-            />
-            <div className="absolute inset-0 bg-brand-gradient/10" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center shadow-lg">
-                <MapPin className="w-5 h-5 text-primary" />
-              </div>
-            </div>
-          </div>
-
-          <p className="text-xs font-medium text-text-muted leading-relaxed">
-            Most connections happen at <span className="font-black text-text-base">"The Central Square"</span> this weekend.
-          </p>
-
-          <button className="flex items-center gap-2 text-[11px] font-black text-primary uppercase tracking-widest group hover:translate-x-1 transition-transform cursor-pointer">
-            View Heatmap <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+          <h3 className="text-[16px] font-black leading-tight mb-1.5 tracking-tight">Snap Match</h3>
+          <p className="text-white/70 text-[12px] leading-relaxed mb-4 font-medium">Find and connect with people attending the same events.</p>
+          <button className="w-full py-2.5 bg-white rounded-[14px] font-black text-[12px] text-[#C84FD8] hover:bg-pink-50 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
+            Find Matches <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
+      </motion.div>
 
+      {/* ── Stats Grid ── */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard label="Nearby" count={nearbyCount} icon={<MapPin className="w-3.5 h-3.5 text-[#FF3B8E]" />} iconBg="bg-pink-50" countColor="text-[#1A202C]" />
+        <StatCard label="Stories" count={storiesCount} icon={<Sparkles className="w-3.5 h-3.5 text-[#A855F7]" />} iconBg="bg-purple-50" countColor="text-[#1A202C]" />
+        <StatCard label="Crossings" count={crossingsToday} icon={<Footprints className="w-3.5 h-3.5 text-[#10B981]" />} iconBg="bg-emerald-50" countColor="text-[#1A202C]" />
+        <StatCard label="Saved" count={0} icon={<Star className="w-3.5 h-3.5 text-[#F59E0B]" />} iconBg="bg-amber-50" countColor="text-[#1A202C]" />
       </div>
+
+      {/* ── Trending Circles ── */}
+      <div className="flex-1">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-[#FF3B8E]" />
+            <h3 className="text-[14px] font-black text-slate-800">Trending Circles</h3>
+          </div>
+          <button className="text-[12px] font-semibold text-[#FF3B8E] hover:text-pink-700 transition-colors cursor-pointer">See all</button>
+        </div>
+
+        <div className="space-y-1">
+          <TrendingItem emoji="📸" title="Photography" members="12.5k" color="bg-pink-100" />
+          <TrendingItem emoji="✈️" title="Travel Diaries" members="8.2k" color="bg-sky-100" />
+          <TrendingItem emoji="🍕" title="Food Lovers" members="15.3k" color="bg-orange-100" />
+          <TrendingItem emoji="🎵" title="Music Vibes" members="9.1k" color="bg-violet-100" />
+        </div>
+      </div>
+
+      {/* ── Popular Nearby (Compact) ── */}
+      <div className="bg-white rounded-[18px] border border-slate-100 p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <Users className="w-3.5 h-3.5 text-slate-400" />
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Popular Nearby</p>
+        </div>
+        <p className="text-[12px] font-medium text-slate-600 leading-relaxed">
+          Most connections happen at <span className="font-black text-slate-900">"The Central Square"</span> this weekend.
+        </p>
+      </div>
+
     </aside>
   );
 };
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
+// ── Sub-components ──────────────────────────────────────────────────────────────
 
-const StatCard = ({ label, count, icon, color }: { label: string, count: number, icon: React.ReactNode, color: string }) => (
-  <div className={`flex flex-col gap-1.5 p-4 border rounded-2xl ${color} transition-all hover:-translate-y-0.5 hover:shadow-sm`}>
-    <div className="flex items-center gap-1.5 text-text-muted">
+const StatCard = ({ label, count, icon, iconBg, countColor }: { label: string; count: number; icon: React.ReactNode; iconBg: string; countColor: string }) => (
+  <div className="bg-white rounded-[18px] border border-slate-100/80 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+    <div className={`w-7 h-7 ${iconBg} rounded-xl flex items-center justify-center mb-3`}>
       {icon}
-      <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
     </div>
-    <span className="text-2xl font-black text-text-base italic">{count}</span>
+    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[1.5px] mb-0.5">{label}</p>
+    <span className={`text-[22px] font-black ${countColor} leading-none`}>{count}</span>
   </div>
 );
 
-const TrendingItem = ({ icon, title, members, color }: { icon: string, title: string, members: string, color: string }) => (
-  <motion.div 
+const TrendingItem = ({ emoji, title, members, color }: { emoji: string; title: string; members: string; color: string }) => (
+  <motion.div
     whileHover={{ x: 4 }}
-    className="flex items-center gap-3 group cursor-pointer"
+    transition={{ duration: 0.15 }}
+    className="flex items-center gap-3 cursor-pointer group py-2 px-2 rounded-xl hover:bg-slate-50 transition-colors"
   >
-    <div className={`w-10 h-10 rounded-full ${color} flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition-all`}>
-      {icon}
+    <div className={`w-9 h-9 rounded-full ${color} flex items-center justify-center text-[16px] flex-shrink-0 group-hover:scale-110 transition-transform`}>
+      {emoji}
     </div>
-    <div className="flex flex-col">
-      <span className="text-[13px] font-black text-text-base leading-tight italic">{title}</span>
-      <span className="text-[10px] font-medium text-text-muted">{members} members active</span>
+    <div className="flex-1 min-w-0">
+      <p className="text-[13px] font-bold text-slate-800 leading-tight truncate">{title}</p>
+      <p className="text-[11px] text-slate-400 font-medium">{members} members</p>
     </div>
+    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#FF3B8E] transition-colors flex-shrink-0" />
   </motion.div>
 );
 

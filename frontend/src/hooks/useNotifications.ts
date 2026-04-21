@@ -80,12 +80,51 @@ export const useNotifications = () => {
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const res = await api.get('/notifications/unread-count');
-      setUnreadCount(res.data.unread_count || 0);
+      const res = await api.get('/notifications');
+      const data = res.data || [];
+
+      // Deduplicate notifications exactly like in NotificationsView
+      const seenMessages = new Map<string, any>();
+      for (const notif of data) {
+        const key = `${notif.type}_${notif.message}`;
+        if (!seenMessages.has(key)) {
+          seenMessages.set(key, notif);
+        }
+      }
+      const uniqueNotifications = Array.from(seenMessages.values());
+      const uniqueUnreadCount = uniqueNotifications.filter((n: any) => !n.is_read).length;
+
+      setUnreadCount(uniqueUnreadCount);
+      setNotifications(uniqueNotifications);
     } catch (err) {
       console.error('[Notifications] Failed to fetch unread count:', err);
     }
   }, []);
+
+  const markAllRead = async () => {
+    try {
+      await api.put('/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      window.dispatchEvent(new CustomEvent('notifications_updated'));
+    } catch (err) {
+      console.error('Failed to mark all read:', err);
+    }
+  };
+
+  const markRead = async (id: string, relatedUserId?: string, onUserSelect?: (id: string) => void) => {
+    try {
+      await api.put(`/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      window.dispatchEvent(new CustomEvent('notifications_updated'));
+      
+      // If it's a social notification, navigate to profile
+      if (relatedUserId && onUserSelect) {
+        onUserSelect(relatedUserId);
+      }
+    } catch (err) {
+      console.error('Failed to mark read:', err);
+    }
+  };
 
   const fetchUnreadMessagesCount = useCallback(async () => {
     try {
@@ -233,8 +272,15 @@ export const useNotifications = () => {
               tag: 'crossing'
             });
 
-            setUnreadCount(prev => prev + 1);
-            setNotifications(prev => [notif, ...prev]);
+            setNotifications(prev => {
+              const key = `${notif.type}_${notif.message}`;
+              const exists = prev.some(n => `${n.type}_${n.message}` === key);
+              if (exists) return prev;
+
+              const newList = [notif, ...prev];
+              setUnreadCount(newList.filter(n => !n.is_read).length);
+              return newList;
+            });
             window.dispatchEvent(new CustomEvent('crossing_detected', { detail: notif }));
             return;
           }
@@ -290,8 +336,16 @@ export const useNotifications = () => {
     // which prevents the pesky 'WebSocket is closed before the connection is established' warning.
     initialConnectTimeout = setTimeout(connect, 50);
 
+    const handleUpdate = () => {
+      fetchUnreadCount();
+      fetchUnreadMessagesCount();
+      fetchPendingRequestsCount();
+    };
+    window.addEventListener('notifications_updated', handleUpdate);
+
     return () => {
       isSubscribed = false;
+      window.removeEventListener('notifications_updated', handleUpdate);
       if (initialConnectTimeout) clearTimeout(initialConnectTimeout);
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (socketRef.current) socketRef.current.close();
@@ -313,6 +367,8 @@ export const useNotifications = () => {
       fetchUnreadCount();
       fetchUnreadMessagesCount();
       fetchPendingRequestsCount();
-    }
+    },
+    markRead,
+    markAllRead
   };
 };

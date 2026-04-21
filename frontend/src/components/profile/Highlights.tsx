@@ -1,5 +1,4 @@
 import { type FC } from 'react';
-import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
@@ -18,46 +17,39 @@ interface HighlightsProps {
 
 const Highlights: FC<HighlightsProps> = ({ highlights = [], onAdd, onView, isOwnProfile }) => {
     return (
-        <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-6 px-1">
+        <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-4 px-2">
             {isOwnProfile && (
-                <button
-                    onClick={onAdd}
-                    className="flex flex-col items-center gap-2.5 shrink-0 group"
-                >
-                    <div className="w-[72px] h-[72px] rounded-full border-2 border-dashed border-primary/30 flex items-center justify-center bg-primary/5 group-hover:bg-primary/10 group-hover:border-primary/50 transition-all duration-300 shadow-inner">
-                        <Plus className="w-6 h-6 text-primary group-hover:scale-125 transition-transform" />
-                    </div>
-                    <span className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] group-hover:text-primary transition-colors">New</span>
-                </button>
+                <div className="flex flex-col items-center gap-3 shrink-0">
+                    <button 
+                        onClick={onAdd}
+                        className="w-20 h-20 rounded-full border-2 border-dashed border-pastel flex items-center justify-center text-slate-300 hover:text-pastel-pink-accent hover:border-pastel-pink-accent transition-all active:scale-95 cursor-pointer bg-white"
+                    >
+                        <Plus className="w-8 h-8" />
+                    </button>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">New</span>
+                </div>
             )}
-
-            {highlights.map((item, idx) => (
-                <motion.button
-                    key={item.id}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.1, type: "spring", stiffness: 200, damping: 15 }}
-                    onClick={() => onView?.(item.id)}
-                    className="flex flex-col items-center gap-2.5 shrink-0 group"
+            
+            {highlights.map((h) => (
+                <div 
+                    key={h.id} 
+                    className="flex flex-col items-center gap-3 shrink-0 group cursor-pointer"
+                    onClick={() => onView?.(h.id)}
                 >
-                    <div className="relative w-[72px] h-[72px] rounded-full p-[3px] bg-gradient-to-tr from-primary via-accent to-secondary shadow-lg shadow-primary/10 group-active:scale-90 transition-transform">
-                        <div className="w-full h-full rounded-full bg-bg-base p-[2px]">
-                            <img
-                                src={getMediaUrl(item.cover_url, FALLBACKS.HIGHLIGHT)}
-                                alt={item.title}
-                                className="w-full h-full rounded-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    <div className="w-20 h-20 rounded-full p-[2px] border-2 border-transparent group-hover:border-pastel-pink-accent transition-all active:scale-95">
+                        <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-slate-50 shadow-soft">
+                            <img 
+                                src={getMediaUrl(h.cover_url, FALLBACKS.POST)} 
+                                className="w-full h-full object-cover" 
+                                alt="" 
                             />
                         </div>
-                        {/* Glow reflection */}
-                        <div className="absolute inset-0 rounded-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                     </div>
-                    <span className="text-[10px] font-black text-text-base truncate w-[72px] text-center uppercase tracking-widest group-hover:text-primary transition-colors">
-                        {item.title}
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-900 transition-colors">
+                        {h.title || 'Collection'}
                     </span>
-                </motion.button>
+                </div>
             ))}
-
-
         </div>
     );
 };

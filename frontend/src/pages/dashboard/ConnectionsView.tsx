@@ -1,18 +1,14 @@
 import { useState, useEffect, type FC } from 'react';
 import { 
   UserPlus, 
-  UserCheck, 
   X, 
-  Search, 
   Users, 
   MessageSquare, 
   MapPin, 
-  Filter, 
-  ChevronRight,
-  ArrowRight,
   UserMinus,
   Loader2,
-  Sparkles
+  Sparkles,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
@@ -31,14 +27,36 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
   const [requests, setRequests] = useState<any[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  // Persistence for dismissed suggestions
+  const getDismissed = () => {
+    try {
+      return JSON.parse(localStorage.getItem('dismissed_suggestions') || '[]');
+    } catch {
+      return [];
+    }
+  };
 
   const fetchSuggestions = async () => {
     try {
       const res = await api.get('/connections/suggested');
-      setSuggestions(res.data || []);
+      const dismissed = getDismissed();
+      const filtered = (res.data || []).filter((u: any) => !dismissed.includes(u.id));
+      setSuggestions(filtered);
     } catch (err) {
       console.error('Failed to fetch suggestions:', err);
+    }
+  };
+
+  const handleDismissSuggestion = (userId: string) => {
+    // 1. Update local state
+    setSuggestions(prev => prev.filter(s => s.id !== userId));
+    
+    // 2. Persist in localStorage
+    const current = getDismissed();
+    if (!current.includes(userId)) {
+      current.push(userId);
+      localStorage.setItem('dismissed_suggestions', JSON.stringify(current));
     }
   };
 
@@ -62,7 +80,11 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
 
   const loadAllCounts = async () => {
     api.get('/connections/requests').then(res => setRequests(res.data || []));
-    api.get('/connections/suggested').then(res => setSuggestions(res.data || []));
+    api.get('/connections/suggested').then(res => {
+      const dismissed = getDismissed();
+      const filtered = (res.data || []).filter((u: any) => !dismissed.includes(u.id));
+      setSuggestions(filtered);
+    });
     api.get('/connections').then(res => setConnections(res.data || []));
   };
 
@@ -82,7 +104,7 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
     try {
       if (action === 'send') {
         await api.post('/connections/request', { target_user_id: userId });
-        setSuggestions(prev => prev.filter(s => s.id !== userId));
+        setSuggestions(prev => prev.map(s => s.id === userId ? { ...s, requested: true } : s));
       } else if (action === 'accept') {
         await api.post('/connections/update', { requester_id: userId, status: 'accepted' });
         setRequests(prev => prev.filter(r => (r.user_id || r.requester_id) !== userId));
@@ -100,340 +122,423 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
     }
   };
 
-  const filteredData = () => {
-    let data: any[] = [];
-    if (activeTab === 'suggestions') data = suggestions;
-    else if (activeTab === 'requests') data = requests;
-    else if (activeTab === 'my-connections') data = connections;
-
-    if (!searchQuery) return data;
-    return data.filter((item: any) => 
-      (item.username || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.full_name || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  };
-
   return (
-    <div className="h-full bg-bg-base overflow-y-auto no-scrollbar pb-24 md:pb-0 px-8 pt-8 font-brand w-full transition-all duration-300">
-      <div className="w-full flex-col flex h-full max-w-[1200px] mx-auto">
+    <div className="h-full bg-[#FCF8FB] overflow-y-auto no-scrollbar pb-24 md:pb-8 px-6 pt-10 font-poppins w-full selection:bg-primary/10">
+      <div className="w-full h-fit max-w-6xl mx-auto">
         
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-[32px] font-black tracking-tight italic uppercase leading-none text-gradient bg-brand-gradient">
-              Connections
-            </h1>
-            <p className="text-[13px] font-medium text-text-muted mt-1.5">
-              Manage your network and discover new friends
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3 w-full max-w-sm ml-6">
-            <div className="relative group flex-1 min-w-[200px]">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary transition-colors" />
-              <input 
-                type="text"
-                placeholder="Search network..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-[50px] pr-4 py-3.5 bg-bg-card border border-border-base rounded-full text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-text-base placeholder:text-text-muted shadow-sm"
-              />
+        {/* ── Header ───────────────────────────────────────────────────────────── */}
+        <div className="flex flex-col mb-10">
+            <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-black tracking-tight text-gray-900 flex items-center gap-3">
+                    Connections
+                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                        <Users className="w-6 h-6 text-primary" />
+                    </div>
+                </h1>
             </div>
-            <button className="w-12 h-12 flex items-center justify-center shrink-0 bg-bg-card border border-border-base rounded-full text-text-muted hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all shadow-sm">
-              <Filter className="w-5 h-5" />
-            </button>
-          </div>
+            <p className="text-[14px] font-medium text-gray-500 max-w-lg">
+                Manage your network and discover new friends near you
+            </p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-1 mb-8 bg-bg-card border border-border-base rounded-2xl p-1.5 max-w-md shadow-sm">
-          <ModernTab 
-            label="Suggestions" 
-            active={activeTab === 'suggestions'} 
-            onClick={() => setActiveTab('suggestions')} 
-          />
-          <ModernTab 
-            label="Requests" 
-            active={activeTab === 'requests'} 
-            onClick={() => setActiveTab('requests')} 
-          />
-          <ModernTab 
-            label="Following" 
-            count={connections.length}
-            active={activeTab === 'my-connections'} 
-            onClick={() => setActiveTab('my-connections')} 
-          />
+        {/* ── Tabs ───────────────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-4 mb-10 overflow-x-auto no-scrollbar p-1">
+            <ModernTab 
+                label="Suggestions" 
+                icon={<UserPlus className="w-4 h-4" />}
+                active={activeTab === 'suggestions'} 
+                onClick={() => setActiveTab('suggestions')} 
+            />
+            <ModernTab 
+                label="Requests" 
+                icon={<MessageSquare className="w-4 h-4" />}
+                count={requests.length}
+                active={activeTab === 'requests'} 
+                onClick={() => setActiveTab('requests')} 
+            />
+            <ModernTab 
+                label="Following" 
+                icon={<Users className="w-4 h-4" />}
+                active={activeTab === 'my-connections'} 
+                onClick={() => setActiveTab('my-connections')} 
+            />
         </div>
 
-        {/* Content Area - Transparent container for integration */}
-        <div className="flex-1 w-full flex flex-col mb-8">
-          <div className={`w-full h-full flex flex-col ${filteredData().length === 0 ? 'border border-dashed border-border-base rounded-[24px]' : ''}`}>
+        {/* ── Content Sections ────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-12">
             
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-32 space-y-4 m-auto">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="w-7 h-7 text-primary animate-pulse" />
-                  </div>
-                  <Loader2 className="absolute inset-0 m-auto w-10 h-10 text-primary animate-spin" />
+                <div className="flex flex-col items-center justify-center py-32 space-y-4 m-auto">
+                    <div className="relative">
+                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Sparkles className="w-7 h-7 text-primary animate-pulse" />
+                        </div>
+                        <Loader2 className="absolute inset-0 m-auto w-10 h-10 text-primary animate-spin" />
+                    </div>
+                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Updating Network...</p>
                 </div>
-                <p className="text-xs font-black text-text-muted uppercase tracking-widest">Updating Network...</p>
-              </div>
             ) : (
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className={`w-full ${filteredData().length === 0 ? 'flex-1 flex m-auto items-center justify-center' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5'}`}
-                >
-                  {filteredData().length === 0 ? (
-                    <EmptyState 
-                      activeTab={activeTab} 
-                      onAction={() => window.location.href = '/map'} 
-                    />
-                  ) : (
-                    filteredData().map((item: any, idx: number) => (
-                      <div key={item.id || item.user_id || item.requester_id || `item-${idx}`}>
-                        {activeTab === 'suggestions' && (
-                          <SuggestionCard 
-                            user={item} 
-                            onConnect={() => handleRequest(item.id, 'send')}
-                            onView={() => onUserSelect?.(item.id)}
-                          />
-                        )}
-                        {activeTab === 'requests' && (
-                          <RequestCard 
-                            user={item} 
-                            onAccept={() => handleRequest(item.user_id || item.requester_id, 'accept')}
-                            onReject={() => handleRequest(item.user_id || item.requester_id, 'decline')}
-                            onView={() => onUserSelect?.(item.user_id || item.requester_id)}
-                          />
-                        )}
-                        {activeTab === 'my-connections' && (
-                          <FollowingCard 
-                            user={item} 
-                            onMessage={() => onMessage?.(item.id)}
-                            onRemove={() => handleRequest(item.id, 'remove')}
-                            onView={() => onUserSelect?.(item.id)}
-                          />
-                        )}
-                      </div>
-                    ))
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            )}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        className="w-full flex flex-col gap-12"
+                    >
+                        {/* SUGGESTIONS VIEW */}
+                        {(activeTab === 'suggestions') && (
+                            <>
+                                {/* People You May Know Grid */}
+                                <section>
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-lg font-black text-gray-800 tracking-tight">People you may know</h2>
+                                        <button className="text-[12px] font-bold text-primary hover:underline cursor-pointer">View all</button>
+                                    </div>
+                                    {suggestions.length === 0 ? (
+                                        <EmptyState activeTab="suggestions" />
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                            {suggestions.map((user) => (
+                                                <SuggestionCard 
+                                                    key={user.id} 
+                                                    user={user} 
+                                                    onConnect={() => handleRequest(user.id, 'send')}
+                                                    onDismiss={() => handleDismissSuggestion(user.id)}
+                                                    onView={() => onUserSelect?.(user.id)}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </section>
 
-          </div>
+                                {/* Small Friend Requests Preview if any */}
+                                {requests.length > 0 && (
+                                    <section>
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h2 className="text-lg font-black text-gray-800 tracking-tight">Friend Requests</h2>
+                                            <button 
+                                                onClick={() => setActiveTab('requests')}
+                                                className="text-[12px] font-bold text-primary hover:underline cursor-pointer"
+                                            >
+                                                View all
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-col gap-4">
+                                            {requests.slice(0, 3).map((req) => (
+                                                <RequestCard 
+                                                    key={req.user_id || req.requester_id} 
+                                                    user={req} 
+                                                    onAccept={() => handleRequest(req.user_id || req.requester_id, 'accept')}
+                                                    onReject={() => handleRequest(req.user_id || req.requester_id, 'decline')}
+                                                    onView={() => onUserSelect?.(req.user_id || req.requester_id)}
+                                                />
+                                            ))}
+                                        </div>
+                                    </section>
+                                )}
+                            </>
+                        )}
+
+                        {/* REQUESTS VIEW */}
+                        {activeTab === 'requests' && (
+                            <section>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-lg font-black text-gray-800 tracking-tight">Incoming Requests</h2>
+                                </div>
+                                {requests.length === 0 ? (
+                                    <EmptyState activeTab="requests" />
+                                ) : (
+                                    <div className="flex flex-col gap-4">
+                                        {requests.map((req) => (
+                                            <RequestCard 
+                                                key={req.user_id || req.requester_id} 
+                                                user={req} 
+                                                onAccept={() => handleRequest(req.user_id || req.requester_id, 'accept')}
+                                                onReject={() => handleRequest(req.user_id || req.requester_id, 'decline')}
+                                                onView={() => onUserSelect?.(req.user_id || req.requester_id)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        {/* FOLLOWING VIEW */}
+                        {activeTab === 'my-connections' && (
+                            <section>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-lg font-black text-gray-800 tracking-tight">Your Connections</h2>
+                                </div>
+                                {connections.length === 0 ? (
+                                    <EmptyState activeTab="my-connections" />
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {connections.map((user) => (
+                                            <FollowingCard 
+                                                key={user.id} 
+                                                user={user} 
+                                                onMessage={() => onMessage?.(user.id)}
+                                                onRemove={() => handleRequest(user.id, 'remove')}
+                                                onView={() => onUserSelect?.(user.id)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
+            )}
         </div>
       </div>
     </div>
   );
 };
 
-// ─── Tabs ──────────────────────────────────────────────────────────────────────
+// ─── Components ────────────────────────────────────────────────────────────────
 
-const ModernTab = ({ label, count, active, onClick }: any) => (
+const ModernTab = ({ label, icon, count, active, onClick }: any) => (
   <button 
     onClick={onClick}
-    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl transition-all duration-300 relative overflow-hidden cursor-pointer
+    className={`flex items-center gap-3 py-3.5 px-8 rounded-2xl transition-all duration-300 relative cursor-pointer border
       ${active 
-        ? 'bg-brand-gradient text-white shadow-lg shadow-primary/20' 
-        : 'text-text-muted hover:text-text-base'
+        ? 'bg-gradient-to-r from-[#FF3B8E] to-[#A855F7] text-white shadow-xl shadow-pink-500/20 border-transparent scale-105' 
+        : 'bg-white text-gray-500 border-gray-100 hover:border-pink-200 hover:text-pink-500'
       }`}
   >
-    <span className={`text-[11px] font-black uppercase tracking-widest ${active ? 'text-white' : ''}`}>
-      {label}
-    </span>
+    <span className={active ? 'text-white' : 'text-inherit'}>{icon}</span>
+    <span className="text-[13px] font-black tracking-tight">{label}</span>
     {count !== undefined && count > 0 && (
-      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${active ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
+      <span className={`px-2 py-0.5 rounded-lg text-[11px] font-black ${active ? 'bg-white/20 text-white' : 'bg-pink-100 text-[#FF3B8E]'}`}>
         {count}
       </span>
     )}
   </button>
 );
 
-// ─── Empty State ───────────────────────────────────────────────────────────────
+const SuggestionCard = ({ user, onConnect, onDismiss, onView }: any) => {
+  const interests = (user.bio || '').match(/#[a-z0-9_]+/gi) || ['#Photography', '#Travel'];
+  const distance = user.distance_km ? `${user.distance_km.toFixed(1)} km away` : '2.5 km away';
+  const mutualFriends = user.mutual_friends || [];
 
-const EmptyState = ({ activeTab, onAction }: any) => {
+  return (
+    <motion.div 
+      whileHover={{ y: -8, transition: { duration: 0.2 } }}
+      className="bg-white p-5 rounded-[28px] border border-gray-100/80 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] flex flex-col group relative overflow-hidden"
+    >
+      <div className="flex flex-col items-center text-center">
+        {/* Avatar */}
+        <div className="relative mb-4 group/avatar" onClick={onView}>
+          <div className="w-24 h-24 rounded-full p-[3px] bg-gradient-to-tr from-primary via-accent to-primary animate-gradient-slow cursor-pointer">
+            <div className="w-full h-full rounded-full bg-white p-1">
+                <img 
+                    src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} 
+                    className="w-full h-full rounded-full object-cover" 
+                    alt="" 
+                />
+            </div>
+          </div>
+          {isUserOnline(user.last_active_at) && (
+            <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-white rounded-full shadow-sm" />
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex flex-col items-center gap-1 mb-4">
+            <h3 className="font-black text-gray-800 text-[16px] leading-tight truncate px-2">{user.full_name || user.username}</h3>
+            <p className="text-[12px] font-bold text-gray-400">@{user.username}</p>
+            <div className="flex items-center gap-1.5 mt-1.5 text-gray-400">
+                <MapPin className="w-3 h-3" />
+                <span className="text-[11px] font-bold">{distance}</span>
+            </div>
+        </div>
+
+        {/* Mutual Friends Section */}
+        {user.mutual_count > 0 && (
+            <div className="flex flex-col items-center gap-1.5 mb-5 px-3">
+                <div className="flex -space-x-2">
+                    {mutualFriends.slice(0, 3).map((friend: any, i: number) => (
+                        <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gray-100 overflow-hidden" title={friend.username}>
+                             <img src={getMediaUrl(friend.avatar_url, FALLBACKS.AVATAR(friend.username))} alt="" className="w-full h-full object-cover" />
+                        </div>
+                    ))}
+                    {user.mutual_count > 3 && (
+                        <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[9px] font-black text-gray-400">
+                            +{user.mutual_count - 3}
+                        </div>
+                    )}
+                </div>
+                <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest">{user.mutual_count} mutual connections</p>
+            </div>
+        )}
+
+        {/* Interests (shown only if no mutual friends to keep layout clean) */}
+        {user.mutual_count === 0 && (
+            <div className="flex flex-wrap justify-center gap-1.5 mb-6 min-h-[22px]">
+                {interests.slice(0, 2).map((tag: string, i: number) => (
+                    <span key={i} className="text-[10px] font-black uppercase text-[#A855F7] bg-purple-50 px-2.5 py-1 rounded-full tracking-wide">
+                        {tag}
+                    </span>
+                ))}
+            </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 w-full mt-auto">
+            {user.requested ? (
+                 <button disabled className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Requested
+                 </button>
+            ) : (
+                <>
+                    <button 
+                        onClick={onConnect}
+                        className="flex-1 bg-gradient-to-r from-[#FF3B8E] to-[#A855F7] text-white py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 active:scale-95 transition-all cursor-pointer"
+                    >
+                        Connect
+                    </button>
+                    <button 
+                        onClick={onDismiss}
+                        className="w-10 h-11 flex items-center justify-center rounded-2xl bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer border border-transparent hover:border-red-100"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </>
+            )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const RequestCard = ({ user, onAccept, onReject, onView }: any) => {
+    const mutualFriends = user.mutual_friends || [];
+    
+    return (
+    <motion.div 
+        whileHover={{ scale: 1.01 }}
+        className="bg-white p-5 rounded-[24px] border border-gray-100/80 shadow-sm flex items-center justify-between group"
+    >
+        <div className="flex items-center gap-4 flex-1">
+            <div className="w-16 h-16 rounded-full overflow-hidden cursor-pointer shrink-0" onClick={onView}>
+            <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                    <h4 className="font-black text-gray-800 text-base">@{user.username}</h4>
+                    <span className="px-2 py-0.5 bg-pink-50 text-primary text-[9px] font-black rounded-lg uppercase tracking-wider">NEW</span>
+                </div>
+                <p className="text-[12px] text-gray-400 font-bold uppercase tracking-widest">{user.full_name || 'Friend Request'}</p>
+            </div>
+        </div>
+
+        {/* Mutual Connections (Real Data) */}
+        {user.mutual_count > 0 && (
+            <div className="hidden lg:flex flex-col items-center gap-1 mx-10 shrink-0">
+                <p className="text-[11px] font-bold text-gray-400">{user.mutual_count} mutual connections</p>
+                <div className="flex -space-x-2">
+                    {mutualFriends.slice(0, 3).map((friend: any, i: number) => (
+                        <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gray-100 overflow-hidden" title={friend.username}>
+                            <img src={getMediaUrl(friend.avatar_url, FALLBACKS.AVATAR(friend.username))} alt="" className="w-full h-full object-cover" />
+                        </div>
+                    ))}
+                    {user.mutual_count > 3 && (
+                        <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400">
+                            +{user.mutual_count - 3}
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
+
+        <div className="flex items-center gap-2 shrink-0">
+        <button 
+            onClick={onAccept}
+            className="px-8 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:shadow-lg transition-all active:scale-95 cursor-pointer"
+        >
+            Accept
+        </button>
+        <button 
+            onClick={onReject}
+            className="px-8 py-3 bg-gray-50 text-gray-500 rounded-2xl text-[12px] font-bold hover:bg-gray-100 transition-all active:scale-95 cursor-pointer border border-gray-100"
+        >
+            Decline
+        </button>
+        </div>
+    </motion.div>
+    );
+};
+
+const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => (
+  <motion.div 
+    whileHover={{ y: -4 }}
+    className="bg-white p-5 rounded-[32px] border border-gray-100/80 shadow-sm flex items-center justify-between group"
+  >
+    <div className="flex items-center gap-4 overflow-hidden pr-4">
+      <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 cursor-pointer p-[2px] bg-gradient-to-br from-primary/20 to-accent/20" onClick={onView}>
+        <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full rounded-xl object-cover" alt="" />
+      </div>
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={onView}>
+        <h4 className="font-black text-gray-800 text-[15px] leading-tight truncate">@{user.username}</h4>
+        <p className="text-[12px] text-gray-400 font-medium mt-0.5 truncate">{user.full_name || 'Locolive User'}</p>
+      </div>
+    </div>
+    <div className="flex items-center gap-2 shrink-0">
+      <button 
+        onClick={onMessage}
+        className="w-11 h-11 flex items-center justify-center bg-pink-50 text-primary hover:bg-primary hover:text-white rounded-2xl transition-all cursor-pointer"
+        title="Message"
+      >
+        <MessageSquare className="w-5 h-5" />
+      </button>
+      <button 
+        onClick={onRemove}
+        className="w-11 h-11 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all cursor-pointer border border-gray-100"
+        title="Remove Connection"
+      >
+        <UserMinus className="w-5 h-5" />
+      </button>
+    </div>
+  </motion.div>
+);
+
+const EmptyState = ({ activeTab }: any) => {
   const configs: any = {
     suggestions: {
       title: "No people nearby",
       desc: "It seems like everyone is hiding! Why don't you explore the map and see where the crowd is?",
-      cta: "Explore Map",
-      icon: <MapPin className="w-7 h-7 text-primary stroke-[2.5]" />
+      icon: <MapPin className="w-8 h-8 text-primary" />
     },
     requests: {
       title: "Clean Slate",
       desc: "All requests handled. You're completely caught up for now!",
-      cta: "Discover People",
-      icon: <UserPlus className="w-7 h-7 text-secondary stroke-[2.5]" />
+      icon: <CheckCircle2 className="w-8 h-8 text-green-500" />
     },
     'my-connections': {
       title: "Lone Wolf?",
       desc: "You haven't followed any real accounts yet. Let's start building your community!",
-      cta: "Find Friends",
-      icon: <Users className="w-7 h-7 text-text-muted stroke-[2.5]" />
+      icon: <Users className="w-8 h-8 text-gray-400" />
     }
   };
 
   const config = configs[activeTab] || configs.suggestions;
 
   return (
-    <div className="flex flex-col items-center justify-center text-center p-12">
-      <div className="w-24 h-24 bg-primary/5 rounded-[32px] border border-primary/10 flex items-center justify-center mb-8 transition-transform hover:scale-110">
+    <div className="flex flex-col items-center justify-center text-center p-16 bg-white rounded-[40px] border border-dashed border-gray-200">
+      <div className="w-20 h-20 bg-gray-50 rounded-[30px] flex items-center justify-center mb-6">
         {config.icon}
       </div>
-      <h3 className="text-[22px] font-black tracking-tight text-text-base italic mb-3">
+      <h3 className="text-[20px] font-black tracking-tight text-gray-800 mb-2 italic">
         {config.title}
       </h3>
-      <p className="text-[13px] font-medium text-text-muted max-w-[300px] leading-relaxed mb-8">
+      <p className="text-[14px] font-medium text-gray-500 max-w-[300px] leading-relaxed">
         {config.desc}
       </p>
-      <button 
-        onClick={onAction}
-        className="group flex items-center justify-center gap-3 px-8 py-3.5 bg-brand-gradient text-white rounded-[20px] text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer"
-      >
-        <span>{config.cta}</span>
-        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-      </button>
     </div>
   );
 };
-
-// ─── Suggestion Card ───────────────────────────────────────────────────────────
-
-const SuggestionCard = ({ user, onConnect, onView }: any) => {
-  const interests = (user.bio || '').match(/#[a-z0-9_]+/gi) || ['#Nearby', '#Newcomer'];
-  const distance = user.distance_km ? `${user.distance_km.toFixed(1)} km away` : 'Nearby';
-
-  return (
-    <motion.div 
-      whileHover={{ y: -6, boxShadow: '0 24px 48px -8px rgba(255, 0, 110, 0.12)' }}
-      transition={{ duration: 0.2 }}
-      className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] border border-white/10 shadow-sm group cursor-pointer"
-    >
-      <div className="flex items-start gap-4 mb-5">
-        <div className="relative shrink-0">
-          <div className="w-16 h-16 rounded-[22px] bg-brand-gradient p-[2px]">
-            <div className="w-full h-full rounded-[20px] bg-bg-base overflow-hidden flex items-center justify-center">
-              <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
-            </div>
-          </div>
-          {isUserOnline(user.last_active_at) && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-bg-card rounded-full shadow-sm" />
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-black text-text-base leading-tight truncate">@{user.username}</h3>
-          <p className="text-[11px] font-medium text-text-muted mt-0.5 truncate">{user.full_name}</p>
-          <div className="flex items-center gap-1.5 mt-2 bg-primary/5 self-start px-2 py-1 rounded-lg w-fit">
-            <MapPin className="w-3 h-3 text-primary" />
-            <span className="text-[10px] font-black text-primary uppercase tracking-tighter">{distance}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5 mb-5 min-h-[24px]">
-        {interests.slice(0, 3).map((tag: string, i: number) => (
-          <span key={i} className="text-[9px] font-black uppercase text-secondary bg-secondary/10 px-2.5 py-1 rounded-full tracking-wide">
-            {tag}
-          </span>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button 
-          onClick={onConnect}
-          className="flex-1 bg-brand-gradient text-white py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:shadow-lg hover:shadow-primary/25 active:scale-95 transition-all cursor-pointer"
-        >
-          Connect
-        </button>
-        <button 
-          onClick={onView}
-          className="p-2.5 bg-bg-base text-text-muted hover:text-primary hover:bg-primary/5 rounded-2xl transition-all border border-border-base cursor-pointer"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
-    </motion.div>
-  );
-};
-
-// ─── Request Card ──────────────────────────────────────────────────────────────
-
-const RequestCard = ({ user, onAccept, onReject, onView }: any) => (
-  <motion.div 
-    whileHover={{ y: -4 }}
-    className="bg-white/5 backdrop-blur-xl p-4 rounded-[28px] border border-white/10 shadow-sm hover:border-primary/20 transition-all flex items-center gap-4"
-  >
-    <div className="w-12 h-12 rounded-[18px] bg-brand-gradient p-[2px] shrink-0 cursor-pointer" onClick={onView}>
-      <div className="w-full h-full rounded-[16px] bg-bg-base overflow-hidden flex items-center justify-center">
-        <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
-      </div>
-    </div>
-    <div className="flex-1 min-w-0 cursor-pointer" onClick={onView}>
-      <h4 className="font-black text-text-base leading-tight">@{user.username}</h4>
-      <p className="text-[10px] text-text-muted font-bold uppercase mt-0.5 leading-none tracking-widest">Sent a request</p>
-    </div>
-    <div className="flex items-center gap-2">
-      <button 
-        onClick={onAccept}
-        className="w-9 h-9 flex items-center justify-center bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all active:scale-90 cursor-pointer"
-      >
-        <UserCheck className="w-4 h-4" />
-      </button>
-      <button 
-        onClick={onReject}
-        className="w-9 h-9 flex items-center justify-center bg-bg-base text-text-muted rounded-xl hover:bg-red-50 hover:text-red-500 border border-border-base transition-all active:scale-90 cursor-pointer"
-      >
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  </motion.div>
-);
-
-// ─── Following Card ────────────────────────────────────────────────────────────
-
-const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => (
-  <motion.div 
-    whileHover={{ y: -4 }}
-    className="bg-white/5 backdrop-blur-xl p-5 rounded-[32px] border border-white/10 shadow-sm hover:border-primary/20 transition-all flex items-center justify-between group"
-  >
-    <div className="flex items-center gap-4 overflow-hidden pr-4">
-      <div className="w-14 h-14 rounded-[20px] bg-brand-gradient p-[2px] shrink-0 cursor-pointer" onClick={onView}>
-        <div className="w-full h-full rounded-[18px] bg-bg-base overflow-hidden flex items-center justify-center">
-          <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
-        </div>
-        {isUserOnline(user.last_active_at) && (
-          <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-bg-card rounded-full shadow-sm" />
-        )}
-      </div>
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={onView}>
-        <h4 className="font-black text-text-base text-[15px] leading-tight truncate">@{user.username}</h4>
-        <p className="text-[12px] text-text-muted font-medium mt-0.5 truncate">{user.full_name || 'Locolive User'}</p>
-      </div>
-    </div>
-    <div className="flex items-center gap-2 shrink-0">
-      <button 
-        onClick={onMessage}
-        className="w-10 h-10 flex items-center justify-center bg-bg-base text-text-muted hover:text-primary hover:bg-primary/5 rounded-xl border border-border-base transition-all cursor-pointer"
-        title="Message"
-      >
-        <MessageSquare className="w-4 h-4" />
-      </button>
-      <button 
-        onClick={onRemove}
-        className="w-10 h-10 flex items-center justify-center bg-bg-base text-text-muted hover:text-red-500 hover:bg-red-50 rounded-xl border border-border-base transition-all cursor-pointer"
-        title="Remove Connection"
-      >
-        <UserMinus className="w-4 h-4" />
-      </button>
-    </div>
-  </motion.div>
-);
 
 export default ConnectionsView;

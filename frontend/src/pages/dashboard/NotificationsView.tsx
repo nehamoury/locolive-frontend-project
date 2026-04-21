@@ -230,6 +230,7 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
     try {
       await api.put('/notifications/read-all');
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      window.dispatchEvent(new CustomEvent('notifications_updated'));
     } catch (err) {
       console.error('Failed to mark all read:', err);
     }
@@ -239,6 +240,7 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
     try {
       await api.put(`/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      window.dispatchEvent(new CustomEvent('notifications_updated'));
       
       // If it's a social notification, navigate to profile
       if (relatedUserId && onUserSelect) {

@@ -1,10 +1,9 @@
-import { useState, useEffect, type FC } from 'react';
-import { MapPin, Plus, Bell, MessageCircle } from 'lucide-react';
+import { useState, useEffect, type FC, useRef } from 'react';
+import { MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { StoryBar } from '../../components/story/StoryBar';
 import PostCard from '../../components/post/PostCard';
 import api from '../../services/api';
-import UserSearch from '../../components/layout/UserSearch';
 
 interface HomeViewProps {
   stories: any[];
@@ -15,18 +14,20 @@ interface HomeViewProps {
   unreadMessagesCount?: number;
 }
 
-const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, onStoryClick, unreadMessagesCount = 0 }) => {
+const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, onStoryClick }) => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const hasFetched = useRef(false);
 
   const fetchPosts = async () => {
+    if (hasFetched.current) return; // Prevent duplicate fetches
+    hasFetched.current = true;
+
     setLoadingPosts(true);
     try {
-      console.log('[HomeView] Fetching posts from /posts/feed...');
       const res = await api.get('/posts/feed');
       const postsData = res.data?.posts || [];
-      console.log(`[HomeView] Fetched ${postsData.length} posts:`, postsData);
       setPosts(postsData);
     } catch (err: any) {
       console.error('[HomeView] Failed to fetch posts:', err.response?.data || err.message);
@@ -41,44 +42,14 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
   }, []);
 
   return (
-    <div className="flex flex-col h-auto md:h-full bg-transparent overflow-y-visible md:overflow-y-auto no-scrollbar relative w-full font-poppins">
+    <div className="flex flex-col h-full overflow-y-auto no-scrollbar w-full bg-transparent">
 
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="hidden md:flex sticky top-0 z-40 bg-bg-card/95 backdrop-blur-xl px-6 pt-5 pb-5 items-center justify-between shrink-0 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border-b border-border-base transition-colors duration-300">
-        {/* Search bar on the left */}
-        <div className="flex-1 mr-6">
-          <UserSearch mode="navbar" />
-        </div>
+      {/* ── Feed Content ───────────────────── */}
+      <div className="w-full px-0 sm:px-4 md:px-6 pt-2 sm:pt-6 pb-24 md:pb-8 flex flex-col items-center">
+        <div className="w-full max-w-3xl flex flex-col gap-4 sm:gap-6">
 
-        {/* Actions on the right */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/dashboard/notifications')} className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-base text-text-muted hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer">
-            <Bell className="w-5 h-5" />
-            {unreadMessagesCount > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</span>}
-          </button>
-
-          <button onClick={() => navigate('/dashboard/messages')} className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-base text-text-muted hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer">
-            <MessageCircle className="w-5 h-5" />
-            {unreadMessagesCount > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</span>}
-          </button>
-
-          <button
-            onClick={onCreateStory}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary to-accent text-white rounded-[20px] text-[13px] font-bold shadow-[0_8px_20px_-6px_rgba(var(--color-primary-rgb),0.4)] hover:shadow-[0_12px_25px_-6px_rgba(var(--color-primary-rgb),0.5)] hover:scale-[1.02] active:scale-95 transition-all whitespace-nowrap ml-1"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            Create Post
-          </button>
-        </div>
-      </div>
-
-
-      {/* ── Feed Content Container ─────────────────────────────── */}
-      <div className="flex-1 w-full px-0 md:px-6 pt-2 pb-20 flex flex-col items-start bg-transparent">
-
-        {/* Stories Section */}
-        <div className="w-full md:bg-bg-card md:rounded-[24px] md:border md:border-border-base md:shadow-[0_8px_30px_rgba(0,0,0,0.02)] md:p-5 p-0 mb-0.5 md:mb-6 border-b border-border-base/30 md:border-b-transparent transition-colors duration-300">
-          <div className="md:px-0 px-2">
+          {/* Stories Card */}
+          <div className="w-full bg-bg-card md:rounded-[32px] border-b md:border border-border-base shadow-sm p-4 sm:p-5">
             <StoryBar
               stories={stories}
               user={user}
@@ -86,35 +57,44 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
               onStoryClick={onStoryClick}
             />
           </div>
-        </div>
 
-        {/* Feed List */}
-        <div className="w-full flex flex-col items-start gap-6">
-          {(loading || loadingPosts) ? (
-            <div className="w-full max-w-3xl flex justify-center py-20">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-transparent border-t-[#FF3B8E]" />
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="w-full max-w-3xl flex flex-col items-center justify-center text-center py-24 bg-bg-card rounded-[24px] border border-border-base shadow-[0_8px_30px_rgba(0,0,0,0.02)] transition-colors duration-300">
-              <div className="w-16 h-16 bg-bg-base rounded-full flex items-center justify-center text-text-muted mb-6">
-                <MapPin className="w-8 h-8" />
+          {/* Post Feed */}
+          <div className="w-full flex flex-col gap-4 sm:gap-6">
+            {(loading || loadingPosts) ? (
+              <div className="w-full flex justify-center py-24">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-10 h-10 rounded-full border-[3px] border-border-base border-t-primary animate-spin" />
+                  <p className="text-[12px] font-medium text-text-muted">Loading your feed...</p>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-text-base mb-2 tracking-tight">No updates yet</h3>
-              <p className="text-text-muted max-w-xs mb-8 text-sm font-medium">
-                Try following more people or sharing your own moment!
-              </p>
-            </div>
-          ) : (
-            posts.map((post: any, index: number) => (
-              <div key={post.id || `post-${index}`} className="w-full max-w-full md:max-w-3xl">
+            ) : posts.length === 0 ? (
+              <div className="w-full flex flex-col items-center justify-center text-center py-20 bg-bg-card md:rounded-[32px] border border-border-base shadow-sm px-6">
+                <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center mb-5">
+                  <MapPin className="w-8 h-8 text-primary/50" />
+                </div>
+                <h3 className="text-[20px] font-black text-text-base mb-2 tracking-tight italic">Nothing here yet</h3>
+                <p className="text-text-muted max-w-xs mb-8 text-[13px] font-medium leading-relaxed">
+                  Follow more people around you to see their posts and stories.
+                </p>
+                <button
+                  onClick={() => navigate('/dashboard/explore')}
+                  className="px-8 py-3 bg-brand-gradient text-white rounded-2xl font-bold text-[14px] shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                >
+                  Explore Nearby
+                </button>
+              </div>
+            ) : (
+              posts.map((post: any, index: number) => (
                 <PostCard
+                  key={post.id || `post-${index}`}
                   post={post}
                   currentUserID={user?.id}
                   onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
                 />
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
+
         </div>
       </div>
     </div>

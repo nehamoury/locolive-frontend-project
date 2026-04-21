@@ -153,7 +153,7 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
                     <div className="flex items-center gap-2 mb-2 px-1">
                        <span className="text-[11px] font-medium text-gray-900 italic tracking-tight">{senderName}</span>
                        <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} AM
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                        </span>
                     </div>
 
@@ -175,13 +175,13 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
                           px-5 py-3.5 text-[14px] font-medium leading-relaxed
                           ${isMe
                             ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-[24px] rounded-br-sm shadow-xl shadow-pink-500/20'
-                            : 'bg-[#f0f2f5] dark:bg-white/10 text-gray-800 dark:text-gray-100 rounded-[24px] rounded-tl-sm'}
+                            : 'bg-white border border-gray-100 text-gray-800 rounded-[24px] rounded-tl-sm shadow-sm'}
                         `}>
                           {msg.content}
                         </div>
                         {/* Time */}
                         <span className={`text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest ${isMe ? 'text-right' : 'text-left'}`}>
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
                           {isMe && <CheckCheck className="w-3 h-3 inline ml-1 text-pink-500" />}
                         </span>
                       </div>

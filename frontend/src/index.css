@@ -17,21 +17,30 @@
   --glass-input-border: rgba(255, 0, 110, 0.1);
   --font-brand: "Outfit", "Plus Jakarta Sans", sans-serif;
   --font-body: "Inter", "Inter Variable", sans-serif;
+
+  /* Pastel Theme Additions */
+  --pastel-pink: #FFFBFC;
+  --pastel-pink-accent: #FF4D97;
+  --pastel-pink-gradient: linear-gradient(135deg, #FF4B91 0%, #FF80B5 100%);
+  --pastel-border: #FFDFE8;
+  --soft-shadow: 0 10px 30px -10px rgba(255, 77, 151, 0.15);
 }
 
 .dark {
   --color-bg-base: #020617;
-  --color-bg-sidebar: #0f172a;
-  --color-bg-card: #1e293b;
+  --color-bg-sidebar: #070a13;
+  --color-bg-card: #0f1118;
   --color-text-base: #f8fafc;
   --color-text-muted: #94a3b8;
   --color-border-base: #1e293b;
   --color-primary-rgb: 236, 72, 153;
   --color-accent-rgb: 168, 85, 247;
-  --glass-bg: rgba(15, 23, 42, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-input-bg: rgba(30, 41, 59, 0.9);
-  --glass-input-border: rgba(255, 255, 255, 0.12);
+  --glass-bg: rgba(7, 10, 19, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-input-bg: rgba(15, 23, 42, 0.9);
+  --glass-input-border: rgba(255, 255, 255, 0.1);
+  --pastel-pink: #070a13;
+  --pastel-border: #1e293b;
 }
 
 @theme {
@@ -55,7 +64,8 @@
     background-color: var(--color-bg-base);
     color: var(--color-text-base);
     font-family: var(--font-body);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
@@ -210,6 +220,25 @@
       opacity: 0.6;
       transform: scale(0.9);
     }
+  }
+
+  /* Pastel UI Utilities */
+  .bg-pastel-pink { background-color: var(--pastel-pink); }
+  .text-pastel-pink { color: var(--pastel-pink-accent); }
+  .border-pastel { border-color: var(--pastel-border); }
+  .shadow-soft { box-shadow: var(--soft-shadow); }
+  .bg-pastel-gradient { background: var(--pastel-pink-gradient); }
+  
+  .instagram-ring {
+    padding: 3px;
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  }
+
+  .pastel-card {
+    background: white;
+    border-radius: 40px;
+    border: 1px solid var(--pastel-border);
+    box-shadow: var(--soft-shadow);
   }
 }
 

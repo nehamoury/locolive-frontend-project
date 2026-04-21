@@ -20,20 +20,18 @@ export const useGeolocation = (enabled: boolean = true) => {
   const lastSentCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
   const latestCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
   const hasLoggedPermissionError = useRef<boolean>(false);
+  const initialPingSentRef = useRef<boolean>(false);
 
   const sendPing = useCallback(async (latitude: number, longitude: number, reason: string) => {
     try {
-      console.log(`[Geolocation] Sending ping — reason: ${reason}, lat: ${latitude.toFixed(6)}, lng: ${longitude.toFixed(6)}`);
       const response = await api.post('/location/ping', { latitude, longitude });
 
       if (response.data?.status === 'ghost') {
         setIsGhostMode(true);
-        console.log('[Geolocation] Ghost mode active — location not broadcast');
       } else {
         setIsGhostMode(false);
         lastPingTimeRef.current = Date.now();
         lastSentCoordsRef.current = { lat: latitude, lng: longitude };
-        console.log('[Geolocation] Ping successful');
       }
     } catch (err: any) {
       if (err.response?.status !== 401) {
@@ -101,6 +99,8 @@ export const useGeolocation = (enabled: boolean = true) => {
       return;
     }
 
+    let watchId: number;
+
     // ── Force an initial ping on mount to ensure user is in Redis GEO ──
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -109,49 +109,54 @@ export const useGeolocation = (enabled: boolean = true) => {
         latestCoordsRef.current = { lat: latitude, lng: longitude };
         setPermissionState('granted');
         hasLoggedPermissionError.current = false;
-        sendPing(latitude, longitude, 'initial_sync');
+        
+        // Send initial ping and mark that we've sent it
+        if (!initialPingSentRef.current) {
+          sendPing(latitude, longitude, 'initial_sync');
+          initialPingSentRef.current = true;
+        }
+
+        // ── Watch for position changes with distance/time gating ──
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            const now = Date.now();
+            setPosition({ lat: latitude, lng: longitude });
+            latestCoordsRef.current = { lat: latitude, lng: longitude };
+            setPermissionState('granted');
+
+            let shouldPing = false;
+            let reason = '';
+            if (!lastSentCoordsRef.current) {
+              shouldPing = true;
+              reason = 'first_position';
+            } else {
+              const distance = calculateDistance(
+                lastSentCoordsRef.current.lat,
+                lastSentCoordsRef.current.lng,
+                latitude,
+                longitude
+              );
+              const elapsed = now - lastPingTimeRef.current;
+
+              if (distance > MIN_DISTANCE_METERS) {
+                shouldPing = true;
+                reason = `moved_${Math.round(distance)}m`;
+              } else if (elapsed > MIN_TIME_MS) {
+                shouldPing = true;
+                reason = `time_elapsed_${Math.round(elapsed / 1000)}s`;
+              }
+            }
+
+            if (shouldPing) {
+              sendPing(latitude, longitude, reason);
+            }
+          },
+          (err) => handleGeolocationError(err, 'Watch position error'),
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
+        );
       },
       (err) => handleGeolocationError(err, 'Initial position failed'),
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
-    );
-
-    // ── Watch for position changes with distance/time gating ──
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const now = Date.now();
-        setPosition({ lat: latitude, lng: longitude });
-        latestCoordsRef.current = { lat: latitude, lng: longitude };
-        setPermissionState('granted');
-
-        let shouldPing = false;
-        let reason = '';
-        if (!lastSentCoordsRef.current) {
-          shouldPing = true;
-          reason = 'first_position';
-        } else {
-          const distance = calculateDistance(
-            lastSentCoordsRef.current.lat,
-            lastSentCoordsRef.current.lng,
-            latitude,
-            longitude
-          );
-          const elapsed = now - lastPingTimeRef.current;
-
-          if (distance > MIN_DISTANCE_METERS) {
-            shouldPing = true;
-            reason = `moved_${Math.round(distance)}m`;
-          } else if (elapsed > MIN_TIME_MS) {
-            shouldPing = true;
-            reason = `time_elapsed_${Math.round(elapsed / 1000)}s`;
-          }
-        }
-
-        if (shouldPing) {
-          sendPing(latitude, longitude, reason);
-        }
-      },
-      (err) => handleGeolocationError(err, 'Watch position error'),
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
     );
 
@@ -167,7 +172,7 @@ export const useGeolocation = (enabled: boolean = true) => {
     }, FORCED_PING_INTERVAL);
 
     return () => {
-      navigator.geolocation.clearWatch(watchId);
+      if (watchId) navigator.geolocation.clearWatch(watchId);
       clearInterval(intervalId);
     };
   }, [enabled, sendPing, handleGeolocationError, permissionState]);

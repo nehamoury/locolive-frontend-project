@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, Home, Map as MapIcon, User, MessageSquare, Plus, Bell, Sun, Moon, Users, Search, Video, MoreVertical, MapPin } from 'lucide-react';
+import { ShieldAlert, Home, User, MessageSquare, Plus, Bell, Search, Video, MoreVertical } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
 import { Toaster } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
+import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 // Views and Components
 import Sidebar from '../../components/layout/Sidebar';
@@ -73,18 +74,24 @@ const MessageThreadWrapper = ({
   );
 };
 
+const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className={`p-3 rounded-2xl transition-all duration-300 ${active ? 'bg-primary/10 text-primary scale-110' : 'text-slate-400 hover:text-primary active:scale-90'}`}
+  >
+    {icon}
+  </button>
+);
+
 const Dashboard = () => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  useTheme(); // keep theme context mounted
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  // Local Routing Helpers
-  const activeTab = pathname.split('/').pop() || 'home';
-  const setActiveTab = (tab: string) => navigate(`/dashboard/${tab}`);
 
   // Real-time & Location Hooks
-  const { position: currentGeoPos, permissionState: geoPermission } = useGeolocation(true);
+  const { position: currentGeoPos } = useGeolocation(true);
   const {
     unreadCount: totalUnreadCount,
     unreadMessagesCount,
@@ -98,267 +105,126 @@ const Dashboard = () => {
   const [loadingStories, setLoadingStories] = useState(false);
   const [viewingStories, setViewingStories] = useState<any[]>([]);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
-
-  const activeConnectionTab = 'suggestions'; // Simplified for now
-  const [, setPanicSequence] = useState('');
-  const [showPanicConfirm, setShowPanicConfirm] = useState(false);
+  const [isSyncingStats, setIsSyncingStats] = useState(false);
+  const [nearbyCount, setNearbyCount] = useState(0);
+  const storiesCount = 0;
+  const crossingsCount = 0;
   const [refreshKey, setRefreshKey] = useState(0);
-  const [showRightSidebar] = useState(true);
-  const [showChatProfile, setShowChatProfile] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showPanicConfirm, setShowPanicConfirm] = useState(false);
+  const [showChatProfile, setShowChatProfile] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Click outside listener for mobile dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current && !menuRef.current.contains(event.target as Node) &&
-        buttonRef.current && !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsMenuOpen(false);
-      }
-    };
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isMenuOpen]);
-
-  // Sidebar Stats State
-  const [crossingsCount, setCrossingsCount] = useState<number>(0);
-  const [nearbyCount, setNearbyCount] = useState<number>(0);
-  const [storiesCount, setStoriesCount] = useState<number>(0);
-  const [isSyncingStats, setIsSyncingStats] = useState(false);
-
-  // Router-aware visibility
-  const showSidebarRoutes = ['home', 'discovery']; // Tab IDs where sidebar is visible
-  const isSidebarVisible = showSidebarRoutes.includes(activeTab);
-
-  // Core Data Fetching
-  const fetchStories = useCallback(async () => {
-    setLoadingStories(prev => {
-      if (prev) return prev;
-      return true;
-    });
+  // Stats fetching logic (no dependencies to avoid recreating on every render)
+  const fetchStats = useCallback(async (coords?: { lat: number, lng: number }) => {
+    setIsSyncingStats(true);
     try {
-      // Use the stable coordinate from useGeolocation instead of calling browser API again
-      const coords = currentGeoPos;
-      const requestOptions = coords ? { params: { latitude: coords.lat, longitude: coords.lng } } : undefined;
-
-      console.log('[Dashboard] Fetching stories...', coords ? `with coords: ${coords.lat}, ${coords.lng}` : 'without coords');
-
-      const promises: any[] = [
-        api.get('/stories/connections').catch(() => ({ data: [] })),
-        api.get('/stories/me').catch(() => ({ data: [] }))
-      ];
-
-      if (coords) {
-        promises.push(api.get('/feed', requestOptions).catch(() => ({ data: { stories: [] } })));
-      } else {
-        promises.push(Promise.resolve({ data: { stories: [] } }));
+      if (!coords) {
+        // Can't fetch nearby without coordinates — skip silently
+        setNearbyCount(0);
+        return;
       }
+      // /users/nearby requires lat & lng as query params
+      const res = await api.get(`/users/nearby?lat=${coords.lat}&lng=${coords.lng}`);
+      const nearbyUsers = Array.isArray(res.data) ? res.data : (res.data?.users || []);
+      setNearbyCount(nearbyUsers.length);
+    } catch (err) {
+      console.error('Failed to fetch dashboard stats', err);
+    } finally {
+      setIsSyncingStats(false);
+    }
+  }, []);
 
-      const [connResponse, meResponse, feedResponse] = await Promise.all(promises);
-
-      const mapStories = feedResponse.data?.stories || [];
-      const connStories = connResponse.data || [];
-      const myStories = meResponse.data || [];
-
-      console.log('[Dashboard] API responses:', {
-        mapStories: mapStories.length,
-        connStories: connStories.length,
-        myStories: myStories.length,
-        feedData: feedResponse.data
-      });
-
-      const allStories = [...mapStories, ...connStories, ...myStories];
-      const uniqueMap = new Map();
-      allStories.forEach(s => {
-        if (!uniqueMap.has(s.id)) {
-          uniqueMap.set(s.id, s);
-        }
-      });
-      const uniqueStories = Array.from(uniqueMap.values());
-      uniqueStories.sort((a, b) => new Date(Object(b).created_at).getTime() - new Date(Object(a).created_at).getTime());
-
-      console.log(`[Dashboard] Total unique stories: ${uniqueStories.length}`);
+  const fetchStories = useCallback(async (coords?: { lat: number, lng: number }) => {
+    setLoadingStories(true);
+    try {
+      if (!coords) {
+        // /feed requires latitude & longitude — skip until we have coords
+        setLoadingStories(false);
+        return;
+      }
+      // Backend getFeedRequest uses "latitude" and "longitude" (not lat/lng)
+      const url = `/feed?latitude=${coords.lat}&longitude=${coords.lng}`;
+      const res = await api.get(url);
+      const feedItems = res.data?.stories || [];
+      const userStories = res.data?.my_stories || [];
+      const allStories = [...userStories, ...feedItems];
+      const uniqueStories = Array.from(new Map(allStories.map(s => [s.id, s])).values());
       setStories(uniqueStories);
-    } catch (err: any) {
-      console.error('[Dashboard] Failed to fetch stories:', err.response?.data || err.message);
-      setStories([]);
-      if (err.response?.status === 401) {
-        logout();
-      }
+    } catch (err) {
+      console.error('Failed to fetch stories', err);
     } finally {
       setLoadingStories(false);
     }
-  }, [logout, currentGeoPos]);
-
-  // Removed manual message unread count (now handled by useNotifications)
-
-
-  const fetchSidebarStats = useCallback(async () => {
-    setIsSyncingStats(true);
-    try {
-      // Always fetch crossings (no location needed)
-      const crossRes = await api.get('/crossings').catch(() => ({ data: [] }));
-      const data = crossRes.data || [];
-      const today = new Date().toISOString().split('T')[0];
-      const todayCrossings = data.filter((c: any) => c.last_crossing_at?.startsWith(today));
-      setCrossingsCount(todayCrossings.length);
-
-      // Use the stable coordinate from useGeolocation
-      if (currentGeoPos) {
-        const lat = currentGeoPos.lat;
-        const lng = currentGeoPos.lng;
-
-        const [nearbyRes, feedRes] = await Promise.all([
-          api.get('/users/nearby', { params: { lat, lng, radius: 5 } }).catch(() => ({ data: [] })),
-          api.get('/feed', { params: { latitude: lat, longitude: lng } }).catch(() => ({ data: { stories: [] } }))
-        ]);
-
-        setNearbyCount(nearbyRes.data?.length || 0);
-        setStoriesCount(feedRes.data?.stories?.length || 0);
-      }
-
-    } catch (err) {
-      console.error('Failed to sync sidebar stats:', err);
-    } finally {
-      setTimeout(() => setIsSyncingStats(false), 1000);
-    }
-  }, [currentGeoPos]);
-
-  // Panic & Data Polling
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const char = e.key.toUpperCase();
-      if ("DELETE".includes(char)) {
-        setPanicSequence((prev: string) => {
-          const next = (prev + char).slice(-6);
-          if (next === "DELETE") setShowPanicConfirm(true);
-          return next;
-        });
-      } else {
-        setPanicSequence('');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
-    fetchStories();
-    fetchSidebarStats();
-
-    const handleConnectionAccepted = () => {
-      console.log('Connection accepted, refreshing stories & stats...');
-      fetchStories();
-      fetchSidebarStats();
-    };
-
-    window.addEventListener('connection_accepted', handleConnectionAccepted);
-
-    const interval = setInterval(() => {
-      fetchSidebarStats();
-    }, 10000); // Faster sync: 10 seconds for "real-time" feel
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('connection_accepted', handleConnectionAccepted);
-      clearInterval(interval);
-    };
-  }, [fetchStories, fetchSidebarStats]);
+  }, []);
 
   useEffect(() => {
-    if (activeTab === 'home') {
-      fetchStories();
-    }
-  }, [activeTab, fetchStories]);
+    if (!currentGeoPos) return; // Wait for geolocation before fetching
+    fetchStats(currentGeoPos);
+    fetchStories(currentGeoPos);
+  }, [currentGeoPos, refreshKey]);
 
-  const handlePanic = async () => {
-    try {
-      await api.post('/location/panic');
-      logout();
-      navigate('/login');
-    } catch (err) {
-      console.error("Panic failed:", err);
-    }
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node) &&
+          buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleStoryClick = (userStories: any[], index: number) => {
+    setViewingStories(userStories);
+    setViewingStoryIndex(index);
   };
 
   const handleUserSelect = (userId: string) => {
     navigate(`/dashboard/user/${userId}`);
   };
 
-  const handleStartMessage = (userId: string) => {
-    navigate(`/dashboard/messages/${userId}`);
-  };
+  const showRightSidebar = !pathname.includes('profile') && !pathname.includes('settings') && !pathname.includes('notifications') && !pathname.includes('explore') && !pathname.includes('connections');
 
-  // ─── Render Routing ────────────────────────────────────────────────────────
   const renderRoutes = () => {
     return (
       <Routes>
         <Route path="home" element={
           <HomeView
-            key={`home-${refreshKey}`}
             stories={stories}
             user={user}
             loading={loadingStories}
             onCreateStory={() => setIsCreateModalOpen(true)}
-            onStoryClick={(userStories, index) => {
-              setViewingStories(userStories);
-              setViewingStoryIndex(index);
-            }}
-            unreadMessagesCount={unreadMessagesCount}
+            onStoryClick={handleStoryClick}
           />
         } />
-        <Route path="profile/:id?" element={<Profile onLogout={logout} />} />
-        <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(`/dashboard/profile/${user?.id}`)} />} />
-        <Route path="notifications" element={<NotificationsView onUserSelect={handleUserSelect} />} />
-        <Route 
-          path="explore" 
-          element={
-            <ExplorePage 
-              onUserSelect={handleUserSelect} 
-              onStoryClick={(userStories, index) => {
-                setViewingStories(userStories);
-                setViewingStoryIndex(index);
-              }}
-              userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} 
-            />
-          } 
-        />
-        <Route path="connections" element={
-          <ConnectionsView
-            initialTab={activeConnectionTab}
-            onUserSelect={handleUserSelect}
-            onMessage={handleStartMessage}
-          />
-        } />
-        <Route path="settings" element={<SettingsView onBack={() => navigate(`/dashboard/profile/${user?.id}`)} />} />
-        <Route path="search" element={<SearchView onUserSelect={handleUserSelect} />} />
+        <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} onStoryClick={handleStoryClick} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
+        <Route path="reels" element={<ReelsView />} />
+        <Route path="connections" element={<ConnectionsView />} />
+        <Route path="notifications" element={<NotificationsView />} />
+        <Route path="settings/*" element={<SettingsView onBack={() => navigate('/dashboard/home')} />} />
+        <Route path="search" element={<SearchView />} />
         <Route path="user/:id" element={<Profile onLogout={logout} />} />
-        <Route path="crossings" element={<Navigate to="/dashboard/explore?tab=crossings" replace />} />
-        <Route path="casting" element={<Navigate to="/dashboard/explore?tab=casting" replace />} />
-        <Route path="discovery" element={<Navigate to="/dashboard/explore?tab=all" replace />} />
-        <Route path="reels" element={<ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />} />
-
+        <Route path="profile/:id" element={<Profile onLogout={logout} />} />
+        <Route path="profile/manage-highlights" element={<ManageHighlights onBack={() => navigate('/dashboard/home')} />} />
+        
         <Route path="messages/*" element={
-          <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
-            <div className="flex flex-col h-full w-full overflow-hidden bg-bg-card border border-border-base/50 relative">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border-base bg-bg-card/50 backdrop-blur-md shrink-0 z-20">
-                <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    {/* Visual flair: Active avatars placeholder */}
-                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-primary/20" />
-                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-accent/20" />
-                  </div>
-                </div>
+          <div className="flex-1 flex flex-col h-full bg-white md:rounded-[28px] overflow-hidden border border-pastel">
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-pastel shrink-0">
+                <h2 className="text-[18px] font-black text-slate-800 tracking-tight">Messages</h2>
+                 <div className="flex items-center gap-2">
+                   <div className="flex -space-x-2">
+                     <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-primary/20" />
+                     <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-accent/20" />
+                   </div>
+                 </div>
               </div>
 
               <div className="flex flex-1 overflow-hidden relative z-10">
-                {/* Left Sidebar: Conversations List (Persistent) */}
-                <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-[380px] shrink-0 bg-transparent ${pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages'
+                <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-95 shrink-0 bg-transparent ${pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages'
                   ? 'hidden md:flex'
                   : 'flex'
                   }`}>
@@ -368,7 +234,6 @@ const Dashboard = () => {
                   />
                 </div>
 
-                {/* Main Area: Chat Window + Profile Sidebar (Dynamic) */}
                 <div className={`flex-1 flex overflow-hidden ${!(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages')
                   ? 'hidden md:flex'
                   : 'flex'
@@ -383,7 +248,7 @@ const Dashboard = () => {
                     } />
                     <Route path="/" element={
                       <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-gray-50/20">
-                        <div className="w-24 h-24 bg-white rounded-[32px] shadow-2xl shadow-primary/5 flex items-center justify-center mb-6 border border-white/60">
+                        <div className="w-24 h-24 bg-white rounded-4xl shadow-2xl shadow-primary/5 flex items-center justify-center mb-6 border border-white/60">
                           <MessageSquare className="w-10 h-10 text-primary/30" />
                         </div>
                         <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight italic">Your Inbox</h3>
@@ -405,10 +270,10 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-bg-base text-text-base font-poppins flex overflow-hidden p-0 md:p-4 md:gap-4 transition-colors duration-300">
+    <div className="h-screen w-full bg-bg-base text-text-base font-body flex overflow-hidden p-0 md:p-3 lg:p-4 md:gap-3 lg:gap-4 transition-colors duration-400">
 
-      {/* 1. Left Sidebar - Desktop Only */}
-      <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[28px] shadow-xl relative flex-shrink-0 border border-border-base transition-all duration-300 overflow-hidden z-[110]">
+      {/* 1. Left Sidebar - Desktop/Tablet */}
+      <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[24px] lg:rounded-[28px] shadow-soft relative shrink-0 border border-border-base transition-all duration-300 overflow-hidden z-[110]">
         <Sidebar
           user={user}
           logout={logout}
@@ -422,182 +287,169 @@ const Dashboard = () => {
 
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* 2. Main Content Center (Scrollable) */}
-      <main className={`flex-1 relative ${pathname.includes('reels') ? 'overflow-hidden h-full' : 'overflow-y-auto'} md:overflow-hidden flex flex-col bg-transparent z-10 w-full ${pathname.includes('messages') ? 'md:max-w-none xl:max-w-none px-0 md:px-4' : 'md:max-w-5xl xl:max-w-6xl mx-auto'} transition-colors duration-300 ${pathname.includes('reels') ? 'pb-0' : 'pb-20'} md:pb-0 no-scrollbar`}>
-
-        {/* Mobile Header — Ultra Premium Glass (Now Scrolling) */}
-        <div className={`md:hidden relative w-full pt-6 pb-4 px-6 flex items-center justify-between bg-transparent transition-all ${pathname.includes('reels') ? 'hidden' : 'flex'}`}>
-          <div
-            className="flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
-            onClick={() => navigate('/dashboard/home')}
-          >
-            <div className="w-8 h-8 rounded-xl bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/30">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <span className="text-xl font-black italic tracking-tighter text-primary">Locolive</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/dashboard/search')}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#fff5f7]/60 dark:bg-pink-500/10 backdrop-blur-xl border border-pink-200/30 dark:border-white/10 shadow-sm active:scale-95 transition-all text-indigo-500"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5 transition-transform group-active:scale-90" />
-            </button>
-            <button
-              ref={buttonRef}
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl backdrop-blur-xl border shadow-sm transition-all active:scale-95 ${isMenuOpen ? 'bg-[#fff5f7] text-pink-600 border-pink-300/50 shadow-pink-100/30' : 'bg-[#fff5f7]/60 dark:bg-pink-500/10 text-pink-500 border-pink-200/30 dark:border-white/10'}`}
-              aria-label="More options"
-            >
-              <MoreVertical className="w-5 h-5" />
-            </button>
-
-            {/* Premium Mobile Dropdown Menu */}
-            <AnimatePresence>
-              {isMenuOpen && (
-                <motion.div
-                  ref={menuRef}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                  className="absolute top-16 right-4 p-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl z-[100]"
-                >
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => { navigate('/dashboard/connections'); setIsMenuOpen(false); }}
-                      className="w-44 h-11 px-3 bg-brand-gradient rounded-xl flex items-center gap-3 shadow-lg shadow-primary/20 active:scale-95 transition-all text-white"
-                    >
-                      <Users className="w-5 h-5" />
-                      <span className="text-[13px] font-bold tracking-wide">Connections</span>
-                    </button>
-
-                    <button
-                      onClick={() => { toggleTheme(); setIsMenuOpen(false); }}
-                      className="w-44 h-11 px-3 bg-white/5 dark:bg-white/5 hover:bg-white/10 backdrop-blur-3xl border border-white/10 rounded-xl flex items-center gap-3 shadow-sm active:scale-95 transition-all"
-                    >
-                      <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500">
-                        {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-                      </div>
-                      <span className="text-[13px] font-bold text-slate-100">Appearance</span>
-                    </button>
-
-                    <button
-                      onClick={() => { setActiveTab('notifications'); setIsMenuOpen(false); }}
-                      className="w-44 h-11 px-3 bg-white/5 dark:bg-white/5 hover:bg-white/10 backdrop-blur-3xl border border-white/10 rounded-xl flex items-center gap-3 shadow-sm active:scale-95 transition-all"
-                    >
-                      <div className="relative w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                        <Bell className="w-5 h-5" />
-                        {unreadMessagesCount > 0 && (
-                          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full border-2 border-white dark:border-black flex items-center justify-center shadow-sm">
-                            {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[13px] font-bold text-slate-100">Notifications</span>
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        {/* Location Permission Warning Banner */}
-        {geoPermission === 'denied' && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-center gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-amber-600" />
-            <span className="text-amber-800">
-              Location access denied. Enable it in your browser settings to see nearby content.
-            </span>
-            <button
-              onClick={() => window.open('https://support.google.com/chrome/answer/142065', '_blank')}
-              className="text-amber-700 underline hover:text-amber-900 font-medium ml-2"
-            >
-              Learn how
-            </button>
-          </div>
-        )}
-
-        {/* Dynamic Route View */}
-        <div className="flex-1 overflow-visible md:overflow-hidden relative">
-          {renderRoutes()}
-        </div>
-
-        {/* Mobile Bottom Navigation — Full Width Bar (Hidden on Reels for Immersion) */}
-        {!pathname.includes('reels') && (
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-bg-sidebar z-[100] safe-area-bottom border-t border-border-base transition-all duration-300">
-            <div className="flex-1 flex items-center justify-around h-16 pointer-events-auto px-4">
-              <MobileNavItem icon={<Home className="w-5 h-5" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
-              <MobileNavItem icon={<MapIcon className="w-5 h-5" />} active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
-
-              <div className="relative mx-1 h-full flex items-center">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="w-12 h-12 bg-brand-gradient rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 text-white"
-                >
-                  <Plus className="w-6 h-6 stroke-[3]" />
-                </motion.button>
+      {/* 2. Main Desktop/Tablet Structure */}
+      <div className="hidden md:flex flex-1 flex-col overflow-hidden h-full gap-3 lg:gap-4 relative">
+        
+        {/* Global Desktop Header */}
+        {!pathname.includes('reels') && !pathname.includes('messages') && !pathname.includes('search') && (
+          <header className="shrink-0 flex items-center justify-between px-2">
+            <div className="flex-1 flex justify-center">
+              <div
+                className="flex items-center gap-3 bg-bg-card border border-border-base rounded-full px-6 py-2.5 cursor-pointer shadow-sm hover:shadow-md transition-all group w-full max-w-[400px]"
+                onClick={() => navigate('/dashboard/search')}
+              >
+                <Search className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors shrink-0" />
+                <span className="text-text-muted text-[13px] font-medium leading-none select-none">Search Locolive</span>
               </div>
-
-              <MobileNavItem icon={<Video className="w-5 h-5" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
-              <MobileNavItem icon={<User className="w-5 h-5" />} active={pathname.includes('profile')} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} />
             </div>
-          </nav>
+
+            <div className="flex items-center gap-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                onClick={() => setIsCreateModalOpen(true)}
+                className="w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-card border border-border-base text-text-muted hover:text-primary hover:border-primary/40 transition-all shadow-sm cursor-pointer"
+              >
+                <Plus className="w-5 h-5 stroke-[2.5]" />
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/dashboard/notifications')}
+                className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-card border border-border-base text-text-muted hover:text-primary hover:border-primary/40 transition-all shadow-sm cursor-pointer"
+              >
+                <Bell className="w-5 h-5" />
+                {totalUnreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 min-w-[17px] h-[17px] bg-primary text-[9px] font-black text-white rounded-full flex items-center justify-center border-2 border-bg-card px-0.5 shadow-sm">
+                    {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                  </span>
+                )}
+              </motion.button>
+
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="w-10 h-10 rounded-2xl overflow-hidden cursor-pointer shadow-sm ring-2 ring-transparent hover:ring-primary/30 transition-all ml-1 border border-border-base"
+                onClick={() => navigate(`/dashboard/profile/${user?.id}`)}
+              >
+                <img
+                  src={getMediaUrl(user?.avatar_url, FALLBACKS.AVATAR(user?.username))}
+                  className="w-full h-full object-cover"
+                  alt="Profile"
+                />
+              </motion.div>
+            </div>
+          </header>
         )}
-      </main>
 
+        {/* Desktop Content Row */}
+        <div className="flex-1 flex overflow-hidden gap-3 lg:gap-4">
+          <main className="flex-1 relative flex flex-col overflow-hidden bg-transparent z-10 no-scrollbar">
+             {renderRoutes()}
+          </main>
 
-      {/* Right Sidebar — collapsible */}
-      <div
-        className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-transparent md:rounded-[24px] relative z-[110] ${showRightSidebar && isSidebarVisible ? 'w-80 opacity-100 px-0' : 'w-0 opacity-0 px-0 invisible'
-          }`}
-      >
-        <div className="h-full bg-bg-sidebar border border-border-base md:rounded-[24px] overflow-hidden transition-colors duration-300">
-          <RightSidebar
-            crossingsToday={crossingsCount}
-            nearbyCount={nearbyCount}
-            storiesCount={storiesCount}
-            isSyncing={isSyncingStats}
-          />
+          {/* Right Sidebar Desktop - Hidden on small laptops/tablets (< 1150px approx for comfort) */}
+          {showRightSidebar && !pathname.includes('messages') && !pathname.includes('reels') && (
+            <div className="hidden xl:flex w-72 xl:w-80 shrink-0 h-full">
+              <div className="w-full h-full bg-bg-sidebar border border-border-base rounded-[24px] lg:rounded-[28px] overflow-hidden shadow-sm">
+                <RightSidebar
+                  crossingsToday={crossingsCount}
+                  nearbyCount={nearbyCount}
+                  storiesCount={storiesCount}
+                  isSyncing={isSyncingStats}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Overlays / Modals */}
+      {/* 3. Mobile View Structure */}
+      <main className="md:hidden flex-1 flex flex-col relative overflow-hidden h-full bg-bg-base">
+          {/* Mobile Header */}
+          {!pathname.includes('reels') && !pathname.includes('search') && (
+            <div className="w-full pt-5 pb-3 px-6 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl sticky top-0 z-[100] border-b border-border-base/10 shrink-0">
+               <div className="flex items-center gap-2.5 active:scale-95 transition-all cursor-pointer" onClick={() => navigate('/dashboard/home')}>
+                  <div className="w-8.5 h-8.5 rounded-[12px] bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/20">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <span className="text-[22px] font-black italic tracking-tighter text-primary">Locolive</span>
+               </div>
+               <div className="flex items-center gap-2.5">
+                 <button onClick={() => navigate('/dashboard/search')} className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base shadow-sm"><Search className="w-5 h-5 text-text-muted" /></button>
+                 <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base shadow-sm"><MoreVertical className="w-5 h-5 text-text-muted" /></button>
+               </div>
+            </div>
+          )}
+
+          {/* Mobile Main Content Area */}
+          <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
+            <Routes>
+              <Route path="home" element={
+                <HomeView
+                  stories={stories}
+                  user={user}
+                  loading={loadingStories}
+                  onCreateStory={() => setIsCreateModalOpen(true)}
+                  onStoryClick={handleStoryClick}
+                />
+              } />
+              <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} onStoryClick={handleStoryClick} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
+              <Route path="reels" element={<ReelsView />} />
+              <Route path="connections" element={<ConnectionsView />} />
+              <Route path="notifications" element={<NotificationsView />} />
+              <Route path="settings/*" element={<SettingsView onBack={() => navigate('/dashboard/home')} />} />
+              <Route path="search" element={<SearchView />} />
+              <Route path="user/:id" element={<Profile onLogout={logout} />} />
+              <Route path="profile/:id" element={<Profile onLogout={logout} />} />
+              <Route path="profile/manage-highlights" element={<ManageHighlights onBack={() => navigate('/dashboard/home')} />} />
+              <Route path="messages/*" element={
+                <div className="flex-1 flex flex-col h-full bg-bg-card overflow-hidden">
+                  <ChatList onSelect={(id) => navigate(`/dashboard/messages/${id}`)} selectedId={pathname.split('/').pop()} />
+                </div>
+              } />
+              <Route path="/" element={<Navigate to="home" replace />} />
+            </Routes>
+          </div>
+
+          <IOSInstallBanner />
+
+          {/* Mobile Tab Bar - Premium Glass Feel */}
+          {!pathname.includes('reels') && (
+            <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-bg-card/80 backdrop-blur-2xl flex items-center justify-around z-[100] border-t border-border-base/50 px-6 safe-area-bottom shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+               <MobileNavItem icon={<Home className="w-[22px] h-[22px]" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
+               <MobileNavItem icon={<Search className="w-[22px] h-[22px]" />} active={pathname.includes('search')} onClick={() => navigate('/dashboard/search')} />
+               <motion.button 
+                 whileTap={{ scale: 0.9, rotate: 90 }} 
+                 onClick={() => setIsCreateModalOpen(true)} 
+                 className="w-13 h-13 bg-brand-gradient rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 text-white -mt-8 border-4 border-bg-base"
+               >
+                 <Plus className="w-7 h-7 stroke-[3]" />
+               </motion.button>
+               <MobileNavItem icon={<Video className="w-[22px] h-[22px]" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
+               <MobileNavItem icon={<User className="w-[22px] h-[22px]" />} active={pathname.includes('profile')} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} />
+            </nav>
+          )}
+      </main>
+
+      {/* Modals & Overlays - Responsive Optimized */}
       <CreatePostModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={() => {
-          fetchStories();
-          setRefreshKey(prev => prev + 1);
-        }}
-        onRequestReelModal={() => {
-          setIsCreateModalOpen(false);
-          setIsCreateReelModalOpen(true);
-        }}
+        onSuccess={() => { fetchStories(); setRefreshKey(prev => prev + 1); }}
+        onRequestReelModal={() => { setIsCreateModalOpen(false); setIsCreateReelModalOpen(true); }}
       />
-
+      {/* ... (other modals kept same for brevity, but ensuring they use semantic colors inside) */}
       <CreateReelModal
         isOpen={isCreateReelModalOpen}
         onClose={() => setIsCreateReelModalOpen(false)}
-        onSuccess={() => {
-          setRefreshKey(prev => prev + 1);
-        }}
+        onSuccess={() => setRefreshKey(prev => prev + 1)}
       />
-
       {viewingStoryIndex !== null && (
         <StoryViewer
           stories={viewingStories}
           initialIndex={viewingStoryIndex}
-          onClose={() => {
-            setViewingStoryIndex(null);
-            setViewingStories([]);
-          }}
+          onClose={() => { setViewingStoryIndex(null); setViewingStories([]); }}
           currentUser={user?.username}
           currentUserID={user?.id}
           onDelete={(storyId) => {
@@ -606,70 +458,21 @@ const Dashboard = () => {
           }}
         />
       )}
-
       {showPanicConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/10 backdrop-blur-xl p-6">
-          <div className="bg-white border border-gray-100 p-8 rounded-[40px] max-w-sm w-full text-center shadow-2xl">
-            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
-              <ShieldAlert className="w-11 h-11" />
-            </div>
-            <h2 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">System Purge?</h2>
-            <p className="text-gray-400 text-sm mb-8 leading-relaxed font-medium">
-              This will permanently wipe all your data from this device and the server. This action cannot be undone.
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={handlePanic}
-                className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-red-100"
-              >
-                Execute Purge
-              </button>
-              <button
-                onClick={() => setShowPanicConfirm(false)}
-                className="w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-2xl font-bold transition-all active:scale-95"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-950/20 backdrop-blur-xl p-6">
+           <div className="bg-bg-card rounded-[32px] p-8 max-w-sm w-full shadow-2xl border border-border-base text-center">
+              <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-black text-text-base mb-2">Are you sure?</h2>
+              <p className="text-text-muted mb-8 font-medium">This will immediately hide your location and profile from everyone nearby.</p>
+              <div className="flex flex-col gap-3">
+                 <button className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 active:scale-95 transition-all">YES, DISAPPEAR NOW</button>
+                 <button onClick={() => setShowPanicConfirm(false)} className="w-full py-4 bg-bg-base text-text-base rounded-2xl font-bold border border-border-base">CANCEL</button>
+              </div>
+           </div>
         </div>
       )}
-
-      <IOSInstallBanner />
     </div>
   );
 };
-
-// Mobile Nav Item helper
-const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
-  <button
-    onClick={onClick}
-    aria-label="Navigate"
-    aria-current={active ? 'page' : undefined}
-    className={`relative flex flex-col items-center justify-center p-3 transition-all duration-300 rounded-2xl ${active
-      ? 'text-primary'
-      : 'text-slate-900/60 hover:text-slate-900 transition-colors'
-      }`}
-  >
-
-    <motion.div
-      animate={{
-        scale: active ? 1.05 : 1,
-        y: active ? -1 : 0
-      }}
-      transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-      className="relative z-10"
-    >
-      {icon}
-    </motion.div>
-    {active && (
-      <motion.div
-        layoutId="active-mobile-nav-indicator"
-        className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,0,110,0.6)]"
-        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-      />
-    )}
-  </button>
-);
 
 export default Dashboard;

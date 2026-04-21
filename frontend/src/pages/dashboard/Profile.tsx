@@ -1,14 +1,14 @@
 import { type FC, useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
     Bell,
     MessageCircle,
-    UserPlus,
-    Navigation,
     Camera,
     Settings,
-    LogOut
+    LogOut,
+    Home,
+    Video,
+    User
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -48,17 +48,17 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
     const navigate = useNavigate();
     const { id: urlUserId } = useParams();
     const { user } = useAuth();
-    
+
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [posts, setPosts] = useState<any[]>([]);
     const [reels, setReels] = useState<any[]>([]);
-    const [connections, setConnections] = useState<any[]>([]);
     const [highlights, setHighlights] = useState<any[]>([]);
+    const [savedReels, setSavedReels] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'connections' | 'posts' | 'reels'>('connections');
+    const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>('posts');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [viewingStories, setViewingStories] = useState<any[]>([]);
-    
+
     const [followStatus, setFollowStatus] = useState<'none' | 'pending' | 'accepted'>('none');
 
     const userId = urlUserId || user?.id;
@@ -83,33 +83,52 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
             const { data } = await api.get(endpoint);
             setProfile(data);
 
-            // Fetch other data in parallel
-            const [postsRes, connRes, highlightsRes, reelsRes, myConnsRes, mySentRes] = await Promise.all([
-                api.get(isOwnProfile ? '/posts/me' : `/users/${userId}/posts`).catch(() => ({ data: { posts: [] } })),
-                api.get(isOwnProfile ? '/connections' : `/users/${userId}/connections`).catch(() => ({ data: [] })),
-                api.get(isOwnProfile ? '/highlights/me' : `/users/${userId}/highlights`).catch(() => ({ data: [] })),
-                api.get(`/users/${userId}/reels`).catch(() => ({ data: [] })),
-                api.get('/connections').catch(() => ({ data: [] })),
-                api.get('/connections/sent').catch(() => ({ data: [] }))
-            ]);
+            // Fetch posts - different endpoints for own profile vs viewing other user
+            const postsEndpoint = isOwnProfile ? '/posts/me' : `/users/${userId}/posts`;
+            const postsRes = await api.get(postsEndpoint).catch(() => ({ data: { posts: [] } }));
 
-            setPosts(postsRes.data.posts || []);
-            setConnections(connRes.data || []);
-            setHighlights(highlightsRes.data || []);
-            setReels(reelsRes.data?.reels || reelsRes.data || []);
+            // Fetch highlights - different endpoints for own profile vs viewing other user
+            const highlightsEndpoint = isOwnProfile ? '/highlights/me' : `/users/${userId}/highlights`;
+            const highlightsRes = await api.get(highlightsEndpoint).catch(() => ({ data: [] }));
 
+            // Fetch reels - same endpoint for both, uses userId param
+            const reelsRes = await api.get(`/users/${userId}/reels`).catch(() => ({ data: { reels: [] } }));
+
+            // Fetch saved reels only for own profile
+            let savedReels = [];
+            if (isOwnProfile) {
+                const savedRes = await api.get('/reels/saved').catch(() => ({ data: { reels: [] } }));
+                savedReels = savedRes.data?.reels || savedRes.data || [];
+            }
+
+            // Fetch connection data only for viewing other profiles
+            let followStatus: 'none' | 'pending' | 'accepted' = 'none';
             if (!isOwnProfile) {
+                const [myConnsRes, mySentRes] = await Promise.all([
+                    api.get('/connections').catch(() => ({ data: [] })),
+                    api.get('/connections/sent').catch(() => ({ data: [] }))
+                ]);
+
                 const myConns = myConnsRes.data || [];
                 const mySent = mySentRes.data || [];
                 const isConn = myConns.some((c: any) => c.id === userId || c.user_id === userId || c.target_id === userId || c.requester_id === userId);
                 const isPending = mySent.some((c: any) => c.target_id === userId || c.user_id === userId);
+
+                if (isConn) followStatus = 'accepted';
+                else if (isPending) followStatus = 'pending';
+                else followStatus = 'none';
                 
-                if (isConn) setFollowStatus('accepted');
-                else if (isPending) setFollowStatus('pending');
-                else setFollowStatus('none');
+                setFollowStatus(followStatus);
             }
-            
+
+            // Update state with all fetched data
+            setPosts(postsRes.data?.posts || []);
+            setHighlights(highlightsRes.data || []);
+            setReels(reelsRes.data?.reels || reelsRes.data || []);
+            setSavedReels(savedReels);
+
         } catch (error) {
+            console.error('Failed to load profile:', error);
             toast.error('Failed to load profile');
         } finally {
             setLoading(false);
@@ -153,302 +172,199 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[600px] h-full bg-slate-50 dark:bg-bg-base">
+            <div className="flex flex-col items-center justify-center min-h-150 h-full bg-slate-50 dark:bg-bg-base">
                 <div className="w-12 h-12 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="h-full overflow-y-auto no-scrollbar scroll-smooth bg-slate-50 dark:bg-bg-base/90 text-slate-800 dark:text-slate-100 font-body transition-colors">
-            <div className="max-w-[1100px] mx-auto px-4 sm:px-8 pt-4 pb-24 space-y-8">
-                
-                {/* 1. Dashboard Top Header (Desktop mostly, or unified) */}
-                <header className="hidden md:flex items-center justify-between pb-2 border-b border-slate-200/50 dark:border-white/5">
-                    <h1 className="text-2xl font-black tracking-tight text-pink-500">Profile</h1>
-                    <div className="flex items-center gap-6">
-                        <div className="relative">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input 
-                                type="text"
-                                placeholder="Search discoveries..."
-                                className="pl-10 pr-4 py-2.5 rounded-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-sm font-medium w-[280px] focus:outline-none focus:ring-2 focus:ring-pink-500/20 shadow-sm"
-                            />
-                        </div>
-                        <button 
-                            onClick={() => navigate('/dashboard/notifications')}
-                            className="relative p-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full text-slate-500 hover:text-pink-500 transition-colors shadow-sm cursor-pointer"
-                        >
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-pink-500 rounded-full border border-white" />
-                        </button>
-                        <div className="w-10 h-10 rounded-full border border-slate-200 dark:border-white/10 overflow-hidden cursor-pointer shadow-sm">
-                            <img src={getMediaUrl(user?.avatar_url, FALLBACKS.AVATAR(user?.username))} className="w-full h-full object-cover" alt="" />
-                        </div>
-                    </div>
-                </header>
+        <div className="h-full overflow-y-auto no-scrollbar scroll-smooth bg-[#FFFBFC] text-slate-800 font-body transition-colors">
+            <div className="max-w-250 mx-auto px-4 pt-8 pb-32">
 
-                <div className="flex flex-col lg:flex-row gap-8">
-                    
-                    {/* Left Column (Main Card + Tabs + Content) */}
-                    <div className="flex-1 space-y-8">
-                        
-                        {/* 2. Main Profile Card (Neumorphic) */}
-                        <div className="bg-white dark:bg-bg-card rounded-[40px] p-8 md:p-10 shadow-[0_15px_40px_-15px_rgba(0,0,0,0.05)] dark:shadow-none border border-slate-100 dark:border-white/5 relative overflow-hidden">
-                            {/* Decorative background glow */}
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-pink-400/10 dark:bg-pink-500/5 blur-3xl rounded-full translate-x-1/3 -translate-y-1/3" />
-                            
-                            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-8 relative z-10">
-                                
-                                {/* Avatar */}
-                                <div className="relative shrink-0 cursor-pointer" onClick={() => isOwnProfile && setIsEditModalOpen(true)}>
-                                    <div className="w-32 h-32 md:w-36 md:h-36 rounded-full p-[3px] bg-gradient-to-tr from-pink-500 to-fuchsia-400 shadow-[0_10px_25px_rgba(236,72,153,0.3)]">
-                                        <div className="w-full h-full rounded-full border-4 border-white dark:border-bg-card bg-slate-100 overflow-hidden relative group">
-                                            <img 
-                                                src={getMediaUrl(profile?.avatar_url, FALLBACKS.AVATAR(profile?.username))} 
-                                                className="w-full h-full object-cover" 
-                                                alt="" 
-                                            />
-                                            {isOwnProfile && (
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Camera className="w-8 h-8 text-white" />
-                                                </div>
-                                            )}
+                {/* Main Profile Card */}
+                <div className="pastel-card p-12 relative overflow-hidden mb-8">
+                    {/* Top Right Actions */}
+                    <div className="absolute top-8 right-8 flex items-center gap-4 z-20">
+                        <button className="px-5 py-2 bg-[#ffcfe0] text-black font-bold text-xs rounded-xl hover:bg-slate-100 transition-all shadow-sm cursor-pointer border border-slate-200/50">
+                            Share Profile
+                        </button>
+                        <Settings className="w-6 h-6 text-slate-400 cursor-pointer hover:rotate-90 hover:text-slate-600 transition-all" onClick={() => navigate('/dashboard/settings')} />
+                    </div>
+
+                    <div className="flex flex-col md:flex-row items-center gap-12 relative z-10">
+                        {/* Avatar Header */}
+                        <div className="relative shrink-0">
+                            <div className="w-30 h-30 rounded-full instagram-ring shadow-soft cursor-pointer hover:scale-105 transition-all" onClick={() => isOwnProfile && setIsEditModalOpen(true)}>
+                                <div className="w-full h-full rounded-full border-[6px] border-white overflow-hidden relative group bg-white">
+                                    <img
+                                        src={getMediaUrl(profile?.avatar_url, FALLBACKS.AVATAR(profile?.username))}
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                    />
+                                    {isOwnProfile && (
+                                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Camera className="w-8 h-8 text-white" />
                                         </div>
-                                    </div>
-                                    {isUserOnline(profile?.last_active_at) && (
-                                        <div className="absolute bottom-2 right-2 w-6 h-6 bg-emerald-400 border-4 border-white dark:border-bg-card rounded-full shadow-sm" />
                                     )}
                                 </div>
-
-                                {/* Info */}
-                                <div className="flex-1 space-y-4 md:mt-2">
-                                    <div>
-                                        <h2 className="text-3xl font-black tracking-tight text-text-base flex items-center justify-center md:justify-start gap-2">
-                                            {profile?.full_name}
-                                            {isOwnProfile && <span className="text-pink-500 flex items-center"><Settings className="w-4 h-4 hover:rotate-90 transition-transform cursor-pointer" onClick={() => navigate('/dashboard/settings')} /></span>}
-                                        </h2>
-                                        <p className="text-pink-500 font-bold text-sm tracking-wide mt-1 uppercase">@{profile?.username}</p>
-                                    </div>
-                                    
-                                    <div className="flex items-center justify-center md:justify-start gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                                        <span className="flex items-center gap-1"><Navigation className="w-3.5 h-3.5" /> Locolive Member</span>
-                                        <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                                        <span>ID: {profile?.id.split('-')[0].toUpperCase()}</span>
-                                    </div>
-
-                                    <p className="text-slate-500 dark:text-slate-400 font-medium text-sm max-w-md leading-relaxed border-l-2 border-pink-200 dark:border-pink-500/30 pl-4 py-1 italic">
-                                        "{profile?.bio || "Hi! I'm using Locolive to discover amazing moments and cross paths with interesting people. Let's connect!"}"
-                                    </p>
-                                </div>
-
-                                {/* Actions & Stats Desktop */}
-                                <div className="hidden lg:flex flex-col items-end gap-6 min-w-[200px] mt-2">
-                                    <div className="flex items-center gap-3">
-                                        <button 
-                                            onClick={isOwnProfile ? () => setIsEditModalOpen(true) : handleFollow}
-                                            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white font-black uppercase text-[11px] tracking-widest rounded-full shadow-[0_8px_20px_rgba(236,72,153,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-                                        >
-                                            <UserPlus className="w-4 h-4" />
-                                            {isOwnProfile ? 'Edit Profile' : (
-                                                followStatus === 'accepted' ? 'Following' : 
-                                                followStatus === 'pending' ? 'Requested' : 
-                                                'Follow Friend'
-                                            )}
-                                        </button>
-                                        {!isOwnProfile && (
-                                            <button onClick={() => navigate('/dashboard/messages/' + userId)} className="w-12 h-12 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full flex items-center justify-center text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-500/10 shadow-sm transition-all cursor-pointer">
-                                                <MessageCircle className="w-5 h-5" />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
                             </div>
-
-                            {/* Stats Row (Bottom of Card) */}
-                            <div className="mt-8 flex items-center justify-center md:justify-start gap-8 md:ml-[168px] pt-6 border-t border-slate-100 dark:border-white/5">
-                                <div className="text-center md:text-left">
-                                    <p className="text-xl md:text-2xl font-black text-text-base">{profile?.connection_count || 0}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Connections</p>
-                                </div>
-                                <div className="text-center md:text-left">
-                                    <p className="text-xl md:text-2xl font-black text-text-base">{profile?.crossings_count || 0}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Crossings</p>
-                                </div>
-                                <div className="text-center md:text-left">
-                                    <p className="text-xl md:text-2xl font-black text-text-base">{profile?.post_count || 0}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Posts</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Mobile Actions (Visible only on small screens) */}
-                        <div className="flex lg:hidden items-center justify-center gap-3">
-                            <button 
-                                onClick={isOwnProfile ? () => setIsEditModalOpen(true) : handleFollow}
-                                className="flex-1 py-3.5 bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white font-black uppercase text-[11px] tracking-widest rounded-full shadow-[0_8px_20px_rgba(236,72,153,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                            >
-                                <UserPlus className="w-4 h-4" />
-                                {isOwnProfile ? 'Edit Profile' : (
-                                    followStatus === 'accepted' ? 'Following' : 
-                                    followStatus === 'pending' ? 'Requested' : 
-                                    'Follow Friend'
-                                )}
-                            </button>
-                            {!isOwnProfile && (
-                                <button onClick={() => navigate('/dashboard/messages/' + userId)} className="w-14 h-14 shrink-0 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full flex items-center justify-center text-pink-500 shadow-sm">
-                                    <MessageCircle className="w-5 h-5" />
-                                </button>
+                            {isUserOnline(profile?.last_active_at) && (
+                                <div className="absolute bottom-4 right-4 w-6 h-6 bg-emerald-400 border-[5px] border-white rounded-full shadow-sm" />
                             )}
                         </div>
 
-                        {(isOwnProfile || highlights.length > 0) && (
-                            <div className="bg-white dark:bg-bg-card rounded-[28px] p-2 md:px-6 shadow-sm border border-slate-100 dark:border-white/5">
-                                <HighlightsComponent 
-                                    highlights={highlights} 
-                                    isOwnProfile={isOwnProfile} 
-                                    onAdd={() => navigate('/dashboard/manage-highlights')} 
-                                    onView={handleViewHighlight}
-                                />
+                        {/* Profile Info */}
+                        <div className="flex-1 space-y-6">
+                            <div className="flex flex-col md:flex-row items-center gap-6">
+                                <h2 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                                    {profile?.username}
+                                    {isOwnProfile && <span className="bg-pink-400 rounded-full p-1 text-white"><Search className="w-3 h-3" /></span>}
+                                </h2>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={isOwnProfile ? () => setIsEditModalOpen(true) : handleFollow}
+                                        className="px-8 py-2.5 bg-[#ffcfe0] text-slate-800 font-bold text-sm rounded-xl hover:bg-blue-600 transition-all shadow-sm cursor-pointer"
+                                    >
+                                        {isOwnProfile ? 'Edit Profile' : (
+                                            followStatus === 'accepted' ? 'Following' :
+                                                followStatus === 'pending' ? 'Requested' :
+                                                    'Follow'
+                                        )}
+                                    </button>
+                                </div>
                             </div>
-                        )}
 
-                        {/* 3. Dashboard Tabs */}
-                        <div className="bg-white dark:bg-bg-card rounded-[28px] p-2 md:px-6 md:py-3 shadow-sm border border-slate-100 dark:border-white/5 flex items-center gap-4 overflow-x-auto no-scrollbar">
-                            {(['connections', 'posts', 'reels'] as const).map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={cn(
-                                        "relative px-6 py-3 text-sm font-black capitalize tracking-wide transition-colors whitespace-nowrap cursor-pointer",
-                                        activeTab === tab ? "text-pink-600 dark:text-pink-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                    )}
-                                >
-                                    {tab}
-                                    {activeTab === tab && (
-                                        <motion.div 
-                                            layoutId="activeTabProfile" 
-                                            className="absolute bottom-1 left-4 right-4 h-1 bg-pink-500 rounded-full"
-                                        />
-                                    )}
-                                </button>
-                            ))}
-                        </div>
+                            {/* Stats Row */}
+                            <div className="flex items-center gap-10">
+                                <div className="flex items-baseline gap-1.5">
+                                    <span className="text-lg font-bold">{profile?.post_count || 0}</span>
+                                    <span className="text-slate-500 text-sm">posts</span>
+                                </div>
+                                <div className="flex items-baseline gap-1.5">
+                                    <span className="text-lg font-bold">{profile?.connection_count || 0}</span>
+                                    <span className="text-slate-500 text-sm">followers</span>
+                                </div>
+                                <div className="flex items-baseline gap-1.5">
+                                    <span className="text-lg font-bold">{Math.floor((profile?.connection_count || 0) * 0.8)}</span>
+                                    <span className="text-slate-500 text-sm">following</span>
+                                </div>
+                            </div>
 
-                        {/* 4. Tab Content Area */}
-                        <div className="pt-2 min-h-[400px]">
-                            <AnimatePresence mode="wait">
-                                
-                                {activeTab === 'connections' && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                                    >
-                                        {connections.length > 0 ? (
-                                            connections.map(conn => (
-                                                <div key={conn.id} onClick={() => navigate(`/dashboard/user/${conn.id}`)} className="bg-white dark:bg-bg-card p-4 rounded-3xl flex items-center gap-4 border border-slate-100 dark:border-white/5 shadow-[0_5px_15px_-5px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_25px_-5px_rgba(0,0,0,0.05)] hover:-translate-y-1 transition-all cursor-pointer">
-                                                    <img src={getMediaUrl(conn.avatar_url, FALLBACKS.AVATAR(conn.username))} className="w-12 h-12 rounded-full object-cover shrink-0 bg-slate-100" alt="" />
-                                                    <div className="flex-1 min-w-0">
-                                                        <h4 className="text-sm font-black text-text-base truncate">{conn.full_name}</h4>
-                                                        <p className="text-[11px] font-bold text-slate-400 truncate">{conn.interests?.[0] || 'Member'}</p>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="col-span-full py-12 text-center text-slate-400 font-bold uppercase text-xs tracking-widest">No connections yet</div>
-                                        )}
-                                        {/* See All Placeholder */}
-                                        {connections.length > 0 && (
-                                            <div className="bg-slate-50 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 p-4 rounded-3xl flex items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
-                                                <span className="text-[11px] font-black text-pink-500 uppercase tracking-widest">View All</span>
-                                            </div>
-                                        )}
-                                    </motion.div>
-                                )}
+                            <div className="space-y-1">
+                                <p className="font-bold text-slate-900">{profile?.full_name}</p>
 
+                                <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
+                                    {profile?.bio || "Hi! I'm using Locolive to discover amazing moments and cross paths with interesting people. Let's connect! ✨"}
+                                </p>
 
-
-                                {activeTab === 'posts' && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                                        className="space-y-6"
-                                    >
-                                        <h3 className="text-xl font-black text-text-base tracking-tight">Recent Posts</h3>
-                                        {posts.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[450px]">
-                                                {/* Large Featured Card */}
-                                                <div className="relative rounded-[32px] overflow-hidden group cursor-pointer h-[450px] md:h-full">
-                                                    <img src={getMediaUrl(posts[0]?.media_url, FALLBACKS.POST)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6 md:p-8">
-                                                        <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-2">Featured Discovery</span>
-                                                        <h4 className="text-xl md:text-2xl font-black text-white">{posts[0]?.caption || 'A memorable moment'}</h4>
-                                                    </div>
-                                                </div>
-                                                
-                                                {/* Stacked Small Cards */}
-                                                {posts.length > 1 && (
-                                                    <div className="grid grid-rows-2 gap-4 h-full hidden md:grid">
-                                                        {posts.slice(1, 3).map((post, idx) => (
-                                                            <div key={post.id} className="relative rounded-[32px] overflow-hidden group cursor-pointer h-full">
-                                                                <img src={getMediaUrl(post.media_url, FALLBACKS.POST)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
-                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-6">
-                                                                    <span className="text-[9px] font-black text-pink-400 uppercase tracking-widest mb-1">{post.location_name || 'Nearby'}</span>
-                                                                    <h4 className="text-lg font-black text-white truncate">{post.caption || `Moment ${idx + 2}`}</h4>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="py-20 text-center text-slate-400 font-bold uppercase text-xs tracking-widest border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[32px]">No posts shared yet</div>
-                                        )}
-                                    </motion.div>
-                                )}
-
-                                {activeTab === 'reels' && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                                        className="space-y-6"
-                                    >
-                                        <h3 className="text-xl font-black text-text-base tracking-tight">Recent Reels</h3>
-                                        {reels.length > 0 ? (
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                {reels.map((reel: any) => (
-                                                    <div key={reel.id} onClick={() => navigate('/dashboard/reels')} className="aspect-[9/16] bg-slate-100 dark:bg-white/5 rounded-2xl overflow-hidden relative group cursor-pointer shadow-sm">
-                                                        <video 
-                                                            src={getMediaUrl(reel.media_url, '')} 
-                                                            className="w-full h-full object-cover" 
-                                                            autoPlay muted loop playsInline
-                                                        />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                                                            <div className="text-white font-black text-[10px] text-center line-clamp-2">{reel.caption || 'Reel'}</div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="py-20 text-center text-slate-400 font-bold uppercase text-xs tracking-widest border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[32px]">No reels shared yet</div>
-                                        )}
-                                    </motion.div>
-                                )}
-
-                            </AnimatePresence>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {isOwnProfile && (
-                     <div className="flex justify-center pt-8 border-t border-slate-200 dark:border-white/5">
-                        <button onClick={logout} className="flex items-center gap-2 px-6 py-3 rounded-full bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 text-[11px] font-black uppercase tracking-widest transition-all cursor-pointer">
-                            <LogOut className="w-4 h-4" /> Logout Complete
+                {/* Highlights Section */}
+                {(highlights.length > 0 || isOwnProfile) && (
+                    <div className="mb-12">
+                        <HighlightsComponent
+                            highlights={highlights}
+                            isOwnProfile={isOwnProfile}
+                            onAdd={() => navigate('/dashboard/manage-highlights')}
+                            onView={handleViewHighlight}
+                        />
+                    </div>
+                )}
+
+                {/* Content Tabs */}
+                <div className="border-t border-pastel flex justify-center gap-12 mb-8">
+                    {(['posts', 'reels', 'saved', 'tagged'] as const).map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={cn(
+                                "flex items-center gap-2 pt-4 pb-4 border-t-2 transition-all cursor-pointer uppercase text-xs font-bold tracking-widest",
+                                activeTab === tab
+                                    ? "border-slate-900 text-slate-900"
+                                    : "border-transparent text-slate-400 hover:text-slate-600"
+                            )}
+                        >
+                            {tab === 'posts' && <Home className="w-3 h-3" />}
+                            {tab === 'reels' && <Video className="w-3 h-3" />}
+                            {tab === 'saved' && <Bell className="w-3 h-3" />}
+                            {tab === 'tagged' && <User className="w-3 h-3" />}
+                            {tab}
                         </button>
-                     </div>
+                    ))}
+                </div>
+
+                {/* Content Area */}
+                <div className="grid grid-cols-3 gap-1 md:gap-4">
+                    {activeTab === 'posts' ? (
+                        posts.length > 0 ? (
+                            posts.map((post) => (
+                                <div key={post.id} className="aspect-square bg-slate-100 rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all">
+                                    <img
+                                        src={getMediaUrl(post.media_url, FALLBACKS.POST)}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        alt=""
+                                    />
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-4 font-bold">
+                                        <div className="flex items-center gap-1"><Bell className="w-5 h-5 fill-white" /> 12</div>
+                                        <div className="flex items-center gap-1"><MessageCircle className="w-5 h-5 fill-white" /> 4</div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full py-24 text-center text-slate-400 font-bold uppercase text-xs tracking-widest border border-dashed border-pastel rounded-3xl">No posts yet</div>
+                        )
+                    ) : activeTab === 'reels' ? (
+                        reels.length > 0 ? (
+                            reels.map((reel: any) => (
+                                <div key={reel.id} onClick={() => navigate('/dashboard/reels')} className="aspect-9/16 bg-slate-100 rounded-lg overflow-hidden relative group cursor-pointer shadow-sm">
+                                    <video
+                                        src={getMediaUrl(reel.media_url, '')}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold">
+                                        <Video className="w-8 h-8" />
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full py-24 text-center text-slate-400 font-bold uppercase text-xs tracking-widest border border-dashed border-pastel rounded-3xl">No reels yet</div>
+                        )
+                    ) : activeTab === 'saved' ? (
+                        savedReels.length > 0 ? (
+                            savedReels.map((reel: any) => (
+                                <div key={reel.id} onClick={() => navigate('/dashboard/reels')} className="aspect-9/16 bg-slate-100 rounded-lg overflow-hidden relative group cursor-pointer shadow-sm">
+                                    <video
+                                        src={getMediaUrl(reel.video_url, '')}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold">
+                                        <Video className="w-8 h-8" />
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full py-24 text-center text-slate-400 font-bold uppercase text-xs tracking-widest border border-dashed border-pastel rounded-3xl">No saved items yet</div>
+                        )
+                    ) : (
+                        <div className="col-span-full py-24 text-center text-slate-400 font-bold uppercase text-xs tracking-widest border border-dashed border-pastel rounded-3xl">{activeTab} section placeholder</div>
+                    )}
+                </div>
+
+                {isOwnProfile && (
+                    <div className="flex justify-center pt-12 mt-12 border-t border-pastel">
+                        <button onClick={logout} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-500 text-xs font-bold uppercase tracking-widest transition-all cursor-pointer">
+                            <LogOut className="w-4 h-4" /> Logout Account
+                        </button>
+                    </div>
                 )}
             </div>
 
             {profile && (
-                <EditProfileModal 
+                <EditProfileModal
                     isOpen={isEditModalOpen}
                     onClose={() => setIsEditModalOpen(false)}
                     initialData={{
@@ -464,13 +380,12 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                 />
             )}
 
-            {/* Story Viewer Layer */}
             {viewingStories.length > 0 && (
                 <div className="fixed inset-0 z-50 bg-black">
-                    <StoryViewer 
-                        stories={viewingStories} 
-                        initialIndex={0} 
-                        onClose={() => setViewingStories([])} 
+                    <StoryViewer
+                        stories={viewingStories}
+                        initialIndex={0}
+                        onClose={() => setViewingStories([])}
                         currentUserID={user?.id}
                     />
                 </div>
