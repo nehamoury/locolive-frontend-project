@@ -75,7 +75,7 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
         <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-2 px-2">
           {nearbyUserStories.map((group, idx) => (
             <motion.div
-              key={group.latest.id || `story-${idx}`}
+              key={`story-group-${group.latest.id || group.latest.username || idx}`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05 }}
@@ -117,7 +117,7 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {featuredUsers.map((user, idx) => (
             <motion.div
-              key={user.id || `user-${idx}`}
+              key={`nearby-user-${user.id || user.user_id || idx}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + idx * 0.05 }}
@@ -143,7 +143,7 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
         <div className="space-y-3 max-w-2xl">
           {recentCrossings.map((crossing, idx) => (
              <motion.div
-                key={crossing.user_id || `crossing-${idx}`}
+                key={`crossing-item-${crossing.user_id || crossing.id || idx}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + idx * 0.05 }}

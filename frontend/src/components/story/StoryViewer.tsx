@@ -345,6 +345,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
           <AnimatePresence>
             {menuOpen && (
                 <motion.div 
+                    key="story-menu"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -436,6 +437,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
         <AnimatePresence>
           {paused && (
             <motion.div 
+              key="paused-indicator"
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.5 }}

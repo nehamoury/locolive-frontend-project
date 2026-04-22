@@ -98,6 +98,7 @@ const UniversalCropModal: React.FC<UniversalCropModalProps> = ({ file, isOpen, o
                             <AnimatePresence>
                                 {showGrid && (
                                     <motion.div 
+                                        key="crop-grid"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}

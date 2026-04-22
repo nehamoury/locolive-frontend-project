@@ -200,9 +200,9 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
                                         <EmptyState activeTab="suggestions" />
                                     ) : (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                            {suggestions.map((user) => (
+                                            {suggestions.map((user, idx) => (
                                                 <SuggestionCard 
-                                                    key={user.id} 
+                                                    key={`suggestion-${user.id || user.username || idx}`} 
                                                     user={user} 
                                                     onConnect={() => handleRequest(user.id, 'send')}
                                                     onDismiss={() => handleDismissSuggestion(user.id)}
@@ -226,9 +226,9 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
                                             </button>
                                         </div>
                                         <div className="flex flex-col gap-4">
-                                            {requests.slice(0, 3).map((req) => (
+                                            {requests.slice(0, 3).map((req, idx) => (
                                                 <RequestCard 
-                                                    key={req.user_id || req.requester_id} 
+                                                    key={`request-preview-${req.user_id || req.requester_id || idx}`} 
                                                     user={req} 
                                                     onAccept={() => handleRequest(req.user_id || req.requester_id, 'accept')}
                                                     onReject={() => handleRequest(req.user_id || req.requester_id, 'decline')}
@@ -251,9 +251,9 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
                                     <EmptyState activeTab="requests" />
                                 ) : (
                                     <div className="flex flex-col gap-4">
-                                        {requests.map((req) => (
+                                        {requests.map((req, idx) => (
                                             <RequestCard 
-                                                key={req.user_id || req.requester_id} 
+                                                key={`request-full-${req.user_id || req.requester_id || idx}`} 
                                                 user={req} 
                                                 onAccept={() => handleRequest(req.user_id || req.requester_id, 'accept')}
                                                 onReject={() => handleRequest(req.user_id || req.requester_id, 'decline')}
@@ -275,9 +275,9 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
                                     <EmptyState activeTab="my-connections" />
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {connections.map((user) => (
+                                        {connections.map((user, idx) => (
                                             <FollowingCard 
-                                                key={user.id} 
+                                                key={`connection-${user.id || user.username || idx}`} 
                                                 user={user} 
                                                 onMessage={() => onMessage?.(user.id)}
                                                 onRemove={() => handleRequest(user.id, 'remove')}

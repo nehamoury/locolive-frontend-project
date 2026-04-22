@@ -72,7 +72,7 @@ export const ExploreCrossings: React.FC<ExploreCrossingsProps> = ({
                 <AnimatePresence>
                   {section.items.map((crossing, idx) => (
                     <motion.div
-                      key={crossing.user_id}
+                      key={`crossing-item-${crossing.user_id || crossing.id || idx}`}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.05 }}

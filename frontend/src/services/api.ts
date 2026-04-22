@@ -23,16 +23,19 @@ export const WS_BASE_URL = BASE_HOST
 // ─── Axios Instance ───────────────────────────────────────────────────────────
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true, // Crucial for sending/receiving cookies
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor — attach JWT + handle FormData
+// Request interceptor — attach JWT fallback from localStorage (if any)
 api.interceptors.request.use(
   (config) => {
+    // Browsers send HttpOnly cookies automatically, but we keep this for 
+    // environments where cookies might not be supported or for the transition period.
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     if (config.data instanceof FormData) {

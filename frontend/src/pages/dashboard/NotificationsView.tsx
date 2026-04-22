@@ -298,9 +298,9 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
         </div>
       ) : (
         <div className="divide-y divide-border-base">
-          {notifications.map(notif => (
+          {notifications.map((notif, idx) => (
             <NotifCard 
-              key={notif.id} 
+              key={`notification-${notif.id || idx}`} 
               notif={notif} 
               onRead={(id) => {
                 const actorId = typeof notif.related_user_id === 'string' 

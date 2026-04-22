@@ -123,8 +123,8 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-20 px-2 space-y-1">
         {displayItems.length > 0 ? (
-          displayItems.map(conv => (
-            <ChatItem key={conv.id} conv={conv} isSelected={selectedId === conv.id} onClick={() => onSelect(conv.id)} />
+          displayItems.map((conv, idx) => (
+            <ChatItem key={conv.id || `chat-${idx}`} conv={conv} isSelected={selectedId === conv.id} onClick={() => onSelect(conv.id)} />
           ))
         ) : (
           <div className="py-20 text-center px-10 opacity-30">

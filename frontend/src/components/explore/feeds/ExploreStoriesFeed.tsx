@@ -75,7 +75,7 @@ export const ExploreStoriesFeed: React.FC<ExploreStoriesFeedProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {nearbyUserStories.map((group, idx) => (
           <motion.div
-            key={group.latest.id}
+            key={`story-feed-group-${group.latest.id || group.latest.username || idx}`}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: idx * 0.03 }}
