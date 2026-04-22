@@ -232,6 +232,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <input
                     type="email"
                     required
+                    autoComplete="email"
                     value={form.email}
                     onChange={(e) => set('email', e.target.value)}
                     placeholder="you@example.com"
@@ -247,6 +248,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <input
                     type={showPass ? 'text' : 'password'}
                     required
+                    autoComplete="new-password"
                     value={form.password}
                     onChange={(e) => set('password', e.target.value)}
                     placeholder="Min. 8 characters"
@@ -305,6 +307,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <input
                     type="text"
                     required
+                    autoComplete="username"
                     value={form.username}
                     onChange={(e) => set('username', e.target.value)}
                     placeholder="yourhandle"
@@ -322,6 +325,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <input
                     type="text"
                     required
+                    autoComplete="name"
                     value={form.full_name}
                     onChange={(e) => set('full_name', e.target.value)}
                     placeholder="Your Name"
@@ -338,6 +342,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="tel"
+                    autoComplete="tel"
                     value={form.phone}
                     onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="10-digit mobile number"
