@@ -1,13 +1,11 @@
 import { useState, type FC } from 'react';
 import { 
   ArrowLeft, User, Shield, Bell, Lock, Mail, 
-  Smartphone, Palette, Globe, HardDrive, 
+  Palette, Globe, HardDrive, 
   HelpCircle, Info, ChevronRight, LogOut,
   Camera, MapPin, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
-import toast from 'react-hot-toast';
 import { cn } from '../../utils/helpers';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
@@ -22,7 +20,6 @@ type SettingsSection =
 
 const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [activeSection, setActiveSection] = useState<SettingsSection>('account_info');
 
   const menuGroups = [
@@ -138,7 +135,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
                   <SettingField label="Full Name" value={user?.full_name || "Not set"} desc="This is your display name" />
                   <SettingField label="Username" value={`@${user?.username}`} desc="Your unique username" />
                   <SettingField label="Bio" value={user?.bio || "Life is all about love ❤️"} desc="Tell people about yourself" />
-                  <SettingField label="Email" value={user?.email || "neha@example.com"} desc="Your email address" />
+                  <SettingField label="Email" value="neha@example.com" desc="Your email address" />
                   <SettingField label="Phone" value="+91 98765 43210" desc="Your phone number" />
                   <SettingField label="Location" value="Raipur, Chhattisgarh" desc="Your location" icon={<MapPin className="w-5 h-5 text-pink-500" />} />
                 </div>
