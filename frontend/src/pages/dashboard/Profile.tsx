@@ -34,7 +34,13 @@ interface ProfileData {
     interests: string[];
 }
 
-export const Profile: FC = () => {
+interface ProfileProps {
+    onLogout?: () => void;
+}
+
+export const Profile: FC<ProfileProps> = ({ onLogout }) => {
+    const { logout: contextLogout } = useAuth();
+    const logout = onLogout || contextLogout;
     const navigate = useNavigate();
     const { id: urlUserId } = useParams();
     const { user } = useAuth();
