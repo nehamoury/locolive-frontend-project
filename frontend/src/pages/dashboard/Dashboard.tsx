@@ -291,7 +291,7 @@ const Dashboard = () => {
       <div className="hidden md:flex flex-1 flex-col overflow-hidden h-full gap-3 lg:gap-4 relative">
         
         {/* Global Desktop Header */}
-        {!pathname.includes('reels') && !pathname.includes('messages') && !pathname.includes('search') && (
+        {!pathname.includes('reels') && !pathname.includes('messages') && !pathname.includes('search') && !pathname.includes('profile') && (
           <header className="shrink-0 flex items-center justify-between px-2">
             <div className="flex-1 flex justify-center">
               <div
