@@ -38,9 +38,7 @@ interface ProfileProps {
     onLogout?: () => void;
 }
 
-export const Profile: FC<ProfileProps> = ({ onLogout }) => {
-    const { logout: contextLogout } = useAuth();
-    const logout = onLogout || contextLogout;
+export const Profile: FC<ProfileProps> = () => {
     const navigate = useNavigate();
     const { id: urlUserId } = useParams();
     const { user } = useAuth();
