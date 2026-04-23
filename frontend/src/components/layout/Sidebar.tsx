@@ -143,14 +143,14 @@ const Sidebar: FC<SidebarProps> = ({
 
         {/* ── Navigation ── */}
         <nav className="flex-1 space-y-1 mb-5">
-          <NavItem icon={<Home className="w-[19px] h-[19px]" />} label="Home" active={activeTab === 'home' && !isSearchOpen} onClick={() => { setActiveTab('home'); setIsSearchOpen(false); }} isCollapsed={effectiveCollapsed} />
-          <NavItem icon={<Search className="w-[19px] h-[19px]" />} label="Search" active={isSearchOpen} onClick={() => setIsSearchOpen(!isSearchOpen)} isCollapsed={effectiveCollapsed} />
-          <NavItem icon={<Compass className="w-[19px] h-[19px]" />} label="Explore" active={activeTab === 'explore' && !isSearchOpen} onClick={() => { setActiveTab('explore'); setIsSearchOpen(false); }} isCollapsed={effectiveCollapsed} />
-          <NavItem icon={<Video className="w-[19px] h-[19px]" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} isCollapsed={effectiveCollapsed} />
-          <NavItem icon={<MessageSquare className="w-[19px] h-[19px]" />} label="Messages" active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} isCollapsed={effectiveCollapsed} badge={unreadMessagesCount} />
-          <NavItem icon={<Bell className="w-[19px] h-[19px]" />} label="Notifications" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} isCollapsed={effectiveCollapsed} badge={unreadCount} />
-          <NavItem icon={<Users className="w-[19px] h-[19px]" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} isCollapsed={effectiveCollapsed} />
-          <NavItem icon={<User className="w-[19px] h-[19px]" />} label="Profile" active={activeTab === 'profile'} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} isCollapsed={effectiveCollapsed} />
+          <NavItem icon={<Home className="w-6 h-6" />} label="Home" active={activeTab === 'home' && !isSearchOpen} onClick={() => { setActiveTab('home'); setIsSearchOpen(false); }} isCollapsed={effectiveCollapsed} />
+          <NavItem icon={<Search className="w-6 h-6" />} label="Search" active={isSearchOpen} onClick={() => setIsSearchOpen(!isSearchOpen)} isCollapsed={effectiveCollapsed} />
+          <NavItem icon={<Compass className="w-6 h-6" />} label="Explore" active={activeTab === 'explore' && !isSearchOpen} onClick={() => { setActiveTab('explore'); setIsSearchOpen(false); }} isCollapsed={effectiveCollapsed} />
+          <NavItem icon={<Video className="w-6 h-6" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} isCollapsed={effectiveCollapsed} />
+          <NavItem icon={<MessageSquare className="w-6 h-6" />} label="Messages" active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} isCollapsed={effectiveCollapsed} badge={unreadMessagesCount} />
+          <NavItem icon={<Bell className="w-6 h-6" />} label="Notifications" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} isCollapsed={effectiveCollapsed} badge={unreadCount} />
+          <NavItem icon={<Users className="w-6 h-6" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} isCollapsed={effectiveCollapsed} />
+          <NavItem icon={<User className="w-6 h-6" />} label="Profile" active={activeTab === 'profile'} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} isCollapsed={effectiveCollapsed} />
         </nav>
 
         {/* ── More Button & Menu ── */}
@@ -187,7 +187,7 @@ const Sidebar: FC<SidebarProps> = ({
             onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
             className={`w-full flex items-center ${effectiveCollapsed ? 'justify-center py-3' : 'px-3 py-2.5'} rounded-xl transition-all hover:bg-bg-base group cursor-pointer ${isMoreMenuOpen ? 'bg-bg-base font-bold' : ''}`}
           >
-            <Menu className={`w-[19px] h-[19px] ${isMoreMenuOpen ? 'text-primary' : 'text-text-muted group-hover:text-primary'}`} />
+            <Menu className={`w-6 h-6 ${isMoreMenuOpen ? 'text-primary' : 'text-text-muted group-hover:text-primary'}`} />
             {!effectiveCollapsed && (
               <span className={`ml-3 text-[14px] tracking-tight ${isMoreMenuOpen ? 'font-black text-text-base translate-x-1' : 'font-medium text-text-muted group-hover:text-primary'}`}>
                 More

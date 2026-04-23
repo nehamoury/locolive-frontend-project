@@ -46,7 +46,7 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
 
       {/* ── Feed Content ───────────────────── */}
       <div className="w-full px-0 sm:px-4 md:px-6 pt-2 sm:pt-6 pb-24 md:pb-8 flex flex-col items-center">
-        <div className="w-full max-w-2xl flex flex-col gap-4 sm:gap-6">
+        <div className="w-full max-w-3xl flex flex-col gap-4 sm:gap-6">
 
           {/* Stories Card */}
           <div className="w-full bg-bg-card md:rounded-[32px] border-b md:border border-border-base shadow-sm p-4 sm:p-5">

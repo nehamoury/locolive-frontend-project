@@ -115,7 +115,7 @@ export const Profile: FC<ProfileProps> = () => {
                 if (isConn) status = 'accepted';
                 else if (isPending) status = 'pending';
                 else status = 'none';
-                
+
                 setFollowStatus(status);
             }
 
@@ -160,21 +160,21 @@ export const Profile: FC<ProfileProps> = () => {
         );
     }
 
-    const currentTabItems = activeTab === 'posts' ? posts : 
-                          activeTab === 'reels' ? reels : 
-                          activeTab === 'saved' ? savedReels : [];
+    const currentTabItems = activeTab === 'posts' ? posts :
+        activeTab === 'reels' ? reels :
+            activeTab === 'saved' ? savedReels : [];
 
     return (
         <div className="h-full overflow-y-auto no-scrollbar scroll-smooth bg-[#fcf5f8] text-text-base p-2 md:p-6">
-            <div className="max-w-[900px] mx-auto bg-white rounded-[32px] shadow-[0_20px_70px_-15px_rgba(0,0,0,0.05)] overflow-hidden min-h-full flex flex-col pb-12">
-                
+            <div className="max-w-[1200px] mx-auto bg-white rounded-[32px] shadow-[0_20px_70px_-15px_rgba(0,0,0,0.05)] overflow-hidden min-h-full flex flex-col pb-12">
+
                 {/* ── Profile Header ── */}
                 <div className="px-6 md:px-12 pt-10 pb-8 flex flex-col md:flex-row items-center gap-8 lg:gap-14">
                     {/* Avatar with Story Ring */}
                     <div className="relative shrink-0">
-                        <div 
-                          className="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] shadow-lg cursor-pointer hover:scale-[1.02] transition-all"
-                          onClick={() => isOwnProfile && setIsEditModalOpen(true)}
+                        <div
+                            className="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] shadow-lg cursor-pointer hover:scale-[1.02] transition-all"
+                            onClick={() => isOwnProfile && setIsEditModalOpen(true)}
                         >
                             <div className="w-full h-full rounded-full border-[4px] border-white overflow-hidden bg-bg-base relative">
                                 <img
@@ -215,9 +215,9 @@ export const Profile: FC<ProfileProps> = () => {
                                 <button className="px-5 py-2 bg-[#ff006e]/5 text-primary border border-primary/20 rounded-xl text-[12px] font-black uppercase tracking-wider hover:bg-primary/10 transition-all cursor-pointer">
                                     Share Profile
                                 </button>
-                                <button 
-                                  onClick={() => navigate('/dashboard/settings')}
-                                  className="p-2 bg-bg-base border border-border-base rounded-xl hover:bg-bg-sidebar transition-all cursor-pointer"
+                                <button
+                                    onClick={() => navigate('/dashboard/settings')}
+                                    className="p-2 bg-bg-base border border-border-base rounded-xl hover:bg-bg-sidebar transition-all cursor-pointer"
                                 >
                                     <Settings className="w-5 h-5 text-text-muted" />
                                 </button>
@@ -254,9 +254,9 @@ export const Profile: FC<ProfileProps> = () => {
                     <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-2">
                         {isOwnProfile && (
                             <div className="flex flex-col items-center gap-2 shrink-0">
-                                <button 
-                                  onClick={() => navigate('/dashboard/manage-highlights')}
-                                  className="w-16 h-16 md:w-18 md:h-18 rounded-full border border-dashed border-border-base flex items-center justify-center hover:border-primary transition-colors group cursor-pointer"
+                                <button
+                                    onClick={() => navigate('/dashboard/manage-highlights')}
+                                    className="w-16 h-16 md:w-18 md:h-18 rounded-full border border-dashed border-border-base flex items-center justify-center hover:border-primary transition-colors group cursor-pointer"
                                 >
                                     <Plus className="w-6 h-6 text-text-muted group-hover:text-primary transition-colors" />
                                 </button>
@@ -266,10 +266,10 @@ export const Profile: FC<ProfileProps> = () => {
                         {(highlights.length > 0 ? highlights : mockHighlights).map((h: any) => (
                             <div key={h.id} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group">
                                 <div className="w-16 h-16 md:w-18 md:h-18 rounded-full p-0.5 border border-border-base group-hover:border-primary transition-all overflow-hidden">
-                                    <img 
-                                      src={h.img || getMediaUrl(h.cover_url, FALLBACKS.POST)} 
-                                      className="w-full h-full rounded-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                                      alt="" 
+                                    <img
+                                        src={h.img || getMediaUrl(h.cover_url, FALLBACKS.POST)}
+                                        className="w-full h-full rounded-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                        alt=""
                                     />
                                 </div>
                                 <span className="text-[10px] font-black text-text-muted uppercase tracking-wider group-hover:text-text-base transition-colors">{h.title}</span>
@@ -305,20 +305,20 @@ export const Profile: FC<ProfileProps> = () => {
                     {currentTabItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-20 h-20 bg-bg-base rounded-full flex items-center justify-center mb-5 shadow-sm">
-                                {activeTab === 'posts' ? <Camera className="w-8 h-8 text-text-muted/50" /> : 
-                                 activeTab === 'reels' ? <Video className="w-8 h-8 text-text-muted/50" /> : 
-                                 <Bookmark className="w-8 h-8 text-text-muted/50" />}
+                                {activeTab === 'posts' ? <Camera className="w-8 h-8 text-text-muted/50" /> :
+                                    activeTab === 'reels' ? <Video className="w-8 h-8 text-text-muted/50" /> :
+                                        <Bookmark className="w-8 h-8 text-text-muted/50" />}
                             </div>
                             <h3 className="text-xl font-black italic text-text-base mb-1">No {activeTab} yet</h3>
                             <p className="text-[12px] text-text-muted font-bold mb-6 max-w-[220px]">
-                                {activeTab === 'posts' ? 'Share your moments with the world.' : 
-                                 activeTab === 'reels' ? 'Create fun videos to share.' : 
-                                 'Your saved items will appear here.'}
+                                {activeTab === 'posts' ? 'Share your moments with the world.' :
+                                    activeTab === 'reels' ? 'Create fun videos to share.' :
+                                        'Your saved items will appear here.'}
                             </p>
                             {isOwnProfile && activeTab !== 'tagged' && (
-                                <button 
-                                  onClick={() => navigate('/dashboard/home')}
-                                  className="px-6 py-2.5 bg-brand-gradient text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all cursor-pointer"
+                                <button
+                                    onClick={() => navigate('/dashboard/home')}
+                                    className="px-6 py-2.5 bg-brand-gradient text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all cursor-pointer"
                                 >
                                     <Plus className="inline-block w-3 h-3 mr-1.5 -mt-0.5" />
                                     Create {activeTab === 'posts' ? 'Post' : 'Reel'}
@@ -326,22 +326,22 @@ export const Profile: FC<ProfileProps> = () => {
                             )}
                         </div>
                     ) : (
-                      <div className="grid grid-cols-3 gap-1 md:gap-2">
-                        {currentTabItems.map((item) => (
-                            <div key={item.id} className="aspect-square bg-bg-base rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all">
-                                <img
-                                    src={getMediaUrl(item.media_url || item.video_url, FALLBACKS.POST)}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                    alt=""
-                                />
-                                {activeTab === 'reels' && (
-                                    <div className="absolute top-2 right-2">
-                                        <Video className="w-4 h-4 text-white drop-shadow-md" />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                      </div>
+                        <div className="grid grid-cols-3 gap-1 md:gap-2">
+                            {currentTabItems.map((item) => (
+                                <div key={item.id} className="aspect-square bg-bg-base rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all">
+                                    <img
+                                        src={getMediaUrl(item.media_url || item.video_url, FALLBACKS.POST)}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        alt=""
+                                    />
+                                    {activeTab === 'reels' && (
+                                        <div className="absolute top-2 right-2">
+                                            <Video className="w-4 h-4 text-white drop-shadow-md" />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
