@@ -197,7 +197,7 @@ export const Profile: FC<ProfileProps> = () => {
                     {/* Info Section */}
                     <div className="flex-1 text-center md:text-left">
                         <div className="flex flex-col md:flex-row items-center gap-4 mb-5">
-                            <h2 className="text-[28px] md:text-[32px] font-black tracking-tight text-text-base italic flex items-center gap-2 leading-none">
+                            <h2 className="text-[28px] md:text-[28px] font-bold tracking-tight text-normal  flex items-center gap-2 leading-none">
                                 {profile?.username}
                                 <CheckCircle2 className="w-6 h-6 text-primary fill-primary/10" strokeWidth={2.5} />
                             </h2>
@@ -227,23 +227,23 @@ export const Profile: FC<ProfileProps> = () => {
                         {/* Stats */}
                         <div className="flex items-center justify-center md:justify-start gap-10 mb-6">
                             <div className="flex flex-col items-center md:items-start">
-                                <span className="text-xl font-black italic leading-none">{profile?.post_count || 0}</span>
+                                <span className="text-xl font-black  leading-none">{profile?.post_count || 0}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">posts</span>
                             </div>
                             <div className="flex flex-col items-center md:items-start">
-                                <span className="text-xl font-black italic leading-none">{profile?.connection_count || 0}</span>
+                                <span className="text-xl font-black  leading-none">{profile?.connection_count || 0}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">followers</span>
                             </div>
                             <div className="flex flex-col items-center md:items-start">
-                                <span className="text-xl font-black italic leading-none">{Math.floor((profile?.connection_count || 0) * 0.8)}</span>
+                                <span className="text-xl font-black  leading-none">{Math.floor((profile?.connection_count || 0) * 0.8)}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">following</span>
                             </div>
                         </div>
 
                         <div>
-                            <p className="text-[16px] font-black text-text-base italic mb-0.5">{profile?.full_name}</p>
+                            <p className="text-[16px] font-black text-text-base  mb-0.5">{profile?.full_name}</p>
                             <p className="text-[13px] text-text-muted font-bold leading-relaxed max-w-md">
-                                {profile?.bio || "Life is all about love ❤️"}
+                                {profile?.bio}
                             </p>
                         </div>
                     </div>
@@ -301,7 +301,7 @@ export const Profile: FC<ProfileProps> = () => {
                 </div>
 
                 {/* ── Content Area ── */}
-                <div className="flex-1 p-4 md:p-6">
+                <div className="flex-1 p-4 md:p-2">
                     {currentTabItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-20 h-20 bg-bg-base rounded-full flex items-center justify-center mb-5 shadow-sm">
@@ -309,7 +309,7 @@ export const Profile: FC<ProfileProps> = () => {
                                     activeTab === 'reels' ? <Video className="w-8 h-8 text-text-muted/50" /> :
                                         <Bookmark className="w-8 h-8 text-text-muted/50" />}
                             </div>
-                            <h3 className="text-xl font-black italic text-text-base mb-1">No {activeTab} yet</h3>
+                            <h3 className="text-xl font-black  text-text-base mb-1">No {activeTab} yet</h3>
                             <p className="text-[12px] text-text-muted font-bold mb-6 max-w-[220px]">
                                 {activeTab === 'posts' ? 'Share your moments with the world.' :
                                     activeTab === 'reels' ? 'Create fun videos to share.' :

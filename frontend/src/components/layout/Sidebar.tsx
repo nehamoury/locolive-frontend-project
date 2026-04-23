@@ -75,7 +75,9 @@ const Sidebar: FC<SidebarProps> = ({
   const setActiveTab = (tab: string) => navigate(`/dashboard/${tab}`);
 
   // Sidebar collapses automatically when search is open
-  const effectiveCollapsed = isCollapsed || isSearchOpen;
+  const { pathname } = useLocation();
+  const isSettingsPage = pathname.includes('settings');
+  const effectiveCollapsed = isCollapsed || isSearchOpen || isSettingsPage;
 
   // Handle click outside for more menu
   useEffect(() => {
