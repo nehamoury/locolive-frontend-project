@@ -2,12 +2,10 @@ import { type FC, useState, useEffect } from 'react';
 import {
     Camera,
     Settings,
-    Home,
     Video,
     User,
     Bookmark,
     Grid,
-    Share2,
     Plus,
     CheckCircle2
 } from 'lucide-react';
@@ -40,9 +38,7 @@ interface ProfileProps {
     onLogout?: () => void;
 }
 
-export const Profile: FC<ProfileProps> = ({ onLogout }) => {
-    const { logout: contextLogout } = useAuth();
-    const logout = onLogout || contextLogout;
+export const Profile: FC<ProfileProps> = () => {
     const navigate = useNavigate();
     const { id: urlUserId } = useParams();
     const { user } = useAuth();
@@ -62,13 +58,13 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
     const userId = urlUserId || user?.id;
     const isOwnProfile = userId === user?.id;
 
-    // Mock Highlights for UI matching
+    // Mock Highlights for UI matching if no real highlights
     const mockHighlights = [
-        { id: '1', title: 'Travel', img: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=300&h=300&fit=crop' },
-        { id: '2', title: 'Sunsets', img: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=300&h=300&fit=crop' },
-        { id: '3', title: 'Food', img: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?w=300&h=300&fit=crop' },
-        { id: '4', title: 'Coffee', img: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=300&fit=crop' },
-        { id: '5', title: 'Nature', img: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&h=300&fit=crop' },
+        { id: 'm1', title: 'Travel', img: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=300&h=300&fit=crop' },
+        { id: 'm2', title: 'Sunsets', img: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=300&h=300&fit=crop' },
+        { id: 'm3', title: 'Food', img: 'https://images.unsplash.com/photo-1493770348161-369560ae357d?w=300&h=300&fit=crop' },
+        { id: 'm4', title: 'Coffee', img: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=300&fit=crop' },
+        { id: 'm5', title: 'Nature', img: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&h=300&fit=crop' },
     ];
 
     useEffect(() => {
@@ -98,13 +94,13 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
 
             const reelsRes = await api.get(`/users/${userId}/reels`).catch(() => ({ data: { reels: [] } }));
 
-            let savedReels = [];
+            let saved = [];
             if (isOwnProfile) {
                 const savedRes = await api.get('/reels/saved').catch(() => ({ data: { reels: [] } }));
-                savedReels = savedRes.data?.reels || savedRes.data || [];
+                saved = savedRes.data?.reels || savedRes.data || [];
             }
 
-            let followStatus: 'none' | 'pending' | 'accepted' = 'none';
+            let status: 'none' | 'pending' | 'accepted' = 'none';
             if (!isOwnProfile) {
                 const [myConnsRes, mySentRes] = await Promise.all([
                     api.get('/connections').catch(() => ({ data: [] })),
@@ -116,17 +112,17 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                 const isConn = myConns.some((c: any) => c.id === userId || c.user_id === userId || c.target_id === userId || c.requester_id === userId);
                 const isPending = mySent.some((c: any) => c.target_id === userId || c.user_id === userId);
 
-                if (isConn) followStatus = 'accepted';
-                else if (isPending) followStatus = 'pending';
-                else followStatus = 'none';
+                if (isConn) status = 'accepted';
+                else if (isPending) status = 'pending';
+                else status = 'none';
                 
-                setFollowStatus(followStatus);
+                setFollowStatus(status);
             }
 
             setPosts(postsRes.data?.posts || []);
             setHighlights(highlightsRes.data || []);
             setReels(reelsRes.data?.reels || reelsRes.data || []);
-            setSavedReels(savedReels);
+            setSavedReels(saved);
 
         } catch (error) {
             console.error('Failed to load profile:', error);
@@ -163,6 +159,10 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
             </div>
         );
     }
+
+    const currentTabItems = activeTab === 'posts' ? posts : 
+                          activeTab === 'reels' ? reels : 
+                          activeTab === 'saved' ? savedReels : [];
 
     return (
         <div className="h-full overflow-y-auto no-scrollbar scroll-smooth bg-[#fcf5f8] text-text-base p-4 md:p-8">
@@ -215,7 +215,10 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                                 <button className="px-6 py-2.5 bg-[#ff006e]/10 text-primary border border-primary/20 rounded-2xl text-[13px] font-black uppercase tracking-wider hover:bg-primary/20 transition-all shadow-sm cursor-pointer">
                                     Share Profile
                                 </button>
-                                <button className="p-2.5 bg-bg-base border border-border-base rounded-2xl hover:bg-bg-sidebar transition-all cursor-pointer">
+                                <button 
+                                  onClick={() => navigate('/dashboard/settings')}
+                                  className="p-2.5 bg-bg-base border border-border-base rounded-2xl hover:bg-bg-sidebar transition-all cursor-pointer"
+                                >
                                     <Settings className="w-5 h-5 text-text-muted" />
                                 </button>
                             </div>
@@ -299,31 +302,43 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
 
                 {/* ── Content Area ── */}
                 <div className="flex-1 p-8">
-                    {activeTab === 'posts' && posts.length === 0 ? (
+                    {currentTabItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-24 text-center">
                             <div className="w-24 h-24 bg-bg-base rounded-full flex items-center justify-center mb-6 shadow-sm">
-                                <Camera className="w-10 h-10 text-text-muted/50" />
+                                {activeTab === 'posts' ? <Camera className="w-10 h-10 text-text-muted/50" /> : 
+                                 activeTab === 'reels' ? <Video className="w-10 h-10 text-text-muted/50" /> : 
+                                 <Bookmark className="w-10 h-10 text-text-muted/50" />}
                             </div>
-                            <h3 className="text-2xl font-black italic text-text-base mb-2">No posts yet</h3>
-                            <p className="text-[13px] text-text-muted font-bold mb-8 max-w-[240px]">Share your moments with the world and start your journey.</p>
-                            <button 
-                              onClick={() => navigate('/dashboard/home')}
-                              className="px-8 py-3 bg-brand-gradient text-white font-black uppercase tracking-widest text-[12px] rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 transition-all cursor-pointer"
-                            >
-                                <Plus className="inline-block w-4 h-4 mr-2 -mt-0.5" />
-                                Create Post
-                            </button>
+                            <h3 className="text-2xl font-black italic text-text-base mb-2">No {activeTab} yet</h3>
+                            <p className="text-[13px] text-text-muted font-bold mb-8 max-w-[240px]">
+                                {activeTab === 'posts' ? 'Share your moments with the world and start your journey.' : 
+                                 activeTab === 'reels' ? 'Create fun videos and share them with your friends.' : 
+                                 'Your saved items will appear here once you bookmark them.'}
+                            </p>
+                            {isOwnProfile && activeTab !== 'tagged' && (
+                                <button 
+                                  onClick={() => navigate('/dashboard/home')}
+                                  className="px-8 py-3 bg-brand-gradient text-white font-black uppercase tracking-widest text-[12px] rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 transition-all cursor-pointer"
+                                >
+                                    <Plus className="inline-block w-4 h-4 mr-2 -mt-0.5" />
+                                    Create {activeTab === 'posts' ? 'Post' : 'Reel'}
+                                </button>
+                            )}
                         </div>
                     ) : (
                       <div className="grid grid-cols-3 gap-1 md:gap-2">
-                        {/* Render actual posts/reels here if available */}
-                        {posts.map((post) => (
-                            <div key={post.id} className="aspect-square bg-bg-base rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all">
+                        {currentTabItems.map((item) => (
+                            <div key={item.id} className="aspect-square bg-bg-base rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all">
                                 <img
-                                    src={getMediaUrl(post.media_url, FALLBACKS.POST)}
+                                    src={getMediaUrl(item.media_url || item.video_url, FALLBACKS.POST)}
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                     alt=""
                                 />
+                                {activeTab === 'reels' && (
+                                    <div className="absolute top-2 right-2">
+                                        <Video className="w-5 h-5 text-white drop-shadow-lg" />
+                                    </div>
+                                )}
                             </div>
                         ))}
                       </div>
