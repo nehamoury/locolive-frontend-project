@@ -21,12 +21,12 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    ...(process.env.NODE_ENV === 'production' ? [VitePWA({
+    ...(process.env.NODE_ENV === 'production' || process.env.VITE_PWA === 'true' ? [VitePWA({
       registerType: 'autoUpdate',
       devOptions: {
         enabled: false
       },
-      includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'manifest.webmanifest'],
+      includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'Locolive',
         short_name: 'Locolive',
