@@ -33,6 +33,7 @@ export const MapFilters: React.FC<MapFiltersProps> = ({ onFilterChange, activeFi
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            key="filters-content"
             initial={{ opacity: 0, x: -20, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -20, scale: 0.95 }}

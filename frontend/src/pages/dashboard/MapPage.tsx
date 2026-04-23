@@ -543,6 +543,7 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
             <AnimatePresence>
                 {selectedUser && (
                     <UserPreviewCard 
+                        key={selectedUser.id || selectedUser.geohash || 'user-preview'}
                         user={selectedUser} 
                         isConnection={connectionIds.has(selectedUser?.stories?.[0]?.user_id || selectedUser?.stories?.[0]?.id || selectedUser?.id)}
                         onClose={() => setSelectedUser(null)}
@@ -568,7 +569,7 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
             )}
 
             <AnimatePresence mode="wait">
-                {toast && <DiscoveryToast key={toast.message + toast.type} message={toast.message} type={toast.type} />}
+                {toast && <DiscoveryToast key={`toast-${toast.message}`} message={toast.message} type={toast.type} />}
             </AnimatePresence>
         </div>
     );
