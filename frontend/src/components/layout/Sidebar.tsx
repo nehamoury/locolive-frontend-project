@@ -3,12 +3,14 @@ import {
   Home, Compass, Search, User, Plus, Users, LogOut,
   ChevronLeft, ChevronRight, Video, MessageSquare,
   Download, Bell, Bookmark, Settings,
-  Menu, Activity, Sun, AlertCircle, RefreshCw
+  Menu, Activity, Sun, AlertCircle, RefreshCw,
+  Flame
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePWA } from '../../hooks/usePWA';
 import UserSearch from './UserSearch';
+import { gamificationService, type StreakData } from '../../services/gamificationService';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -66,6 +68,7 @@ const Sidebar: FC<SidebarProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [streakData, setStreakData] = useState<StreakData | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -88,6 +91,12 @@ const Sidebar: FC<SidebarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      gamificationService.getStreak().then(setStreakData).catch(() => {});
+    }
+  }, [user?.id]);
 
   const moreMenuItems = [
     { icon: <Settings className="w-4.5 h-4.5" />, label: 'Settings', onClick: () => navigate('/dashboard/settings') },
@@ -124,13 +133,25 @@ const Sidebar: FC<SidebarProps> = ({
             )}
           </div>
           {!isSearchOpen && (
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="w-7 h-7 rounded-lg bg-bg-base border border-border-base text-text-muted hover:text-primary hover:border-primary/40 transition-all flex items-center justify-center flex-shrink-0"
-              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-            </button>
+            <div className="flex items-center gap-2">
+              {streakData && streakData.current_streak > 0 && !effectiveCollapsed && (
+                <div 
+                  onClick={() => navigate(`/dashboard/profile/${user?.id}`)}
+                  className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded-lg cursor-pointer hover:bg-orange-500/20 transition-all border border-orange-500/20 group"
+                  title="Your current streak"
+                >
+                  <span className="text-[12px] font-black text-orange-600">{streakData.current_streak}</span>
+                  <Flame className="w-3.5 h-3.5 fill-orange-600 text-orange-600 animate-pulse group-hover:scale-125 transition-transform" />
+                </div>
+              )}
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="w-7 h-7 rounded-lg bg-bg-base border border-border-base text-text-muted hover:text-primary hover:border-primary/40 transition-all flex items-center justify-center flex-shrink-0"
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           )}
         </div>
 

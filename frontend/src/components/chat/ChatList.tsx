@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { Search } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { BACKEND } from '../../utils/config';
+import CreateGroupModal from './CreateGroupModal';
 
 interface Conversation {
   id: string;
@@ -11,32 +12,38 @@ interface Conversation {
   last_message: string;
   last_message_at: string;
   unread_count: number;
+  isGroup: boolean;
 }
 
 interface ChatListProps {
-  onSelect: (userId: string) => void;
+  onSelect: (id: string, isGroup?: boolean) => void;
   selectedId?: string;
 }
 
 const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [following, setFollowing] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'All' | 'Unread' | 'Following' | 'Groups'>('All');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const [convRes, followingRes, groupsRes] = await Promise.all([
+        api.get('/conversations'),
+        api.get('/connections'),
+        api.get('/groups')
+      ]);
+      setConversations(convRes.data || []);
+      setFollowing(followingRes.data || []);
+      setGroups(groupsRes.data || []);
+    } catch (err) {
+      console.error('Failed to fetch chat data:', err);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [convRes, followingRes] = await Promise.all([
-          api.get('/conversations'),
-          api.get('/connections')
-        ]);
-        setConversations(convRes.data || []);
-        setFollowing(followingRes.data || []);
-      } catch (err) {
-        console.error('Failed to fetch chat data:', err);
-      }
-    };
     fetchData();
   }, []);
 
@@ -50,7 +57,7 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
     }
   }, [selectedId]);
 
-  const filtered = () => {
+  const getFilteredItems = () => {
     if (activeTab === 'Following') {
       return following
         .filter(u => 
@@ -65,23 +72,38 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
           last_message: 'Start a new conversation',
           last_message_at: new Date().toISOString(),
           unread_count: 0,
-          isFollowingItem: true
+          isGroup: false
         }));
     }
 
-    return conversations.filter(c => {
-      const matchesSearch = (c.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           (c.username || '').toLowerCase().includes(searchQuery.toLowerCase());
-      
-      if (!matchesSearch) return false;
+    if (activeTab === 'Groups') {
+      return groups
+        .filter(g => (g.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+        .map(g => ({
+          id: g.id,
+          username: g.name,
+          full_name: g.name,
+          avatar_url: '',
+          last_message: g.description || 'Group chat',
+          last_message_at: g.created_at,
+          unread_count: 0,
+          isGroup: true
+        }));
+    }
 
-      if (activeTab === 'Unread') return c.unread_count > 0;
-      if (activeTab === 'Groups') return false; 
-      return true;
-    });
+    return conversations
+      .filter(c => {
+        const matchesSearch = (c.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             (c.username || '').toLowerCase().includes(searchQuery.toLowerCase());
+        
+        if (!matchesSearch) return false;
+        if (activeTab === 'Unread') return c.unread_count > 0;
+        return true;
+      })
+      .map(c => ({ ...c, isGroup: false }));
   };
 
-  const displayItems = filtered();
+  const displayItems = getFilteredItems();
 
   return (
     <div className="flex flex-col h-full bg-white/60 backdrop-blur-3xl w-full border-r border-gray-100 font-poppins overflow-hidden">
@@ -122,9 +144,26 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-20 px-2 space-y-1">
+        {activeTab === 'Groups' && (
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="w-full mb-4 p-4 rounded-2xl bg-gradient-to-r from-sky-500/5 to-indigo-500/5 border border-sky-100/50 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all group"
+          >
+            <div className="w-10 h-10 rounded-full bg-sky-500 text-white flex items-center justify-center shadow-lg shadow-sky-500/20 group-hover:rotate-90 transition-transform">
+              <Plus className="w-5 h-5" />
+            </div>
+            <span className="text-[12px] font-black text-sky-600 uppercase tracking-widest">New Group Chat</span>
+          </button>
+        )}
+
         {displayItems.length > 0 ? (
           displayItems.map((conv, idx) => (
-            <ChatItem key={conv.id || `chat-${idx}`} conv={conv} isSelected={selectedId === conv.id} onClick={() => onSelect(conv.id)} />
+            <ChatItem 
+              key={conv.id || `chat-${idx}`} 
+              conv={conv} 
+              isSelected={selectedId === conv.id} 
+              onClick={() => onSelect(conv.id, conv.isGroup)} 
+            />
           ))
         ) : (
           <div className="py-20 text-center px-10 opacity-30">
@@ -134,6 +173,15 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
           </div>
         )}
       </div>
+
+      <CreateGroupModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={(id) => {
+          fetchData();
+          onSelect(id, true);
+        }}
+      />
     </div>
   );
 };
@@ -149,7 +197,7 @@ const ChatItem = ({ conv, isSelected, onClick }: any) => {
         }`}
     >
       <div className="shrink-0 relative">
-        <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 p-[2px] bg-gradient-to-tr from-pink-500 to-purple-500">
+        <div className={`w-14 h-14 rounded-full overflow-hidden bg-gray-100 p-[2px] ${conv.isGroup ? 'bg-gradient-to-tr from-sky-500 to-indigo-500' : 'bg-gradient-to-tr from-pink-500 to-purple-500'}`}>
           <div className="w-full h-full rounded-full bg-white overflow-hidden border-2 border-white">
             {conv.avatar_url ? (
               <img src={conv.avatar_url.startsWith('http') ? conv.avatar_url : `${BACKEND}${conv.avatar_url}`} alt="" className="w-full h-full object-cover" />
@@ -162,7 +210,7 @@ const ChatItem = ({ conv, isSelected, onClick }: any) => {
           <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-pink-500 border-2 border-white rounded-full flex items-center justify-center shadow-sm">
             <span className="text-[10px] font-black text-white leading-none">{conv.unread_count}</span>
           </div>
-        ) : (
+        ) : !conv.isGroup && (
           <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
         )}
       </div>
@@ -172,7 +220,7 @@ const ChatItem = ({ conv, isSelected, onClick }: any) => {
           <span className="text-[14px] font-bold text-gray-900 truncate tracking-tight">{conv.full_name || `@${conv.username}`}</span>
           <span className="text-[10px] font-medium text-gray-400 uppercase">{timeStr}</span>
         </div>
-        <p className={`text-[12px] ${isSelected ? 'text-pink-500 font-medium' : 'text-gray-400 font-normal'} truncate leading-relaxed`}>
+        <p className={`text-[12px] ${isSelected ? (conv.isGroup ? 'text-sky-500' : 'text-pink-500') + ' font-medium' : 'text-gray-400 font-normal'} truncate leading-relaxed`}>
           {conv.id === 'typing-id' ? 'Typing...' : conv.last_message}
         </p>
       </div>

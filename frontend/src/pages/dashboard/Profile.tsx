@@ -7,7 +7,8 @@ import {
     Bookmark,
     Grid,
     Plus,
-    CheckCircle2
+    CheckCircle2,
+    Flame
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -19,6 +20,7 @@ import EditProfileModal from '../../components/profile/EditProfileModal';
 import StoryViewer from '../../components/story/StoryViewer';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import { isUserOnline } from '../../utils/presence';
+import { gamificationService, type StreakData, type Badge } from '../../services/gamificationService';
 
 interface ProfileData {
     id: string;
@@ -52,7 +54,8 @@ export const Profile: FC<ProfileProps> = () => {
     const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>('posts');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [viewingStories, setViewingStories] = useState<any[]>([]);
-
+    const [streakData, setStreakData] = useState<StreakData | null>(null);
+    const [badges, setBadges] = useState<Badge[]>([]);
     const [followStatus, setFollowStatus] = useState<'none' | 'pending' | 'accepted'>('none');
 
     const userId = urlUserId || user?.id;
@@ -123,6 +126,16 @@ export const Profile: FC<ProfileProps> = () => {
             setHighlights(highlightsRes.data || []);
             setReels(reelsRes.data?.reels || reelsRes.data || []);
             setSavedReels(saved);
+
+            // Fetch Gamification Data
+            if (isOwnProfile) {
+                const [sData, bData] = await Promise.all([
+                    gamificationService.getStreak(),
+                    gamificationService.getBadges()
+                ]);
+                setStreakData(sData);
+                setBadges(bData.earned_badges || []);
+            }
 
         } catch (error) {
             console.error('Failed to load profile:', error);
@@ -238,6 +251,15 @@ export const Profile: FC<ProfileProps> = () => {
                                 <span className="text-xl font-black  leading-none">{Math.floor((profile?.connection_count || 0) * 0.8)}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">following</span>
                             </div>
+                            {isOwnProfile && streakData && (
+                                <div className="flex flex-col items-center md:items-start group cursor-help">
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-xl font-black leading-none text-[#ff4d00]">{streakData.current_streak}</span>
+                                        <Flame className={cn("w-5 h-5 fill-[#ff4d00] text-[#ff4d00]", streakData.current_streak > 0 ? "animate-bounce" : "opacity-30")} />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">streak</span>
+                                </div>
+                            )}
                         </div>
 
                         <div>
@@ -246,6 +268,27 @@ export const Profile: FC<ProfileProps> = () => {
                                 {profile?.bio}
                             </p>
                         </div>
+
+                        {/* Badges Display */}
+                        {isOwnProfile && badges && badges.length > 0 && (
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {badges.slice(0, 5).map((badge) => (
+                                    <div 
+                                        key={badge.id} 
+                                        title={badge.name + ": " + badge.description}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#fce7f3] border border-[#f9a8d4] rounded-full hover:scale-105 transition-all cursor-help"
+                                    >
+                                        <span className="text-sm">{badge.icon}</span>
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-[#be185d]">{badge.name}</span>
+                                    </div>
+                                ))}
+                                {badges && badges.length > 5 && (
+                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-base border border-border-base text-[10px] font-black text-text-muted">
+                                        +{badges.length - 5}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 

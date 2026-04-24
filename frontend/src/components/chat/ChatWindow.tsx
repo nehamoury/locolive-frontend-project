@@ -5,7 +5,8 @@ import {
   CheckCheck,
   Plus,
   Smile,
-  MessageCircle
+  MessageCircle,
+  ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../../hooks/useChat';
@@ -13,19 +14,22 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { useNotifications } from '../../hooks/useNotifications';
 import { BACKEND } from '../../utils/config';
+import { cn } from '../../utils/helpers';
 
 interface ChatWindowProps {
   receiverId: string;
+  isGroup?: boolean;
   onBack?: () => void;
   onToggleProfile?: () => void;
 }
 
-const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) => {
+const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: ChatWindowProps) => {
    const { user } = useAuth();
-  const { messages, sendMessage, sendTyping, isTyping } = useChat(receiverId);
+  const { messages, sendMessage, sendTyping, isTyping } = useChat(receiverId, isGroup);
   const { playSendSound } = useNotifications();
   const [content, setContent] = useState('');
   const [recipient, setRecipient] = useState<any>(null);
+  const [icebreakers, setIcebreakers] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -39,14 +43,39 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
   useEffect(() => {
     const fetchRecipient = async () => {
       try {
-        const res = await api.get(`/users/${receiverId}`);
-        setRecipient(res.data);
+        const endpoint = isGroup ? `/groups/${receiverId}` : `/users/${receiverId}`;
+        const res = await api.get(endpoint);
+        if (isGroup) {
+          // Map group data to look like recipient
+          setRecipient({
+            full_name: res.data.name,
+            username: 'group',
+            avatar_url: '',
+            is_group: true
+          });
+        } else {
+          setRecipient(res.data);
+        }
       } catch (err) {
         console.error('Failed to fetch recipient profile:', err);
       }
     };
     fetchRecipient();
-  }, [receiverId]);
+  }, [receiverId, isGroup]);
+
+  useEffect(() => {
+    const fetchIcebreakers = async () => {
+      try {
+        const res = await api.get(`/chat/icebreakers?user_id=${receiverId}`);
+        setIcebreakers(res.data.icebreakers || []);
+      } catch (err) {
+        console.error('Failed to fetch icebreakers:', err);
+      }
+    };
+    if (messages.length === 0 && !isGroup) {
+      fetchIcebreakers();
+    }
+  }, [receiverId, messages.length, isGroup]);
 
    const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,13 +147,12 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 no-scrollbar bg-white/40">
         
-        {/* Security Badge */}
+        {/* Safety Header */}
         <div className="flex justify-center mb-6">
-           <div className="flex items-center gap-2 bg-[#e8f2ff] border border-[#d0e4ff] px-4 py-2 rounded-xl shadow-sm">
-              <span className="text-[11px] font-medium text-[#4a90e2] leading-none text-center">
-                 Hi! Feel free to talk. Tell us what you're thinking.
-                 <br />
-                 <span className="text-[10px] opacity-70">A 30-60 minute Locolive AI Demo over Zoom with me?</span>
+           <div className="flex items-center gap-2 bg-[#f0f9ff] border border-[#e0f2fe] px-4 py-2 rounded-2xl shadow-sm">
+              <ShieldAlert className="w-3.5 h-3.5 text-sky-500" />
+              <span className="text-[11px] font-bold text-sky-700 leading-none text-center uppercase tracking-wider">
+                 End-to-End Secure Chat
               </span>
            </div>
         </div>
@@ -180,9 +208,11 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
                           {msg.content}
                         </div>
                         {/* Time */}
-                        <span className={`text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest ${isMe ? 'text-right' : 'text-left'}`}>
+                        <span className={`text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest ${isMe ? 'text-right' : 'text-left'} flex items-center gap-1 justify-end`}>
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                          {isMe && <CheckCheck className="w-3 h-3 inline ml-1 text-pink-500" />}
+                          {isMe && (
+                            <CheckCheck className={cn("w-3.5 h-3.5", msg.is_read ? "text-pink-500" : "text-gray-300")} />
+                          )}
                         </span>
                       </div>
                     </div>
@@ -202,6 +232,31 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
 
         <div ref={messagesEndRef} className="h-4" />
       </div>
+
+      {/* Icebreakers UI */}
+      <AnimatePresence>
+        {messages.length === 0 && icebreakers.length > 0 && !content && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="px-6 py-2 flex flex-wrap justify-center gap-2 max-w-4xl mx-auto"
+          >
+            {icebreakers.slice(0, 3).map((text, i) => (
+              <button 
+                key={i}
+                onClick={() => {
+                  sendMessage(text);
+                  setIcebreakers([]); // Hide after use
+                }}
+                className="px-4 py-2 bg-white border border-pink-100 text-pink-600 text-[12px] font-bold rounded-full hover:bg-pink-50 hover:border-pink-200 transition-all shadow-sm active:scale-95"
+              >
+                {text}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Input Area */}
       <div className="px-6 pb-6 pt-2 bg-transparent sticky bottom-0">

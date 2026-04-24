@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useParams, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, Home, User, MessageSquare, Plus, Bell, Search, Video, MoreVertical } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -42,6 +42,8 @@ const MessageThreadWrapper = ({
   showChatProfile: boolean;
 }) => {
   const { userId } = useParams();
+  const [searchParams] = useSearchParams();
+  const isGroup = searchParams.get('isGroup') === 'true';
   const navigate = useNavigate();
 
   if (!userId) return <Navigate to="/dashboard/messages" replace />;
@@ -51,6 +53,7 @@ const MessageThreadWrapper = ({
       <div className="flex-1 h-full w-full border-r border-gray-100">
         <ChatWindow
           receiverId={userId}
+          isGroup={isGroup}
           onBack={() => navigate('/dashboard/messages')}
           onToggleProfile={() => setShowChatProfile(prev => !prev)}
         />
@@ -229,7 +232,7 @@ const Dashboard = () => {
                   : 'flex'
                   }`}>
                   <ChatList
-                    onSelect={(id) => navigate(`/dashboard/messages/${id}`)}
+                    onSelect={(id, isGroup) => navigate(`/dashboard/messages/${id}${isGroup ? '?isGroup=true' : ''}`)}
                     selectedId={pathname.split('/').pop()}
                   />
                 </div>

@@ -24,6 +24,10 @@ export const useGeolocation = (enabled: boolean = true) => {
 
   const sendPing = useCallback(async (latitude: number, longitude: number, reason: string) => {
     try {
+      // Use reason in debug log to avoid unused parameter warning
+      if (import.meta.env.DEV) {
+        console.debug(`[Geolocation] Ping reason: ${reason}`);
+      }
       const response = await api.post('/location/ping', { latitude, longitude });
 
       if (response.data?.status === 'ghost') {

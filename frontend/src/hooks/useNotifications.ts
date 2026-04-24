@@ -3,10 +3,6 @@ import api, { WS_BASE_URL } from '../services/api';
 import toast from 'react-hot-toast';
 import { useSound } from '../context/SoundContext';
 
-const CROSSING_SOUND_URL = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
-const MSG_RECEIVE_URL = 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3';
-const MSG_SEND_URL = 'https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3';
-
 const WS_RECONNECT_BASE_MS = 3000;
 const WS_RECONNECT_MAX_MS = 30000;
 const UNREAD_POLL_INTERVAL = 30000; // Poll unread counts every 30s as fallback
@@ -30,18 +26,19 @@ export const useNotifications = () => {
   );
 
   const socketRef = useRef<WebSocket | null>(null);
-  const crossingAudioRef = useRef<HTMLAudioElement | null>(null);
-  const receiveAudioRef = useRef<HTMLAudioElement | null>(null);
-  const sendAudioRef = useRef<HTMLAudioElement | null>(null);
-
   const seenNotifIds = useRef<Set<string>>(new Set());
   const reconnectAttemptRef = useRef(0);
-  const { alertsEnabled, toggleAlerts } = useSound();
+  const activeChatUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    crossingAudioRef.current = new Audio(CROSSING_SOUND_URL);
-    receiveAudioRef.current = new Audio(MSG_RECEIVE_URL);
-    sendAudioRef.current = new Audio(MSG_SEND_URL);
+    const handleActive = (e: any) => { activeChatUserId.current = e.detail?.userId || null; };
+    const handleInactive = () => { activeChatUserId.current = null; };
+    window.addEventListener('locolive_chat_active', handleActive);
+    window.addEventListener('locolive_chat_inactive', handleInactive);
+    return () => {
+      window.removeEventListener('locolive_chat_active', handleActive);
+      window.removeEventListener('locolive_chat_inactive', handleInactive);
+    };
   }, []);
 
   const requestPermission = useCallback(async () => {
@@ -144,23 +141,73 @@ export const useNotifications = () => {
     }
   }, []);
 
-  const playSound = useCallback((type: 'crossing' | 'receive' | 'send') => {
+  const { alertsEnabled, toggleAlerts } = useSound();
+  const soundCooldowns = useRef<Record<string, number>>({});
+  const soundCounts = useRef<Record<string, number>>({});
+  const soundHourStart = useRef<number>(Date.now());
+
+  // Sound preloader/manager
+  const audioCache = useRef<Record<string, HTMLAudioElement>>({});
+
+  const playSound = useCallback((soundFile: string, priority: 'high' | 'low' = 'low') => {
     if (!alertsEnabled) return;
 
-    let audio: HTMLAudioElement | null = null;
-    if (type === 'crossing') audio = crossingAudioRef.current;
-    if (type === 'receive') audio = receiveAudioRef.current;
-    if (type === 'send') audio = sendAudioRef.current;
+    // Mapping for fallbacks if local files are missing or for initial setup
+    const soundFallbacks: Record<string, string> = {
+      'chat_pop.wav': 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3',
+      'soft_ping.wav': 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+      'badge_unlock.wav': 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3',
+      'streak_fire.wav': 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3',
+      'coin_reward.wav': 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3',
+    };
 
-    if (audio) {
-      audio.currentTime = 0;
-      audio.play().catch(e => {
-        console.log(`[Notifications] Audio play failed (${type}):`, e);
-        if (e.name === 'NotAllowedError') {
-          toast.error('Enable sound in settings', { id: 'audio-blocked' });
-        }
-      });
+    // Smart Rules: Max 3 non-critical sounds per hour
+    const now = Date.now();
+    if (now - soundHourStart.current > 3600000) {
+      soundHourStart.current = now;
+      soundCounts.current = {};
     }
+
+    if (priority === 'low') {
+      const totalSounds = Object.values(soundCounts.current).reduce((a, b) => a + b, 0);
+      if (totalSounds >= 3) {
+        console.log('[Sounds] Anti-spam: skipping non-critical sound');
+        return;
+      }
+    }
+
+    // Cooldown: 2 seconds per sound type to avoid overlap
+    if (soundCooldowns.current[soundFile] && now - soundCooldowns.current[soundFile] < 2000) {
+      return;
+    }
+
+    let audio = audioCache.current[soundFile];
+    if (!audio) {
+      // Use local file if exists, otherwise fallback to external URL
+      let url = soundFile.startsWith('http') ? soundFile : `/sounds/${soundFile}`;
+      
+      // If it's one of our known files, we can use the fallback URL to be safe
+      if (soundFallbacks[soundFile]) {
+        url = soundFallbacks[soundFile];
+      }
+
+      audio = new Audio(url);
+      audioCache.current[soundFile] = audio;
+    }
+
+    audio.currentTime = 0;
+    audio.play().catch(e => {
+      console.warn(`[Sounds] Play failed for ${soundFile}:`, e);
+      // If it failed and we haven't tried the fallback yet, try it now
+      if (!soundFile.startsWith('http') && soundFallbacks[soundFile] && audioCache.current[soundFile]?.src !== soundFallbacks[soundFile]) {
+        const fallbackAudio = new Audio(soundFallbacks[soundFile]);
+        audioCache.current[soundFile] = fallbackAudio;
+        fallbackAudio.play().catch(iErr => console.error('[Sounds] Fallback also failed:', iErr));
+      }
+    });
+
+    soundCooldowns.current[soundFile] = now;
+    soundCounts.current[soundFile] = (soundCounts.current[soundFile] || 0) + 1;
   }, [alertsEnabled]);
 
   const toggleAudio = useCallback(() => {
@@ -230,7 +277,15 @@ export const useNotifications = () => {
 
             if (isMe) return;
 
-            playSound('receive');
+            // Skip sound and toast if user is already looking at this chat
+            if (activeChatUserId.current === data.sender_id) {
+              console.log('[Notifications] Skipping alert - chat is active');
+              return;
+            }
+
+            // Play the sound from backend or fallback to chat_pop.wav
+            playSound(data.sound || 'chat_pop.wav', 'high');
+            
             toast(`New message received! 💬`, {
               duration: 3000,
               style: {
@@ -266,7 +321,7 @@ export const useNotifications = () => {
                 border: '1px solid #FBCFE8'
               }
             });
-            playSound('crossing');
+            playSound(data.sound || 'soft_ping.wav', 'low');
             showSystemNotification('Locolive Crossing', {
               body: notif.message,
               tag: 'crossing'
@@ -297,7 +352,7 @@ export const useNotifications = () => {
                 border: '1px solid #E5E7EB'
               }
             });
-            playSound('receive');
+            playSound(data.sound || 'chat_pop.wav', 'high');
             showSystemNotification('New Connection Request', {
               body: 'Someone wants to connect with you!',
               tag: 'connection-request'
@@ -308,12 +363,18 @@ export const useNotifications = () => {
           if (data.type === 'connection_accepted') {
             fetchPendingRequestsCount();
             toast.success(`You are now connected! 🤝`);
+            playSound(data.sound || 'badge_unlock.wav', 'high');
             showSystemNotification('Connection Accepted', {
               body: 'Your connection request was accepted!',
               tag: 'connection-accepted'
             });
             window.dispatchEvent(new CustomEvent('connection_accepted', { detail: data.payload }));
             return;
+          }
+
+          // Generic handler for other types with sounds (Gamification, etc.)
+          if (data.sound) {
+            playSound(data.sound, data.priority === 'high' ? 'high' : 'low');
           }
         } catch (err) {
           console.error('[WS] Failed to parse message:', err);
@@ -362,7 +423,7 @@ export const useNotifications = () => {
     notificationPermission,
     toggleAudio,
     requestPermission,
-    playSendSound: () => playSound('send'),
+    playSendSound: () => playSound('chat_pop.wav', 'high'),
     refreshUnread: () => {
       fetchUnreadCount();
       fetchUnreadMessagesCount();
