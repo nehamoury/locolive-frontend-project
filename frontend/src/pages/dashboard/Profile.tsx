@@ -8,7 +8,8 @@ import {
     Grid,
     Plus,
     CheckCircle2,
-    Flame
+    Flame,
+    Lock
 } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -34,6 +35,7 @@ interface ProfileData {
     crossings_count: number;
     last_active_at?: string;
     interests: string[];
+    is_private: boolean;
 }
 
 interface ProfileProps {
@@ -220,6 +222,7 @@ export const Profile: FC<ProfileProps> = () => {
                         <div className="flex flex-col md:flex-row items-center gap-4 mb-5">
                             <h2 className="text-[28px] md:text-[28px] font-bold tracking-tight text-normal  flex items-center gap-2 leading-none">
                                 {profile?.username}
+                                {profile?.is_private && <Lock className="w-5 h-5 text-text-muted" />}
                                 <CheckCircle2 className="w-6 h-6 text-primary fill-primary/10" strokeWidth={2.5} />
                             </h2>
                             <div className="flex items-center gap-2">
@@ -353,7 +356,17 @@ export const Profile: FC<ProfileProps> = () => {
 
                 {/* ── Content Area ── */}
                 <div className="flex-1 p-4 md:p-2">
-                    {currentTabItems.length === 0 ? (
+                    {!isOwnProfile && profile?.is_private && followStatus !== 'accepted' ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="w-24 h-24 bg-purple-50 rounded-full flex items-center justify-center mb-6 shadow-sm border border-purple-100">
+                                <Lock className="w-10 h-10 text-purple-500" />
+                            </div>
+                            <h3 className="text-2xl font-black text-text-base mb-2">This account is private</h3>
+                            <p className="text-[14px] text-text-muted font-bold max-w-[280px]">
+                                Follow this account to see their photos and videos.
+                            </p>
+                        </div>
+                    ) : currentTabItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-20 h-20 bg-bg-base rounded-full flex items-center justify-center mb-5 shadow-sm">
                                 {activeTab === 'posts' ? <Camera className="w-8 h-8 text-text-muted/50" /> :

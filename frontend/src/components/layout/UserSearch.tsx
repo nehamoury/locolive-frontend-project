@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type FC } from 'react';
 import { 
   Search, User, Loader2, X, CheckCircle2, 
   Clock, Hash, Video, MapPin, Users,
-  ChevronRight, Sparkles
+  ChevronRight, Sparkles, Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,7 @@ interface SearchResult {
   full_name: string;
   avatar_url: string | null;
   is_verified: boolean;
+  is_private: boolean;
 }
 
 interface UserSearchProps {
@@ -130,6 +131,9 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
                 <span className="text-[14px] font-bold text-text-base group-hover:text-primary transition-colors truncate">
                   {user.username}
                 </span>
+                {user.is_private && (
+                  <Lock className="w-3 h-3 text-text-muted/60" />
+                )}
                 {user.is_verified && (
                   <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 fill-blue-500/10" strokeWidth={2.5} />
                 )}
