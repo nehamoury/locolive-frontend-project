@@ -4,13 +4,15 @@ import {
   ChevronLeft, ChevronRight, Video, MessageSquare,
   Download, Bell, Bookmark, Settings,
   Menu, Activity, Sun, AlertCircle, RefreshCw,
-  Flame
+  Flame, Moon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePWA } from '../../hooks/usePWA';
+import { useTheme } from '../../context/ThemeContext';
 import UserSearch from './UserSearch';
 import { gamificationService, type StreakData } from '../../services/gamificationService';
+import { toast } from 'react-hot-toast';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -72,6 +74,7 @@ const Sidebar: FC<SidebarProps> = ({
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { theme, toggleTheme } = useTheme();
   const { isInstallable, installApp } = usePWA();
 
   const activeTab = pathname.split('/').pop() || 'home';
@@ -100,12 +103,12 @@ const Sidebar: FC<SidebarProps> = ({
 
   const moreMenuItems = [
     { icon: <Settings className="w-4.5 h-4.5" />, label: 'Settings', onClick: () => navigate('/dashboard/settings') },
-    { icon: <Activity className="w-4.5 h-4.5" />, label: 'Your activity', onClick: () => { } },
-    { icon: <Bookmark className="w-4.5 h-4.5" />, label: 'Saved', onClick: () => navigate('/dashboard/saved') },
-    { icon: <Sun className="w-4.5 h-4.5" />, label: 'Switch appearance', onClick: () => { } },
-    { icon: <AlertCircle className="w-4.5 h-4.5" />, label: 'Report a problem', onClick: () => { } },
+    { icon: <Activity className="w-4.5 h-4.5" />, label: 'Your activity', onClick: () => { toast.success('Activity tracking coming soon!'); } },
+    { icon: <Bookmark className="w-4.5 h-4.5" />, label: 'Saved', onClick: () => navigate(`/dashboard/profile/${user?.id}?tab=saved`) },
+    { icon: theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />, label: theme === 'dark' ? 'Light mode' : 'Dark mode', onClick: toggleTheme },
+    { icon: <AlertCircle className="w-4.5 h-4.5" />, label: 'Report a problem', onClick: () => { toast.success('Thank you for reporting! We will look into it.'); } },
     { divider: true },
-    { icon: <RefreshCw className="w-4.5 h-4.5" />, label: 'Switch accounts', onClick: () => { } },
+    { icon: <RefreshCw className="w-4.5 h-4.5" />, label: 'Switch accounts', onClick: () => { toast.error('You only have one account active.'); } },
     { icon: <LogOut className="w-4.5 h-4.5" />, label: 'Log out', onClick: logout, color: 'text-red-500' },
   ];
 

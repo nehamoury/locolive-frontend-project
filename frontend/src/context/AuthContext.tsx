@@ -4,7 +4,8 @@ interface User {
   id: string;
   username: string;
   full_name: string;
-  phone: string;
+  email?: string;
+  phone?: string;
   bio?: string;
   avatar_url?: string;
   connections_count?: number;

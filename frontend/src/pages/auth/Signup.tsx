@@ -53,6 +53,20 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
   const [error, setError] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Username Check States
+  const [usernameStatus, setUsernameStatus] = useState<'idle'|'checking'|'available'|'taken'|'invalid'|'error'>('idle');
+  const [usernameMsg, setUsernameMsg] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  
+  // Email Check States
+  const [emailStatus, setEmailStatus] = useState<'idle'|'checking'|'available'|'taken'|'invalid'|'error'>('idle');
+  const [emailMsg, setEmailMsg] = useState('');
+
+  // Phone Check States
+  const [phoneStatus, setPhoneStatus] = useState<'idle'|'checking'|'available'|'taken'|'invalid'|'error'>('idle');
+  const [phoneMsg, setPhoneMsg] = useState('');
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { login } = useAuth();
 
@@ -77,8 +91,108 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
     reader.readAsDataURL(file);
   };
 
+  React.useEffect(() => {
+    if (!form.username) {
+      setUsernameStatus('idle');
+      setUsernameMsg('');
+      setSuggestions([]);
+      return;
+    }
+    if (form.username.length < 3) {
+      setUsernameStatus('invalid');
+      setUsernameMsg('Min 3 chars required');
+      setSuggestions([]);
+      return;
+    }
+
+    setUsernameStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(`/users/check-username?username=${encodeURIComponent(form.username)}`);
+        if (res.data.available) {
+          setUsernameStatus('available');
+          setUsernameMsg('Username is available');
+          setSuggestions([]);
+        } else {
+          setUsernameStatus('taken');
+          setUsernameMsg('Username is taken');
+          if (res.data.suggestions) setSuggestions(res.data.suggestions);
+        }
+      } catch (err: any) {
+        setUsernameStatus('error');
+        setUsernameMsg(err.response?.data?.error || 'Error checking username');
+        setSuggestions([]);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.username]);
+
+  React.useEffect(() => {
+    if (!form.email) {
+      setEmailStatus('idle');
+      setEmailMsg('');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setEmailStatus('invalid');
+      setEmailMsg('Invalid email format');
+      return;
+    }
+
+    setEmailStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(`/users/check-email?email=${encodeURIComponent(form.email)}`);
+        if (res.data.available) {
+          setEmailStatus('available');
+          setEmailMsg('Email is available');
+        } else {
+          setEmailStatus('taken');
+          setEmailMsg(res.data.message || 'Email is already registered');
+        }
+      } catch (err: any) {
+        setEmailStatus('error');
+        setEmailMsg(err.response?.data?.error || 'Error checking email');
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.email]);
+
+  React.useEffect(() => {
+    if (!form.phone) {
+      setPhoneStatus('idle');
+      setPhoneMsg('');
+      return;
+    }
+    if (form.phone.length !== 10) {
+      setPhoneStatus('invalid');
+      setPhoneMsg('Phone must be 10 digits');
+      return;
+    }
+
+    setPhoneStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(`/users/check-phone?phone=${encodeURIComponent(form.phone)}`);
+        if (res.data.available) {
+          setPhoneStatus('available');
+          setPhoneMsg('Phone number is available');
+        } else {
+          setPhoneStatus('taken');
+          setPhoneMsg(res.data.message || 'Phone number is already registered');
+        }
+      } catch (err: any) {
+        setPhoneStatus('error');
+        setPhoneMsg(err.response?.data?.error || 'Error checking phone');
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.phone]);
+
   const handleStep1 = (e: React.FormEvent) => {
     e.preventDefault();
+    if (emailStatus !== 'available') { setError('Please provide a valid and available email.'); return; }
     if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     setError('');
     setStep(2);
@@ -87,6 +201,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
   const handleStep2 = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.username.trim() || !form.full_name.trim()) { setError('Please fill in all fields.'); return; }
+    if (usernameStatus !== 'available') { setError('Please choose a valid and available username.'); return; }
+    if (form.phone && phoneStatus !== 'available') { setError('Please provide a valid and available phone number.'); return; }
     setError('');
     setStep(3);
   };
@@ -236,9 +352,22 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                     value={form.email}
                     onChange={(e) => set('email', e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                    className={`w-full h-12 glass-input border rounded-xl pl-11 pr-10 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none transition-all shadow-sm ${
+                      (emailStatus === 'invalid' || emailStatus === 'taken' || emailStatus === 'error') ? 'border-red-500/50 focus:border-red-500' :
+                      emailStatus === 'available' ? 'border-green-500/50 focus:border-green-500' :
+                      'border-border-base focus:border-primary/50'
+                    }`}
                   />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
+                    {emailStatus === 'checking' && <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
+                    {emailStatus === 'available' && <Check className="w-4 h-4 text-green-500" />}
+                  </div>
                 </div>
+                {emailMsg && (
+                  <p className={`text-[10px] font-bold px-1 ${emailStatus === 'available' ? 'text-green-500' : 'text-red-500'}`}>
+                    {emailMsg}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -311,10 +440,36 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                     value={form.username}
                     onChange={(e) => set('username', e.target.value)}
                     placeholder="yourhandle"
-                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                    className={`w-full h-12 glass-input border rounded-xl pl-11 pr-10 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none transition-all shadow-sm ${
+                      (usernameStatus === 'invalid' || usernameStatus === 'taken' || usernameStatus === 'error') ? 'border-red-500/50 focus:border-red-500' :
+                      usernameStatus === 'available' ? 'border-green-500/50 focus:border-green-500' :
+                      'border-border-base focus:border-primary/50'
+                    }`}
                   />
-
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
+                    {usernameStatus === 'checking' && <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
+                    {usernameStatus === 'available' && <Check className="w-4 h-4 text-green-500" />}
+                  </div>
                 </div>
+                {usernameMsg && (
+                  <p className={`text-[10px] font-bold px-1 ${usernameStatus === 'available' ? 'text-green-500' : 'text-red-500'}`}>
+                    {usernameMsg}
+                  </p>
+                )}
+                {suggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {suggestions.map((sug) => (
+                      <button
+                        key={sug}
+                        type="button"
+                        onClick={() => set('username', sug)}
+                        className="px-2 py-1 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors cursor-pointer"
+                      >
+                        @{sug}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -347,10 +502,22 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                     onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="10-digit mobile number"
                     maxLength={10}
-                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                    className={`w-full h-12 glass-input border rounded-xl pl-11 pr-10 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none transition-all shadow-sm ${
+                      (phoneStatus === 'invalid' || phoneStatus === 'taken' || phoneStatus === 'error') ? 'border-red-500/50 focus:border-red-500' :
+                      phoneStatus === 'available' ? 'border-green-500/50 focus:border-green-500' :
+                      'border-border-base focus:border-primary/50'
+                    }`}
                   />
-
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
+                    {phoneStatus === 'checking' && <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
+                    {phoneStatus === 'available' && <Check className="w-4 h-4 text-green-500" />}
+                  </div>
                 </div>
+                {phoneMsg && (
+                  <p className={`text-[10px] font-bold px-1 ${phoneStatus === 'available' ? 'text-green-500' : 'text-red-500'}`}>
+                    {phoneMsg}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">

@@ -10,13 +10,13 @@ import {
     CheckCircle2,
     Flame
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { cn } from '../../utils/helpers';
 
-import EditProfileModal from '../../components/profile/EditProfileModal';
+
 import StoryViewer from '../../components/story/StoryViewer';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import { isUserOnline } from '../../utils/presence';
@@ -51,12 +51,20 @@ export const Profile: FC<ProfileProps> = () => {
     const [highlights, setHighlights] = useState<any[]>([]);
     const [savedReels, setSavedReels] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>('posts');
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [searchParams] = useSearchParams();
+    const initialTab = searchParams.get('tab') as 'posts' | 'reels' | 'saved' | 'tagged' || 'posts';
+    const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>(initialTab);
     const [viewingStories, setViewingStories] = useState<any[]>([]);
     const [streakData, setStreakData] = useState<StreakData | null>(null);
     const [badges, setBadges] = useState<Badge[]>([]);
     const [followStatus, setFollowStatus] = useState<'none' | 'pending' | 'accepted'>('none');
+
+    useEffect(() => {
+        const tab = searchParams.get('tab') as any;
+        if (tab && ['posts', 'reels', 'saved', 'tagged'].includes(tab)) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
 
     const userId = urlUserId || user?.id;
     const isOwnProfile = userId === user?.id;
@@ -187,7 +195,7 @@ export const Profile: FC<ProfileProps> = () => {
                     <div className="relative shrink-0">
                         <div
                             className="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] shadow-lg cursor-pointer hover:scale-[1.02] transition-all"
-                            onClick={() => isOwnProfile && setIsEditModalOpen(true)}
+                            onClick={() => isOwnProfile && navigate('/dashboard/settings?section=account_info')}
                         >
                             <div className="w-full h-full rounded-full border-[4px] border-white overflow-hidden bg-bg-base relative">
                                 <img
@@ -216,7 +224,7 @@ export const Profile: FC<ProfileProps> = () => {
                             </h2>
                             <div className="flex items-center gap-2">
                                 <button
-                                    onClick={isOwnProfile ? () => setIsEditModalOpen(true) : handleFollow}
+                                    onClick={isOwnProfile ? () => navigate('/dashboard/settings?section=account_info') : handleFollow}
                                     className="px-5 py-2 bg-bg-base border border-border-base rounded-xl text-[12px] font-black uppercase tracking-wider hover:bg-bg-sidebar transition-all cursor-pointer"
                                 >
                                     {isOwnProfile ? 'Edit Profile' : (
@@ -389,22 +397,7 @@ export const Profile: FC<ProfileProps> = () => {
                 </div>
             </div>
 
-            {profile && (
-                <EditProfileModal
-                    isOpen={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
-                    initialData={{
-                        full_name: profile.full_name,
-                        username: profile.username,
-                        bio: profile.bio || '',
-                        avatar_url: profile.avatar_url
-                    }}
-                    onUpdate={() => {
-                        fetchProfileData();
-                        setIsEditModalOpen(false);
-                    }}
-                />
-            )}
+
 
             {viewingStories.length > 0 && (
                 <div className="fixed inset-0 z-50 bg-black">
