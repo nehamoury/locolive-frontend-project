@@ -5,7 +5,7 @@ import { ShieldAlert, Home, User, MessageSquare, Plus, Bell, Search, Video, More
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
-import { Toaster } from 'react-hot-toast';
+
 import { useNotifications } from '../../hooks/useNotifications';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
@@ -295,7 +295,6 @@ const Dashboard = () => {
         />
       </div>
 
-      <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Desktop/Tablet Structure */}
       <div className="hidden md:flex flex-1 flex-col overflow-hidden h-full gap-3 lg:gap-4 relative">
