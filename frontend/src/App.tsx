@@ -18,6 +18,7 @@ const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'))
 
 // Main app (large — only loaded after login)
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
+const NotFound = lazy(() => import('./pages/NotFound'))
 
 // Admin panel (heavy — only loaded for admins)
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
@@ -36,10 +37,27 @@ const Comments = lazy(() => import('./pages/admin/Comments'))
 // ─── Page Loading Fallback ────────────────────────────────────────────────────
 function PageLoader() {
   return (
-    <div className="min-h-screen bg-bg-base flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-text-muted text-sm animate-pulse">Loading...</p>
+    <div className="min-h-screen bg-bg-base flex items-center justify-center relative overflow-hidden">
+      {/* Soft background glows */}
+      <div className="absolute w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] animate-pulse" />
+      
+      <div className="flex flex-col items-center gap-6 relative z-10">
+        {/* Animated logo/dots */}
+        <div className="relative flex items-center justify-center w-16 h-16">
+          <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-4 h-4 bg-accent rounded-full animate-ping"></div>
+        </div>
+        
+        {/* Text */}
+        <div className="flex items-center gap-1">
+          <span className="text-primary font-bold tracking-widest text-sm uppercase">Locolive</span>
+          <span className="flex gap-1 ml-1">
+            <span className="w-1 h-1 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+            <span className="w-1 h-1 bg-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+            <span className="w-1 h-1 bg-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+          </span>
+        </div>
       </div>
     </div>
   )
@@ -133,10 +151,10 @@ function AppContent() {
             <Route path="comments" element={<Comments />} />
           </Route>
 
-          {/* Catch-all Redirect */}
+          {/* Catch-all 404 Route */}
           <Route 
             path="*" 
-            element={<Navigate to={user ? "/dashboard/home" : "/login"} replace />} 
+            element={<NotFound />} 
           />
         </Routes>
       </Suspense>

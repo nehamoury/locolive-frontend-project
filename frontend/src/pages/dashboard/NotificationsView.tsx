@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 interface Notification {
   id: string;
   type: string;
+  title?: string;
   message: string;
   content?: string;
   actor_username?: string;
@@ -35,6 +36,7 @@ const getTypeConfig = (type: string): { emoji: string; color: string; bg: string
   switch (type) {
     case 'like':
     case 'post_like':
+    case 'reel_liked':
       return { emoji: '👍', color: 'text-blue-500', bg: 'bg-blue-500/10', icon: <ThumbsUp className="w-4 h-4 text-blue-500" /> };
     case 'story_reaction':
     case 'reaction':
@@ -45,11 +47,13 @@ const getTypeConfig = (type: string): { emoji: string; color: string; bg: string
     case 'connection_accepted':
       return { emoji: '🤝', color: 'text-green-500', bg: 'bg-green-500/10', icon: <UserPlus className="w-4 h-4 text-green-500" /> };
     case 'crossing':
+    case 'crossing_detected':
     case 'nearby':
       return { emoji: '📍', color: 'text-accent', bg: 'bg-accent/10', icon: <MapPin className="w-4 h-4 text-accent" /> };
     case 'story_view':
       return { emoji: '👁️', color: 'text-indigo-500', bg: 'bg-indigo-500/10', icon: <Eye className="w-4 h-4 text-indigo-500" /> };
     case 'comment':
+    case 'reel_commented':
       return { emoji: '💬', color: 'text-orange-500', bg: 'bg-orange-500/10', icon: <MessageCircle className="w-4 h-4 text-orange-500" /> };
     default:
       return { emoji: '🔔', color: 'text-text-muted', bg: 'bg-border-base', icon: <Bell className="w-4 h-4 text-text-muted" /> };
@@ -116,6 +120,11 @@ const NotifCard = ({
 
       {/* Content */}
       <div className="flex-1 min-w-0 pr-6">
+        {notif.title && (
+          <h4 className="text-[13px] font-black text-text-base uppercase tracking-tight mb-0.5 leading-none italic">
+            {notif.title}
+          </h4>
+        )}
         <p className="text-sm text-text-muted leading-snug">
           {parseMessage(notif)}
         </p>
