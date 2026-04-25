@@ -151,6 +151,12 @@ function AppContent() {
             <Route path="comments" element={<Comments />} />
           </Route>
 
+          {/* Root Redirect */}
+          <Route 
+            path="/" 
+            element={<Navigate to={user ? "/dashboard/home" : "/login"} replace />} 
+          />
+
           {/* Catch-all 404 Route */}
           <Route 
             path="*" 
