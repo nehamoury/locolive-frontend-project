@@ -206,7 +206,11 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
               <video
                 ref={videoRef}
                 src={getMediaUrl(post.media_url)}
-                className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover sm:rounded-[24px]"
+                className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover sm:rounded-[24px] transition-transform duration-500"
+                style={post.crop_settings ? {
+                  transform: `scale(${post.crop_settings.zoom}) translate(${post.crop_settings.position.x/10}px, ${post.crop_settings.position.y/10}px)`,
+                  aspectRatio: post.crop_settings.ratio === 'original' ? 'auto' : post.crop_settings.ratio
+                } : {}}
                 muted={isMuted}
                 loop
                 autoPlay
@@ -225,7 +229,11 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             <img
               src={getMediaUrl(post.media_url, FALLBACKS.POST)}
               alt=""
-              className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover sm:rounded-[24px]"
+              className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover sm:rounded-[24px] transition-transform duration-500"
+              style={post.crop_settings ? {
+                transform: `scale(${post.crop_settings.zoom}) translate(${post.crop_settings.position.x/10}px, ${post.crop_settings.position.y/10}px)`,
+                aspectRatio: post.crop_settings.ratio === 'original' ? 'auto' : post.crop_settings.ratio
+              } : {}}
             />
           )}
         </div>

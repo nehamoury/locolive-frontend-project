@@ -19,6 +19,11 @@ interface Story {
   likes_count?: number;
   views_count?: number;
   liked?: boolean;
+  crop_settings?: {
+    ratio: string;
+    zoom: number;
+    position: { x: number; y: number };
+  };
 }
 
 interface StoryViewerProps {
@@ -232,7 +237,10 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
               <video
                 ref={videoRef}
                 src={`${BACKEND}${story.media_url}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-500"
+                style={story.crop_settings ? {
+                  transform: `scale(${story.crop_settings.zoom}) translate(${story.crop_settings.position.x/10}px, ${story.crop_settings.position.y/10}px)`,
+                } : {}}
                 autoPlay
                 loop
                 muted={muted}
@@ -242,7 +250,10 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
               <img
                 src={`${BACKEND}${story.media_url}`}
                 alt="Story"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-500"
+                style={story.crop_settings ? {
+                  transform: `scale(${story.crop_settings.zoom}) translate(${story.crop_settings.position.x/10}px, ${story.crop_settings.position.y/10}px)`,
+                } : {}}
               />
             )}
             {/* Dark gradient overlay for bottom text */}

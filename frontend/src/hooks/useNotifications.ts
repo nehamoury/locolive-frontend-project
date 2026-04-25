@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api, { WS_BASE_URL } from '../services/api';
 import toast from 'react-hot-toast';
 import { useSound } from '../context/SoundContext';
+import { requestNotificationPermission as requestFCMPermission } from '../services/firebase';
 
 const WS_RECONNECT_BASE_MS = 3000;
 const WS_RECONNECT_MAX_MS = 30000;
@@ -43,10 +44,13 @@ export const useNotifications = () => {
 
   const requestPermission = useCallback(async () => {
     if (typeof Notification === 'undefined') return;
-    const permission = await Notification.requestPermission();
-    setNotificationPermission(permission);
-    if (permission === 'granted') {
-      toast.success('Notifications enabled! 🔔');
+    
+    // Use the FCM-enabled permission request
+    const token = await requestFCMPermission();
+    
+    setNotificationPermission(Notification.permission);
+    if (Notification.permission === 'granted') {
+      toast.success(token ? 'Notifications enabled! 🔔' : 'Notifications enabled (browser only)');
     }
   }, []);
 
@@ -221,9 +225,13 @@ export const useNotifications = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchUnreadCount();
     fetchUnreadMessagesCount();
     fetchPendingRequestsCount();
+
+    // Automatically request/refresh FCM token if permission was previously granted
+    if (Notification.permission === 'granted') {
+      requestFCMPermission();
+    }
   }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount]);
 
   // Periodic polling fallback

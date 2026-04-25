@@ -1,6 +1,8 @@
-import { type FC } from 'react';
-import { MapPin, TrendingUp, Users, Footprints, Star, Sparkles, Zap, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, type FC } from 'react';
+import { MapPin, TrendingUp, Users, Footprints, Star, Sparkles, Zap, ChevronRight, UserPlus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '../../services/api';
+import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 interface RightSidebarProps {
   crossingsToday?: number;
@@ -14,6 +16,30 @@ const RightSidebar: FC<RightSidebarProps> = ({
   nearbyCount = 0,
   storiesCount = 0
 }) => {
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchSuggestions();
+  }, []);
+
+  const fetchSuggestions = async () => {
+    try {
+      const res = await api.get('/connections/suggested');
+      // Limit to 3 for sidebar
+      setSuggestions((res.data || []).slice(0, 3));
+    } catch (err) {
+      console.error('Failed to fetch suggestions:', err);
+    }
+  };
+
+  const handleConnect = async (userId: string) => {
+    try {
+      await api.post('/connections/request', { target_user_id: userId });
+      setSuggestions(prev => prev.map(u => u.id === userId ? { ...u, requested: true } : u));
+    } catch (err) {
+      console.error('Failed to send request:', err);
+    }
+  };
 
   return (
     <aside className="h-full flex flex-col overflow-y-auto no-scrollbar pt-6 pb-8 px-6 gap-6">
@@ -39,6 +65,49 @@ const RightSidebar: FC<RightSidebarProps> = ({
           </button>
         </div>
       </motion.div>
+
+      {/* ── Suggested for you ── */}
+      {suggestions.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[14px] font-black text-slate-800">Suggested for you</h3>
+            <button className="text-[11px] font-bold text-primary hover:underline">View all</button>
+          </div>
+          <div className="flex flex-col gap-3">
+            <AnimatePresence>
+              {suggestions.map((u) => (
+                <motion.div
+                  key={u.id}
+                  layout
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-100">
+                      <img src={getMediaUrl(u.avatar_url, FALLBACKS.AVATAR(u.username))} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[13px] font-black text-slate-800 leading-none">@{u.username}</span>
+                      <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tight">{u.distance_km?.toFixed(1) || '0.5'}km away</span>
+                    </div>
+                  </div>
+                  {u.requested ? (
+                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sent</span>
+                  ) : (
+                    <button
+                      onClick={() => handleConnect(u.id)}
+                      className="p-2 text-primary hover:bg-primary/5 rounded-xl transition-all active:scale-90"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                    </button>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
 
       {/* ── Stats Grid ── */}
       <div className="grid grid-cols-2 gap-3">

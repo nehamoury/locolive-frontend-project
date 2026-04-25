@@ -9,13 +9,19 @@ import {
     Plus,
     CheckCircle2,
     Flame,
-    Lock
+    Lock,
+    Share2,
+    Heart,
+    MessageCircle
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { cn } from '../../utils/helpers';
+import PostCard from '../../components/post/PostCard';
+import { X as CloseIcon } from 'lucide-react';
 
 
 import StoryViewer from '../../components/story/StoryViewer';
@@ -60,16 +66,18 @@ export const Profile: FC<ProfileProps> = () => {
     const [streakData, setStreakData] = useState<StreakData | null>(null);
     const [badges, setBadges] = useState<Badge[]>([]);
     const [followStatus, setFollowStatus] = useState<'none' | 'pending' | 'accepted'>('none');
-
-    useEffect(() => {
-        const tab = searchParams.get('tab') as any;
-        if (tab && ['posts', 'reels', 'saved', 'tagged'].includes(tab)) {
-            setActiveTab(tab);
-        }
-    }, [searchParams]);
+    const [selectedPost, setSelectedPost] = useState<any>(null);
 
     const userId = urlUserId || user?.id;
     const isOwnProfile = userId === user?.id;
+
+    useEffect(() => {
+        const handleRefresh = () => {
+            fetchProfileData();
+        };
+        window.addEventListener('postCreated', handleRefresh);
+        return () => window.removeEventListener('postCreated', handleRefresh);
+    }, [userId]);
 
     // Mock Highlights
     const mockHighlights = [
@@ -236,15 +244,32 @@ export const Profile: FC<ProfileProps> = () => {
                                                 'Follow'
                                     )}
                                 </button>
-                                <button className="px-5 py-2 bg-[#ff006e]/5 text-primary border border-primary/20 rounded-xl text-[12px] font-black uppercase tracking-wider hover:bg-primary/10 transition-all cursor-pointer">
-                                    Share Profile
-                                </button>
-                                <button
-                                    onClick={() => navigate('/dashboard/settings')}
-                                    className="p-2 bg-bg-base border border-border-base rounded-xl hover:bg-bg-sidebar transition-all cursor-pointer"
+                                <button 
+                                    onClick={() => {
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: `${profile?.full_name || profile?.username} on Locolive`,
+                                                text: `Check out ${profile?.username}'s profile on Locolive!`,
+                                                url: window.location.href,
+                                            }).catch(() => {});
+                                        } else {
+                                            navigator.clipboard.writeText(window.location.href);
+                                            toast.success('Link copied to clipboard!');
+                                        }
+                                    }}
+                                    className="p-2 bg-[#ff006e]/5 text-primary border border-primary/20 rounded-xl hover:bg-primary/10 transition-all cursor-pointer"
+                                    title="Share Profile"
                                 >
-                                    <Settings className="w-5 h-5 text-text-muted" />
+                                    <Share2 className="w-5 h-5" />
                                 </button>
+                                {isOwnProfile && (
+                                    <button
+                                        onClick={() => navigate('/dashboard/settings')}
+                                        className="p-2 bg-bg-base border border-border-base rounded-xl hover:bg-bg-sidebar transition-all cursor-pointer"
+                                    >
+                                        <Settings className="w-5 h-5 text-text-muted" />
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -254,12 +279,18 @@ export const Profile: FC<ProfileProps> = () => {
                                 <span className="text-xl font-black  leading-none">{profile?.post_count || 0}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">posts</span>
                             </div>
-                            <div className="flex flex-col items-center md:items-start">
-                                <span className="text-xl font-black  leading-none">{profile?.connection_count || 0}</span>
+                            <div 
+                                onClick={() => navigate('/dashboard/connections?tab=followers')}
+                                className="flex flex-col items-center md:items-start cursor-pointer group/stat hover:opacity-80 transition-opacity"
+                            >
+                                <span className="text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{profile?.connection_count || 0}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">followers</span>
                             </div>
-                            <div className="flex flex-col items-center md:items-start">
-                                <span className="text-xl font-black  leading-none">{Math.floor((profile?.connection_count || 0) * 0.8)}</span>
+                            <div 
+                                onClick={() => navigate('/dashboard/connections?tab=following')}
+                                className="flex flex-col items-center md:items-start cursor-pointer group/stat hover:opacity-80 transition-opacity"
+                            >
+                                <span className="text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{Math.floor((profile?.connection_count || 0) * 0.8)}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">following</span>
                             </div>
                             {isOwnProfile && streakData && (
@@ -392,12 +423,27 @@ export const Profile: FC<ProfileProps> = () => {
                     ) : (
                         <div className="grid grid-cols-3 gap-1 md:gap-2">
                             {currentTabItems.map((item) => (
-                                <div key={item.id} className="aspect-square bg-bg-base rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all">
+                                <div 
+                                    key={item.id} 
+                                    onClick={() => setSelectedPost(item)}
+                                    className="aspect-square bg-bg-base rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all"
+                                >
                                     <img
                                         src={getMediaUrl(item.media_url || item.video_url, FALLBACKS.POST)}
                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                         alt=""
                                     />
+                                    {/* Hover Overlay */}
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6 text-white">
+                                        <div className="flex items-center gap-2">
+                                            <Heart className="w-5 h-5 fill-white" />
+                                            <span className="text-sm font-black">{item.likes_count || 0}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <MessageCircle className="w-5 h-5 fill-white" />
+                                            <span className="text-sm font-black">{item.comments_count || 0}</span>
+                                        </div>
+                                    </div>
                                     {activeTab === 'reels' && (
                                         <div className="absolute top-2 right-2">
                                             <Video className="w-4 h-4 text-white drop-shadow-md" />
@@ -422,6 +468,42 @@ export const Profile: FC<ProfileProps> = () => {
                     />
                 </div>
             )}
+
+            {/* Post Detail Modal */}
+            <AnimatePresence>
+                {selectedPost && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8"
+                        onClick={() => setSelectedPost(null)}
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="w-full max-w-2xl relative"
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        >
+                            <button 
+                                onClick={() => setSelectedPost(null)}
+                                className="absolute -top-12 right-0 md:-right-12 p-2 text-white/60 hover:text-white transition-colors"
+                            >
+                                <CloseIcon className="w-8 h-8" />
+                            </button>
+                            <PostCard 
+                                post={selectedPost} 
+                                currentUserID={user?.id}
+                                onDelete={() => {
+                                    setSelectedPost(null);
+                                    fetchProfileData();
+                                }}
+                            />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

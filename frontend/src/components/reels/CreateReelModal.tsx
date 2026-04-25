@@ -106,6 +106,7 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
       setFile(null);
       setCaption('');
       onSuccess();
+      window.dispatchEvent(new CustomEvent('postCreated'));
       onClose();
     } catch (err: any) {
       console.error('Reel upload error:', err);
@@ -276,6 +277,7 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
           <UniversalCropModal
             isOpen={isEditing}
             file={file} 
+            initialRatio="9/16"
             onConfirm={(_settings) => {
                 // We'll store settings if needed, but for now Confirm closes it
                 setIsEditing(false);

@@ -13,6 +13,7 @@ interface UniversalCropModalProps {
     isOpen: boolean;
     onConfirm: (settings: CropSettings) => void;
     onCancel: () => void;
+    initialRatio?: string;
 }
 
 const RATIOS = [
@@ -23,8 +24,8 @@ const RATIOS = [
     { label: '9:16', value: '9/16', icon: RectangleVertical },
 ];
 
-const UniversalCropModal: React.FC<UniversalCropModalProps> = ({ file, isOpen, onConfirm, onCancel }) => {
-    const [ratio, setRatio] = useState('original');
+const UniversalCropModal: React.FC<UniversalCropModalProps> = ({ file, isOpen, onConfirm, onCancel, initialRatio = 'original' }) => {
+    const [ratio, setRatio] = useState(initialRatio);
     const [zoom, setZoom] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [showGrid, setShowGrid] = useState(false);
@@ -32,10 +33,13 @@ const UniversalCropModal: React.FC<UniversalCropModalProps> = ({ file, isOpen, o
     const isImage = file.type.startsWith('image/');
 
     useEffect(() => {
+        if (isOpen) {
+            setRatio(initialRatio);
+        }
         const url = URL.createObjectURL(file);
         setMediaUrl(url);
         return () => URL.revokeObjectURL(url);
-    }, [file]);
+    }, [file, isOpen, initialRatio]);
 
     const handleConfirm = () => {
         onConfirm({ ratio, zoom, position });

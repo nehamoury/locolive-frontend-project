@@ -1,7 +1,6 @@
 import { useState, useEffect, type FC } from 'react';
 import { 
-  UserPlus, 
-  X, 
+  X,
   Users, 
   MessageSquare, 
   MapPin, 
@@ -13,50 +12,37 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
-import { isUserOnline } from '../../utils/presence';
 
 interface ConnectionsViewProps {
-  initialTab?: 'suggestions' | 'requests' | 'my-connections';
+  initialTab?: 'requests' | 'followers' | 'following';
   onUserSelect?: (userId: string) => void;
   onMessage?: (userId: string) => void;
 }
 
-const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions', onUserSelect, onMessage }) => {
-  const [activeTab, setActiveTab] = useState<'suggestions' | 'requests' | 'my-connections'>(initialTab);
+const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'requests', onUserSelect, onMessage }) => {
+  const [activeTab, setActiveTab] = useState<'requests' | 'followers' | 'following'>(initialTab);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
+  const [sentRequests, setSentRequests] = useState<any[]>([]);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // Persistence for dismissed suggestions
-  const getDismissed = () => {
-    try {
-      return JSON.parse(localStorage.getItem('dismissed_suggestions') || '[]');
-    } catch {
-      return [];
-    }
+  // Helper to load counts
+  const loadAllCounts = async () => {
+    api.get('/connections/requests').then(res => setRequests(res.data || []));
+    api.get('/connections/followers').then(res => setFollowersCount(res.data?.length || 0));
+    api.get('/connections/following').then(res => setFollowingCount(res.data?.length || 0));
+    api.get('/connections/sent').then(res => setSentRequests(res.data || []));
   };
 
   const fetchSuggestions = async () => {
     try {
       const res = await api.get('/connections/suggested');
-      const dismissed = getDismissed();
-      const filtered = (res.data || []).filter((u: any) => !dismissed.includes(u.id));
-      setSuggestions(filtered);
+      setSuggestions(res.data || []);
     } catch (err) {
       console.error('Failed to fetch suggestions:', err);
-    }
-  };
-
-  const handleDismissSuggestion = (userId: string) => {
-    // 1. Update local state
-    setSuggestions(prev => prev.filter(s => s.id !== userId));
-    
-    // 2. Persist in localStorage
-    const current = getDismissed();
-    if (!current.includes(userId)) {
-      current.push(userId);
-      localStorage.setItem('dismissed_suggestions', JSON.stringify(current));
     }
   };
 
@@ -71,29 +57,35 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
 
   const fetchConnections = async () => {
     try {
-      const res = await api.get('/connections');
+      const endpoint = activeTab === 'followers' ? '/connections/followers' : '/connections/following';
+      const res = await api.get(endpoint);
       setConnections(res.data || []);
     } catch (err) {
       console.error('Failed to fetch connections:', err);
     }
   };
 
-  const loadAllCounts = async () => {
-    api.get('/connections/requests').then(res => setRequests(res.data || []));
-    api.get('/connections/suggested').then(res => {
-      const dismissed = getDismissed();
-      const filtered = (res.data || []).filter((u: any) => !dismissed.includes(u.id));
-      setSuggestions(filtered);
-    });
-    api.get('/connections').then(res => setConnections(res.data || []));
+  const fetchSentRequests = async () => {
+    try {
+      const res = await api.get('/connections/sent');
+      setSentRequests(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch sent requests:', err);
+    }
   };
+
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      if (activeTab === 'suggestions') await fetchSuggestions();
-      else if (activeTab === 'requests') await fetchRequests();
-      else if (activeTab === 'my-connections') await fetchConnections();
+      if (activeTab === 'requests') {
+        await fetchRequests();
+      } else if (activeTab === 'following') {
+        await Promise.all([fetchConnections(), fetchSentRequests()]);
+      } else {
+        await fetchConnections();
+      }
+      await fetchSuggestions();
       setLoading(false);
       loadAllCounts();
     };
@@ -104,7 +96,8 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
     try {
       if (action === 'send') {
         await api.post('/connections/request', { target_user_id: userId });
-        setSuggestions(prev => prev.map(s => s.id === userId ? { ...s, requested: true } : s));
+        setSuggestions(prev => prev.map(u => u.id === userId ? { ...u, requested: true } : u));
+        loadAllCounts();
       } else if (action === 'accept') {
         await api.post('/connections/update', { requester_id: userId, status: 'accepted' });
         setRequests(prev => prev.filter(r => (r.user_id || r.requester_id) !== userId));
@@ -113,10 +106,17 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
         await api.post('/connections/update', { requester_id: userId, status: 'blocked' });
         setRequests(prev => prev.filter(r => (r.user_id || r.requester_id) !== userId));
       } else if (action === 'remove') {
-        if (!window.confirm('Remove this person from your following?')) return;
+        const isPending = sentRequests.some(r => (r.target_id === userId || r.id === userId));
+        if (isPending) {
+           if (!window.confirm('Cancel this follow request?')) return;
+        } else {
+           if (!window.confirm('Remove this person from your following?')) return;
+        }
         await api.delete(`/connections/${userId}`);
         setConnections(prev => prev.filter(c => c.id !== userId));
+        setSentRequests(prev => prev.filter(r => (r.target_id !== userId && r.id !== userId)));
       }
+      loadAllCounts();
     } catch (err) {
       console.error(`Failed to ${action} request:`, err);
     }
@@ -144,12 +144,6 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
         {/* ── Tabs ───────────────────────────────────────────────────────────── */}
         <div className="flex items-center gap-4 mb-10 overflow-x-auto no-scrollbar p-1">
             <ModernTab 
-                label="Suggestions" 
-                icon={<UserPlus className="w-4 h-4" />}
-                active={activeTab === 'suggestions'} 
-                onClick={() => setActiveTab('suggestions')} 
-            />
-            <ModernTab 
                 label="Requests" 
                 icon={<MessageSquare className="w-4 h-4" />}
                 count={requests.length}
@@ -157,10 +151,18 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
                 onClick={() => setActiveTab('requests')} 
             />
             <ModernTab 
+                label="Followers" 
+                icon={<Users className="w-4 h-4" />}
+                count={followersCount}
+                active={activeTab === 'followers'} 
+                onClick={() => setActiveTab('followers')} 
+            />
+            <ModernTab 
                 label="Following" 
                 icon={<Users className="w-4 h-4" />}
-                active={activeTab === 'my-connections'} 
-                onClick={() => setActiveTab('my-connections')} 
+                count={followingCount}
+                active={activeTab === 'following'} 
+                onClick={() => setActiveTab('following')} 
             />
         </div>
 
@@ -187,65 +189,14 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
                         transition={{ duration: 0.3, ease: "easeOut" }}
                         className="w-full flex flex-col gap-12"
                     >
-                        {/* SUGGESTIONS VIEW */}
-                        {(activeTab === 'suggestions') && (
-                            <>
-                                {/* People You May Know Grid */}
-                                <section>
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h2 className="text-lg font-black text-gray-800 tracking-tight">People you may know</h2>
-                                        <button className="text-[12px] font-bold text-primary hover:underline cursor-pointer">View all</button>
-                                    </div>
-                                    {suggestions.length === 0 ? (
-                                        <EmptyState activeTab="suggestions" />
-                                    ) : (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                            {suggestions.map((user, idx) => (
-                                                <SuggestionCard 
-                                                    key={`suggestion-${user.id || user.username || idx}`} 
-                                                    user={user} 
-                                                    onConnect={() => handleRequest(user.id, 'send')}
-                                                    onDismiss={() => handleDismissSuggestion(user.id)}
-                                                    onView={() => onUserSelect?.(user.id)}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                </section>
-
-                                {/* Small Friend Requests Preview if any */}
-                                {requests.length > 0 && (
-                                    <section>
-                                        <div className="flex items-center justify-between mb-6">
-                                            <h2 className="text-lg font-black text-gray-800 tracking-tight">Friend Requests</h2>
-                                            <button 
-                                                onClick={() => setActiveTab('requests')}
-                                                className="text-[12px] font-bold text-primary hover:underline cursor-pointer"
-                                            >
-                                                View all
-                                            </button>
-                                        </div>
-                                        <div className="flex flex-col gap-4">
-                                            {requests.slice(0, 3).map((req, idx) => (
-                                                <RequestCard 
-                                                    key={`request-preview-${req.user_id || req.requester_id || idx}`} 
-                                                    user={req} 
-                                                    onAccept={() => handleRequest(req.user_id || req.requester_id, 'accept')}
-                                                    onReject={() => handleRequest(req.user_id || req.requester_id, 'decline')}
-                                                    onView={() => onUserSelect?.(req.user_id || req.requester_id)}
-                                                />
-                                            ))}
-                                        </div>
-                                    </section>
-                                )}
-                            </>
-                        )}
 
                         {/* REQUESTS VIEW */}
                         {activeTab === 'requests' && (
                             <section>
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-lg font-black text-gray-800 tracking-tight">Incoming Requests</h2>
+                                    <h2 className="text-lg font-black text-gray-800 tracking-tight">
+                                        Incoming Requests ({requests.length})
+                                    </h2>
                                 </div>
                                 {requests.length === 0 ? (
                                     <EmptyState activeTab="requests" />
@@ -265,16 +216,21 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
                             </section>
                         )}
 
-                        {/* FOLLOWING VIEW */}
-                        {activeTab === 'my-connections' && (
+                        {/* FOLLOWERS / FOLLOWING VIEW */}
+                        {(activeTab === 'followers' || activeTab === 'following') && (
                             <section>
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-lg font-black text-gray-800 tracking-tight">Your Connections</h2>
+                                    <h2 className="text-lg font-black text-gray-800 tracking-tight">
+                                        {activeTab === 'followers' ? `Your Followers (${followersCount})` : `People you follow (${followingCount + sentRequests.length})`}
+                                    </h2>
                                 </div>
-                                {connections.length === 0 ? (
-                                    <EmptyState activeTab="my-connections" />
+                                {activeTab === 'following' && connections.length === 0 && sentRequests.length === 0 ? (
+                                    <EmptyState activeTab="following" />
+                                ) : activeTab === 'followers' && connections.length === 0 ? (
+                                    <EmptyState activeTab="followers" />
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {/* Show Connected Users */}
                                         {connections.map((user, idx) => (
                                             <FollowingCard 
                                                 key={`connection-${user.id || user.username || idx}`} 
@@ -284,6 +240,19 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
                                                 onView={() => onUserSelect?.(user.id)}
                                             />
                                         ))}
+                                        {/* Show Pending Sent Requests in Following Tab */}
+                                        {activeTab === 'following' && sentRequests.map((req, idx) => (
+                                            <FollowingCard 
+                                                key={`sent-${req.target_id || idx}`} 
+                                                user={{
+                                                  ...req,
+                                                  id: req.target_id,
+                                                  status: 'pending'
+                                                }} 
+                                                onRemove={() => handleRequest(req.target_id, 'remove')}
+                                                onView={() => onUserSelect?.(req.target_id)}
+                                            />
+                                        ))}
                                     </div>
                                 )}
                             </section>
@@ -291,6 +260,34 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
                     </motion.div>
                 </AnimatePresence>
             )}
+
+            {/* ── Suggested Section (Always visible at bottom) ── */}
+            <section className="mt-10 pt-10 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center">
+                            <Sparkles className="w-5 h-5 text-purple-500" />
+                        </div>
+                        <h2 className="text-xl font-black text-gray-800 tracking-tight">People you may know</h2>
+                    </div>
+                </div>
+                {suggestions.length === 0 ? (
+                    <div className="bg-white p-10 rounded-[32px] border border-dashed border-gray-200 text-center">
+                        <p className="text-gray-400 font-medium">Looking for more people nearby...</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {suggestions.map((user, idx) => (
+                            <SuggestionCard 
+                                key={`suggestion-${user.id || idx}`} 
+                                user={user} 
+                                onConnect={() => handleRequest(user.id, 'send')}
+                                onView={() => onUserSelect?.(user.id)}
+                            />
+                        ))}
+                    </div>
+                )}
+            </section>
         </div>
       </div>
     </div>
@@ -310,28 +307,26 @@ const ModernTab = ({ label, icon, count, active, onClick }: any) => (
   >
     <span className={active ? 'text-white' : 'text-inherit'}>{icon}</span>
     <span className="text-[13px] font-black tracking-tight">{label}</span>
-    {count !== undefined && count > 0 && (
-      <span className={`px-2 py-0.5 rounded-lg text-[11px] font-black ${active ? 'bg-white/20 text-white' : 'bg-pink-100 text-[#FF3B8E]'}`}>
+    {(count !== undefined) && (
+      <span className={`min-w-[20px] h-5 flex items-center justify-center px-1.5 rounded-lg text-[10px] font-black ${active ? 'bg-white text-primary' : 'bg-primary/10 text-primary'}`}>
         {count}
       </span>
     )}
   </button>
 );
 
-const SuggestionCard = ({ user, onConnect, onDismiss, onView }: any) => {
-  const interests = (user.bio || '').match(/#[a-z0-9_]+/gi) || ['#Photography', '#Travel'];
-  const distance = user.distance_km ? `${user.distance_km.toFixed(1)} km away` : '2.5 km away';
-  const mutualFriends = user.mutual_friends || [];
+
+const SuggestionCard = ({ user, onConnect, onView }: any) => {
+  const distance = user.distance_km ? `${user.distance_km.toFixed(1)} km away` : '0.5 km away';
 
   return (
     <motion.div 
-      whileHover={{ y: -8, transition: { duration: 0.2 } }}
-      className="bg-white p-5 rounded-[28px] border border-gray-100/80 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] flex flex-col group relative overflow-hidden"
+      whileHover={{ y: -5 }}
+      className="bg-white p-5 rounded-[28px] border border-gray-100 shadow-sm flex flex-col group relative"
     >
       <div className="flex flex-col items-center text-center">
-        {/* Avatar */}
-        <div className="relative mb-4 group/avatar" onClick={onView}>
-          <div className="w-24 h-24 rounded-full p-[3px] bg-gradient-to-tr from-primary via-accent to-primary animate-gradient-slow cursor-pointer">
+        <div className="relative mb-4 cursor-pointer" onClick={onView}>
+          <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-primary to-accent">
             <div className="w-full h-full rounded-full bg-white p-1">
                 <img 
                     src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} 
@@ -340,73 +335,25 @@ const SuggestionCard = ({ user, onConnect, onDismiss, onView }: any) => {
                 />
             </div>
           </div>
-          {isUserOnline(user.last_active_at) && (
-            <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 border-4 border-white rounded-full shadow-sm" />
-          )}
         </div>
 
-        {/* Info */}
-        <div className="flex flex-col items-center gap-1 mb-4">
-            <h3 className="font-black text-gray-800 text-[16px] leading-tight truncate px-2">{user.full_name || user.username}</h3>
-            <p className="text-[12px] font-bold text-gray-400">@{user.username}</p>
-            <div className="flex items-center gap-1.5 mt-1.5 text-gray-400">
-                <MapPin className="w-3 h-3" />
-                <span className="text-[11px] font-bold">{distance}</span>
-            </div>
+        <div className="flex flex-col items-center gap-1 mb-4 cursor-pointer" onClick={onView}>
+            <h3 className="font-black text-gray-800 text-[15px] leading-tight truncate px-2">@{user.username}</h3>
+            <span className="text-[11px] font-bold text-gray-400">{distance}</span>
         </div>
 
-        {/* Mutual Friends Section */}
-        {user.mutual_count > 0 && (
-            <div className="flex flex-col items-center gap-1.5 mb-5 px-3">
-                <div className="flex -space-x-2">
-                    {mutualFriends.slice(0, 3).map((friend: any, i: number) => (
-                        <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gray-100 overflow-hidden" title={friend.username}>
-                             <img src={getMediaUrl(friend.avatar_url, FALLBACKS.AVATAR(friend.username))} alt="" className="w-full h-full object-cover" />
-                        </div>
-                    ))}
-                    {user.mutual_count > 3 && (
-                        <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[9px] font-black text-gray-400">
-                            +{user.mutual_count - 3}
-                        </div>
-                    )}
-                </div>
-                <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest">{user.mutual_count} mutual connections</p>
-            </div>
-        )}
-
-        {/* Interests (shown only if no mutual friends to keep layout clean) */}
-        {user.mutual_count === 0 && (
-            <div className="flex flex-wrap justify-center gap-1.5 mb-6 min-h-[22px]">
-                {interests.slice(0, 2).map((tag: string, i: number) => (
-                    <span key={i} className="text-[10px] font-black uppercase text-[#A855F7] bg-purple-50 px-2.5 py-1 rounded-full tracking-wide">
-                        {tag}
-                    </span>
-                ))}
-            </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 w-full mt-auto">
+        <div className="w-full mt-auto">
             {user.requested ? (
-                 <button disabled className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest border border-gray-100 flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Requested
+                 <button disabled className="w-full bg-gray-50 text-gray-400 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest border border-gray-100">
+                    Sent
                  </button>
             ) : (
-                <>
-                    <button 
-                        onClick={onConnect}
-                        className="flex-1 bg-gradient-to-r from-[#FF3B8E] to-[#A855F7] text-white py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 active:scale-95 transition-all cursor-pointer"
-                    >
-                        Connect
-                    </button>
-                    <button 
-                        onClick={onDismiss}
-                        className="w-10 h-11 flex items-center justify-center rounded-2xl bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer border border-transparent hover:border-red-100"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </>
+                <button 
+                    onClick={onConnect}
+                    className="w-full bg-gradient-to-r from-primary to-accent text-white py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-md hover:shadow-lg transition-all cursor-pointer"
+                >
+                    Connect
+                </button>
             )}
         </div>
       </div>
@@ -426,7 +373,7 @@ const RequestCard = ({ user, onAccept, onReject, onView }: any) => {
             <div className="w-16 h-16 rounded-full overflow-hidden cursor-pointer shrink-0" onClick={onView}>
             <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
             </div>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 cursor-pointer" onClick={onView}>
                 <div className="flex items-center gap-2">
                     <h4 className="font-black text-gray-800 text-base">@{user.username}</h4>
                     <span className="px-2 py-0.5 bg-pink-50 text-primary text-[9px] font-black rounded-lg uppercase tracking-wider">NEW</span>
@@ -472,38 +419,49 @@ const RequestCard = ({ user, onAccept, onReject, onView }: any) => {
     );
 };
 
-const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => (
-  <motion.div 
-    whileHover={{ y: -4 }}
-    className="bg-white p-5 rounded-[32px] border border-gray-100/80 shadow-sm flex items-center justify-between group"
-  >
-    <div className="flex items-center gap-4 overflow-hidden pr-4">
-      <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 cursor-pointer p-[2px] bg-gradient-to-br from-primary/20 to-accent/20" onClick={onView}>
-        <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full rounded-xl object-cover" alt="" />
+const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => {
+  const isPending = user.status === 'pending';
+
+  return (
+    <motion.div 
+      whileHover={{ y: -4 }}
+      className={`bg-white p-5 rounded-[32px] border border-gray-100/80 shadow-sm flex items-center justify-between group ${isPending ? 'opacity-80' : ''}`}
+    >
+      <div className="flex items-center gap-4 overflow-hidden pr-4 flex-1">
+        <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 cursor-pointer p-[2px] bg-gradient-to-br from-primary/20 to-accent/20" onClick={onView}>
+          <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full rounded-xl object-cover" alt="" />
+        </div>
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={onView}>
+          <div className="flex items-center gap-2">
+            <h4 className="font-black text-gray-800 text-[15px] leading-tight truncate">@{user.username}</h4>
+            {isPending && (
+              <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[9px] font-black rounded-lg uppercase tracking-wider">Pending</span>
+            )}
+          </div>
+          <p className="text-[12px] text-gray-400 font-medium mt-0.5 truncate">{user.full_name || 'Locolive User'}</p>
+        </div>
       </div>
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={onView}>
-        <h4 className="font-black text-gray-800 text-[15px] leading-tight truncate">@{user.username}</h4>
-        <p className="text-[12px] text-gray-400 font-medium mt-0.5 truncate">{user.full_name || 'Locolive User'}</p>
+      <div className="flex items-center gap-2 shrink-0">
+        {!isPending && (
+          <button 
+            onClick={onMessage}
+            className="w-11 h-11 flex items-center justify-center bg-pink-50 text-primary hover:bg-primary hover:text-white rounded-2xl transition-all cursor-pointer"
+            title="Message"
+          >
+            <MessageSquare className="w-5 h-5" />
+          </button>
+        )}
+        <button 
+          onClick={onRemove}
+          className="w-11 h-11 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all cursor-pointer border border-gray-100"
+          title={isPending ? "Cancel Request" : "Remove Connection"}
+        >
+          {isPending ? <X className="w-5 h-5" /> : <UserMinus className="w-5 h-5" />}
+        </button>
       </div>
-    </div>
-    <div className="flex items-center gap-2 shrink-0">
-      <button 
-        onClick={onMessage}
-        className="w-11 h-11 flex items-center justify-center bg-pink-50 text-primary hover:bg-primary hover:text-white rounded-2xl transition-all cursor-pointer"
-        title="Message"
-      >
-        <MessageSquare className="w-5 h-5" />
-      </button>
-      <button 
-        onClick={onRemove}
-        className="w-11 h-11 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all cursor-pointer border border-gray-100"
-        title="Remove Connection"
-      >
-        <UserMinus className="w-5 h-5" />
-      </button>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 const EmptyState = ({ activeTab }: any) => {
   const configs: any = {
@@ -517,9 +475,14 @@ const EmptyState = ({ activeTab }: any) => {
       desc: "All requests handled. You're completely caught up for now!",
       icon: <CheckCircle2 className="w-8 h-8 text-green-500" />
     },
-    'my-connections': {
+    'followers': {
+      title: "No Followers",
+      desc: "You don't have any followers yet. Share your profile to build your audience!",
+      icon: <Users className="w-8 h-8 text-gray-400" />
+    },
+    'following': {
       title: "Lone Wolf?",
-      desc: "You haven't followed any real accounts yet. Let's start building your community!",
+      desc: "You haven't followed anyone yet. Start exploring to find interesting people!",
       icon: <Users className="w-8 h-8 text-gray-400" />
     }
   };

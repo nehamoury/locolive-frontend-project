@@ -1,9 +1,11 @@
 import { useState, useEffect, type FC } from 'react';
-import { ArrowLeft, MessageSquare, MapPin, Grid3x3, Heart, Share2, MoreHorizontal, Zap, Footprints, Users, Film } from 'lucide-react';
+import { ArrowLeft, MessageSquare, MessageCircle, MapPin, Grid3x3, Heart, Share2, MoreHorizontal, Zap, Footprints, Users, Film, Shield, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import StoryViewer from '../../components/story/StoryViewer';
 import Highlights from '../../components/profile/Highlights';
+import PostCard from '../../components/post/PostCard';
+import { X as CloseIcon } from 'lucide-react';
 import { BACKEND } from '../../utils/config';
 
 interface UserProfileViewProps {
@@ -21,33 +23,44 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'stories' | 'posts' | 'reels' | 'history'>('stories');
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<any>(null);
+
+  const fetchFullProfile = async () => {
+    try {
+      setLoading(true);
+      const [userRes, storiesRes] = await Promise.all([
+        api.get(`/users/${userId}`),
+        api.get(`/stories/user/${userId}`).catch(() => ({ data: [] }))
+      ]);
+      setProfile(userRes.data);
+      setStories(storiesRes.data || []);
+      if (userRes.data.distance_km) {
+        setDistanceKm(userRes.data.distance_km);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchFullProfile = async () => {
-      try {
-        setLoading(true);
-        const [userRes, storiesRes] = await Promise.all([
-          api.get(`/users/${userId}`),
-          api.get(`/stories/user/${userId}`).catch(() => ({ data: [] }))
-        ]);
-        setProfile(userRes.data);
-        setStories(storiesRes.data || []);
-        if (userRes.data.distance_km) {
-          setDistanceKm(userRes.data.distance_km);
-        }
-      } catch (err) {
-        console.error('Failed to fetch user profile:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchFullProfile();
+    window.addEventListener('postCreated', fetchFullProfile);
+    return () => window.removeEventListener('postCreated', fetchFullProfile);
   }, [userId]);
 
-  // Lazy load reels when tab is activated
+  // Lazy load reels/posts when tab is activated
   useEffect(() => {
     if (activeTab === 'reels' && reels.length === 0 && !reelsLoading) {
       fetchReels();
+    }
+    if (activeTab === 'posts' && posts.length === 0 && !postsLoading) {
+      fetchPosts();
     }
   }, [activeTab]);
 
@@ -60,6 +73,34 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
       console.error('Failed to fetch user reels:', err);
     } finally {
       setReelsLoading(false);
+    }
+  };
+
+  const fetchPosts = async () => {
+    try {
+      setPostsLoading(true);
+      const res = await api.get(`/users/${userId}/posts`);
+      setPosts(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch user posts:', err);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  const handleBlockUser = async () => {
+    if (!window.confirm(`Are you sure you want to block ${profile.full_name || profile.username}?`)) return;
+    
+    setBlocking(true);
+    try {
+      await api.post('/users/block', { user_id: userId });
+      import('react-hot-toast').then(({ toast }) => toast.success('User blocked successfully'));
+      onBack();
+    } catch (err) {
+      import('react-hot-toast').then(({ toast }) => toast.error('Failed to block user'));
+    } finally {
+      setBlocking(false);
+      setShowMoreMenu(false);
     }
   };
 
@@ -114,9 +155,45 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
             <button className="p-2.5 bg-bg-card/40 backdrop-blur-md rounded-2xl border border-border-base hover:bg-bg-card/60 transition-all cursor-pointer" aria-label="Share">
               <Share2 className="w-5 h-5 text-text-base" />
             </button>
-            <button className="p-2.5 bg-bg-card/40 backdrop-blur-md rounded-2xl border border-border-base hover:bg-bg-card/60 transition-all cursor-pointer" aria-label="More">
-              <MoreHorizontal className="w-5 h-5 text-text-base" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="p-2.5 bg-bg-card/40 backdrop-blur-md rounded-2xl border border-border-base hover:bg-bg-card/60 transition-all cursor-pointer" 
+                aria-label="More"
+              >
+                <MoreHorizontal className="w-5 h-5 text-text-base" />
+              </button>
+              
+              <AnimatePresence>
+                {showMoreMenu && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowMoreMenu(false)}
+                    />
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                      className="absolute right-0 mt-2 w-48 bg-bg-card border border-border-base rounded-2xl shadow-2xl z-50 overflow-hidden"
+                    >
+                      <button 
+                        onClick={handleBlockUser}
+                        disabled={blocking}
+                        className="w-full text-left px-4 py-3 text-sm font-black text-red-500 hover:bg-red-50 transition-colors flex items-center gap-3"
+                      >
+                        <Shield className="w-4 h-4" />
+                        {blocking ? 'Blocking...' : 'Block User'}
+                      </button>
+                      <button className="w-full text-left px-4 py-3 text-sm font-black text-text-base hover:bg-bg-sidebar transition-colors flex items-center gap-3">
+                        <MoreHorizontal className="w-4 h-4" />
+                        Report
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
@@ -141,16 +218,25 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
             </div>
 
             <div className="flex gap-2 pb-2">
-              <button 
-                onClick={handleFollow}
-                disabled={profile.requested}
-                className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 cursor-pointer
-                  ${profile.requested 
-                    ? 'bg-bg-sidebar text-text-muted cursor-not-allowed' 
-                    : 'bg-text-base text-bg-base shadow-black/10'}`}
-              >
-                {profile.requested ? 'Requested' : 'Follow'}
-              </button>
+              {profile.connection_status === 'accepted' ? (
+                <button 
+                  disabled
+                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-500 border border-pink-100 cursor-default"
+                >
+                  Following
+                </button>
+              ) : (
+                <button 
+                  onClick={handleFollow}
+                  disabled={profile.connection_status === 'pending' || profile.requested}
+                  className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 cursor-pointer
+                    ${(profile.connection_status === 'pending' || profile.requested)
+                      ? 'bg-bg-sidebar text-text-muted cursor-not-allowed' 
+                      : 'bg-text-base text-bg-base shadow-black/10'}`}
+                >
+                  {profile.connection_status === 'pending' || profile.requested ? 'Requested' : 'Follow'}
+                </button>
+              )}
               <button 
                 onClick={() => onMessage(userId)}
                 className="p-2.5 bg-primary/10 text-primary rounded-2xl border border-primary/20 hover:bg-primary/20 transition-all"
@@ -182,9 +268,15 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
           {/* Stats Grid */}
           <div className="grid grid-cols-3 gap-4 py-6 border-y border-border-base mb-8">
-            <QuickStat label="Moments" value={stories.length} icon={<Zap className="w-3.5 h-3.5" />} />
-            <QuickStat label="Connections" value={profile.connection_count || 0} icon={<Users className="w-3.5 h-3.5" />} />
-            <QuickStat label="Crossed" value={profile.crossings_count || 0} icon={<Footprints className="w-3.5 h-3.5" />} />
+            <div onClick={() => setActiveTab('stories')} className="cursor-pointer">
+              <QuickStat label="Moments" value={stories.length} icon={<Zap className="w-3.5 h-3.5" />} />
+            </div>
+            <div onClick={() => onBack()} className="cursor-pointer">
+              <QuickStat label="Connections" value={profile.connection_count || 0} icon={<Users className="w-3.5 h-3.5" />} />
+            </div>
+            <div onClick={() => setActiveTab('history')} className="cursor-pointer">
+              <QuickStat label="Crossed" value={profile.crossings_count || 0} icon={<Footprints className="w-3.5 h-3.5" />} />
+            </div>
           </div>
 
           {/* Highlights */}
@@ -231,65 +323,107 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               exit={{ opacity: 0, y: -10 }}
               className="min-h-[400px]"
             >
-              {activeTab === 'stories' && (
-                stories.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {stories.map((story, idx) => (
-                      <div
-                        key={story.id}
-                        onClick={() => setViewingStoryIndex(idx)}
-                        className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative cursor-pointer group border border-border-base"
-                      >
-                        <img src={`${BACKEND}${story.media_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
-                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-                           <div className="flex items-center gap-1.5 text-white/90">
-                              <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
-                              <span className="text-[10px] font-black">{story.reactions_count || 0}</span>
-                           </div>
-                        </div>
-                      </div>
-                    ))}
+              {profile.is_private && profile.connection_status === 'none' ? (
+                <div className="flex flex-col items-center justify-center py-32 text-center bg-bg-sidebar/30 rounded-[32px] border border-dashed border-border-base">
+                  <div className="w-16 h-16 bg-bg-card rounded-[20px] flex items-center justify-center mb-6 shadow-sm border border-border-base">
+                    <Lock className="w-8 h-8 text-text-muted/40" />
                   </div>
-                ) : (
-                  <EmptyState label="Archive empty" icon={<Zap className="w-8 h-8" />} />
-                )
-              )}
-
-              {activeTab === 'posts' && <EmptyState label="No posts yet" icon={<Grid3x3 className="w-8 h-8" />} />}
-
-              {activeTab === 'reels' && (
-                reelsLoading ? (
-                  <div className="flex items-center justify-center py-24">
-                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  </div>
-                ) : reels.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-2">
-                    {reels.map((reel) => (
-                      <div
-                        key={reel.id}
-                        className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative group border border-border-base"
-                      >
-                        <video
-                          src={`${BACKEND}${reel.video_url}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          poster={reel.thumbnail}
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-                          <div className="flex items-center gap-1.5 text-white/90 text-[10px] font-black">
-                            <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
-                            <span>{reel.likes_count || 0}</span>
+                  <h3 className="text-lg font-black text-text-base mb-2">This Account is Private</h3>
+                  <p className="text-xs text-text-muted font-bold max-w-[240px]">Follow this account to see their photos, videos and stories.</p>
+                </div>
+              ) : (
+                <>
+                  {activeTab === 'stories' && (
+                    stories.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {stories.map((story, idx) => (
+                          <div
+                            key={story.id}
+                            onClick={() => setViewingStoryIndex(idx)}
+                            className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative cursor-pointer group border border-border-base"
+                          >
+                            <img src={`${BACKEND}${story.media_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+                               <div className="flex items-center gap-1.5 text-white/90">
+                                  <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
+                                  <span className="text-[10px] font-black">{story.reactions_count || 0}</span>
+                               </div>
+                            </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState label="No reels yet" icon={<Film className="w-8 h-8" />} />
-                )
-              )}
+                    ) : (
+                      <EmptyState label="Archive empty" icon={<Zap className="w-8 h-8" />} />
+                    )
+                  )}
 
-              {activeTab === 'history' && <EmptyState label="No common paths" icon={<Footprints className="w-8 h-8" />} />}
+                  {activeTab === 'posts' && (
+                    postsLoading ? (
+                      <div className="flex items-center justify-center py-24">
+                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : posts.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {posts.map((post) => (
+                          <div
+                            key={post.id}
+                            onClick={() => setSelectedPost(post)}
+                            className="aspect-square bg-bg-sidebar rounded-[24px] overflow-hidden relative group border border-border-base cursor-pointer"
+                          >
+                            <img src={`${BACKEND}${post.media_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
+                               <div className="flex items-center gap-1">
+                                  <Heart className="w-4 h-4 fill-white" />
+                                  <span className="text-xs font-black">{post.likes_count || 0}</span>
+                               </div>
+                               <div className="flex items-center gap-1">
+                                  <MessageCircle className="w-4 h-4 fill-white" />
+                                  <span className="text-xs font-black">{post.comments_count || 0}</span>
+                               </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState label="No posts yet" icon={<Grid3x3 className="w-8 h-8" />} />
+                    )
+                  )}
+
+                  {activeTab === 'reels' && (
+                    reelsLoading ? (
+                      <div className="flex items-center justify-center py-24">
+                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : reels.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {reels.map((reel) => (
+                          <div
+                            key={reel.id}
+                            className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative group border border-border-base"
+                          >
+                            <video
+                              src={`${BACKEND}${reel.video_url}`}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              poster={reel.thumbnail}
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+                              <div className="flex items-center gap-1.5 text-white/90 text-[10px] font-black">
+                                <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
+                                <span>{reel.likes_count || 0}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState label="No reels yet" icon={<Film className="w-8 h-8" />} />
+                    )
+                  )}
+
+                  {activeTab === 'history' && <EmptyState label="No common paths" icon={<Footprints className="w-8 h-8" />} />}
+                </>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -304,6 +438,42 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
           currentUserID={""}
         />
       )}
+
+      {/* Post Detail Modal */}
+      <AnimatePresence>
+        {selectedPost && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8"
+            onClick={() => setSelectedPost(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-2xl relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setSelectedPost(null)}
+                className="absolute -top-12 right-0 md:-right-12 p-2 text-white/60 hover:text-white transition-colors"
+              >
+                <CloseIcon className="w-8 h-8" />
+              </button>
+              <PostCard 
+                post={selectedPost} 
+                currentUserID={""}
+                onDelete={() => {
+                  setSelectedPost(null);
+                  fetchFullProfile();
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

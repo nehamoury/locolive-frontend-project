@@ -1,6 +1,6 @@
 import { useState, type FC, useRef, useEffect } from 'react';
 import {
-  Home, Compass, Search, User, Plus, Users, LogOut,
+  Home, Compass, Search, User, Plus, LogOut,
   ChevronLeft, ChevronRight, Video, MessageSquare,
   Download, Bell, Bookmark, Settings,
   Menu, Activity, Sun, AlertCircle, RefreshCw,
@@ -174,7 +174,6 @@ const Sidebar: FC<SidebarProps> = ({
           <NavItem icon={<Video className="w-6 h-6" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} isCollapsed={effectiveCollapsed} />
           <NavItem icon={<MessageSquare className="w-6 h-6" />} label="Messages" active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} isCollapsed={effectiveCollapsed} badge={unreadMessagesCount} />
           <NavItem icon={<Bell className="w-6 h-6" />} label="Notifications" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} isCollapsed={effectiveCollapsed} badge={unreadCount} />
-          <NavItem icon={<Users className="w-6 h-6" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} isCollapsed={effectiveCollapsed} />
           <NavItem icon={<User className="w-6 h-6" />} label="Profile" active={activeTab === 'profile'} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} isCollapsed={effectiveCollapsed} />
         </nav>
 

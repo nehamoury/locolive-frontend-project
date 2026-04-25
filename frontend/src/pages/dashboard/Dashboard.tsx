@@ -91,6 +91,7 @@ const Dashboard = () => {
   useTheme(); // keep theme context mounted
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
 
 
   // Real-time & Location Hooks
@@ -205,7 +206,13 @@ const Dashboard = () => {
         } />
         <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} onStoryClick={handleStoryClick} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
         <Route path="reels" element={<ReelsView />} />
-        <Route path="connections" element={<ConnectionsView />} />
+        <Route path="connections" element={
+          <ConnectionsView 
+            initialTab={(searchParams.get('tab') as any) || 'requests'} 
+            onUserSelect={handleUserSelect}
+            onMessage={(id) => navigate(`/dashboard/messages/${id}`)}
+          />
+        } />
         <Route path="notifications" element={<NotificationsView />} />
         <Route path="settings/*" element={<SettingsView onBack={() => navigate('/dashboard/home')} />} />
         <Route path="search" element={<SearchView />} />
@@ -399,7 +406,13 @@ const Dashboard = () => {
               } />
               <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} onStoryClick={handleStoryClick} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
               <Route path="reels" element={<ReelsView />} />
-              <Route path="connections" element={<ConnectionsView />} />
+              <Route path="connections" element={
+          <ConnectionsView 
+            initialTab={(searchParams.get('tab') as any) || 'requests'} 
+            onUserSelect={handleUserSelect}
+            onMessage={(id) => navigate(`/dashboard/messages/${id}`)}
+          />
+        } />
               <Route path="notifications" element={<NotificationsView />} />
               <Route path="settings/*" element={<SettingsView onBack={() => navigate('/dashboard/home')} />} />
               <Route path="search" element={<SearchView />} />

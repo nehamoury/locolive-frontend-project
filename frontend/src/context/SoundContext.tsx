@@ -11,7 +11,7 @@ const SoundContext = createContext<SoundContextType | undefined>(undefined);
 
 export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isMuted, setIsMuted] = useState<boolean>(true);
-  const [alertsEnabled, setAlertsEnabled] = useState<boolean>(false);
+  const [alertsEnabled, setAlertsEnabled] = useState<boolean>(true);
 
   useEffect(() => {
     const storedMuted = localStorage.getItem('soundMuted');
