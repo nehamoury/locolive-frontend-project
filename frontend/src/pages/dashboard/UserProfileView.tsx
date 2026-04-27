@@ -29,9 +29,12 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
   const [blocking, setBlocking] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
 
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
+
   const fetchFullProfile = async () => {
     try {
       setLoading(true);
+      setErrorStatus(null);
       const [userRes, storiesRes] = await Promise.all([
         api.get(`/users/${userId}`),
         api.get(`/stories/user/${userId}`).catch(() => ({ data: [] }))
@@ -41,8 +44,11 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
       if (userRes.data.distance_km) {
         setDistanceKm(userRes.data.distance_km);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch user profile:', err);
+      if (err.response?.status) {
+        setErrorStatus(err.response.status);
+      }
     } finally {
       setLoading(false);
     }
@@ -121,11 +127,46 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
     );
   }
 
-  if (!profile) {
+  if (!profile || errorStatus === 404) {
     return (
       <div className="p-8 text-center bg-bg-base h-full flex flex-col items-center justify-center transition-colors duration-300">
-        <p className="text-text-muted font-bold uppercase tracking-widest">User not found</p>
-        <button onClick={onBack} className="mt-4 text-primary font-black uppercase tracking-[2px] text-xs cursor-pointer">Return Home</button>
+        <div className="w-20 h-20 bg-bg-sidebar/50 rounded-[32px] flex items-center justify-center mb-6 border border-border-base/50">
+          <Users className="w-8 h-8 text-text-muted/20" />
+        </div>
+        <p className="text-text-muted font-black uppercase tracking-[3px] text-[10px]">User not found</p>
+        <p className="text-text-muted/60 text-[11px] font-bold mt-2 max-w-[200px]">The user you're looking for might have changed their username or is currently unavailable.</p>
+        <button onClick={onBack} className="mt-8 px-8 py-3 bg-primary text-white font-black uppercase tracking-[2px] text-[10px] rounded-2xl shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all cursor-pointer">Return Home</button>
+      </div>
+    );
+  }
+
+  if (errorStatus === 403) {
+    return (
+      <div className="h-full bg-bg-base overflow-y-auto no-scrollbar">
+        {/* Header (Minimal for private users) */}
+        <div className="p-6 flex items-center gap-4">
+           <button onClick={onBack} className="p-2.5 bg-bg-card rounded-2xl border border-border-base hover:bg-bg-sidebar transition-all cursor-pointer">
+             <ArrowLeft className="w-5 h-5 text-text-base" />
+           </button>
+           <h2 className="text-sm font-black uppercase tracking-widest text-text-muted">Private Account</h2>
+        </div>
+
+        <div className="flex flex-col items-center justify-center py-32 px-10 text-center">
+          <div className="w-24 h-24 bg-white rounded-[40px] flex items-center justify-center mb-8 shadow-2xl shadow-black/5 border border-border-base/50">
+            <div className="w-20 h-20 bg-purple-50 rounded-[32px] flex items-center justify-center text-purple-500">
+              <Lock className="w-10 h-10" />
+            </div>
+          </div>
+          <h3 className="text-2xl font-black text-text-base mb-3 italic tracking-tight uppercase">This Account is Private</h3>
+          <p className="text-sm text-text-muted font-bold max-w-[300px] leading-relaxed mb-10">Follow this account to see their photos, videos and moments on Locolive.</p>
+          
+          <button 
+            onClick={handleFollow}
+            className="px-10 py-4 bg-text-base text-bg-base rounded-[24px] font-black uppercase tracking-[2px] text-xs shadow-2xl shadow-black/20 hover:scale-105 transition-all active:scale-95 cursor-pointer"
+          >
+            Send Connection Request
+          </button>
+        </div>
       </div>
     );
   }

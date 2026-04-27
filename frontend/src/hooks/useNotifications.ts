@@ -380,6 +380,17 @@ export const useNotifications = () => {
             return;
           }
 
+          if (data.type === 'force_logout') {
+            console.warn('[WS] Force logout received:', data.payload.reason);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            toast.error(`Session terminated: ${data.payload.reason || 'Security event'}`, { duration: 5000 });
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 2000);
+            return;
+          }
+
           // Generic handler for other types with sounds (Gamification, etc.)
           if (data.sound) {
             playSound(data.sound, data.priority === 'high' ? 'high' : 'low');

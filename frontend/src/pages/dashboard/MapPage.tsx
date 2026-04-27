@@ -156,20 +156,52 @@ interface MapPageProps {
 const NEARBY_POLL_INTERVAL = 30000; // Fallback polling every 30s
 
 const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externalPosition }: MapPageProps) => {
-    const { } = useAuth();
+    const { user, updateUser } = useAuth();
     const [clusters, setClusters] = useState<any[]>([]);
     const [userPosition, setUserPosition] = useState<[number, number] | null>(externalPosition || null);
     const [nearbyUsers, setNearbyUsers] = useState<any[]>([]);
     const [flyTo, setFlyTo] = useState<[number, number] | null>(null);
-    const [isGhostMode, setIsGhostMode] = useState(false);
-    const [isPanicActive, setIsPanicActive] = useState(false);
+    const [connectionIds, setConnectionIds] = useState<Set<string>>(new Set());
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [heatmap, setHeatmap] = useState<any[]>([]);
     const [locationName, setLocationName] = useState('India');
     const [toast, setToast] = useState<{ message: string; type: 'like' | 'superlike' } | null>(null);
     const [activeFilters, setActiveFilters] = useState({ distance: null, isOnline: false, hasStories: false });
-    const [connectionIds, setConnectionIds] = useState<Set<string>>(new Set());
+
+    // Sync local state with AuthContext
+    const isGhostMode = user?.is_ghost_mode || false;
+    const isPanicActive = user?.panic_mode || false;
+
+    const handleGhostToggle = async () => {
+        try {
+            const nextState = !isGhostMode;
+            // Update UI immediately (optimistic)
+            updateUser({ is_ghost_mode: nextState });
+            
+            await api.post('/users/ghost-mode', { enabled: nextState });
+            console.log(`[Map] Ghost Mode ${nextState ? 'Enabled' : 'Disabled'}`);
+        } catch (err) {
+            console.error('[Map] Ghost toggle failed:', err);
+            // Revert on error
+            updateUser({ is_ghost_mode: isGhostMode });
+        }
+    };
+
+    const handlePanicToggle = async () => {
+        try {
+            const nextState = !isPanicActive;
+            // Update UI immediately (optimistic)
+            updateUser({ panic_mode: nextState });
+
+            await api.post('/users/panic', { enabled: nextState });
+            console.log(`[Map] Panic Mode ${nextState ? 'Activated' : 'Deactivated'}`);
+        } catch (err) {
+            console.error('[Map] Panic toggle failed:', err);
+            // Revert on error
+            updateUser({ panic_mode: isPanicActive });
+        }
+    };
     const latestPositionRef = useRef<[number, number] | null>(externalPosition || null);
 
     // Throttling Refs
@@ -515,18 +547,18 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
             <div className="absolute bottom-10 left-10 z-[600] flex flex-col gap-4">
                 <motion.button
                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsPanicActive(!isPanicActive)}
+                    onClick={handlePanicToggle}
                     className={`w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-2xl border border-white/20 transition-all shadow-2xl cursor-pointer ${
-                        isPanicActive ? 'bg-red-500 text-white' : 'bg-bg-base/90 text-red-500 hover:bg-bg-base'
+                        isPanicActive ? 'bg-red-500 text-white border-red-400' : 'bg-bg-base/90 text-red-500 hover:bg-bg-base'
                     }`}
                 >
-                    <ShieldAlert className="w-6 h-6" />
+                    <ShieldAlert className={`w-6 h-6 ${isPanicActive ? 'animate-pulse' : ''}`} />
                 </motion.button>
                 <motion.button
                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsGhostMode(!isGhostMode)}
+                    onClick={handleGhostToggle}
                     className={`w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-2xl border border-white/20 transition-all shadow-2xl cursor-pointer ${
-                        isGhostMode ? 'bg-purple-500 text-white' : 'bg-bg-base/90 text-purple-500 hover:bg-bg-base'
+                        isGhostMode ? 'bg-purple-600 text-white border-purple-400' : 'bg-bg-base/90 text-purple-500 hover:bg-bg-base'
                     }`}
                 >
                     <Ghost className="w-6 h-6" />

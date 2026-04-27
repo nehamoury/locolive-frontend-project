@@ -11,6 +11,7 @@ interface User {
   connections_count?: number;
   is_ghost_mode?: boolean;
   is_private?: boolean;
+  panic_mode?: boolean;
   role?: 'user' | 'admin' | 'moderator';
 }
 
