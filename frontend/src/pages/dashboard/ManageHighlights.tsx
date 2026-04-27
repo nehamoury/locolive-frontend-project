@@ -43,10 +43,14 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
     }, []);
 
     const fetchArchives = async () => {
+        setLoading(true);
         try {
             const { data } = await api.get('/stories/archived');
-            setArchivedStories(data.archives || []);
+            // Support both direct array or wrapped object
+            const archives = Array.isArray(data) ? data : (data?.archives || []);
+            setArchivedStories(archives);
         } catch (error) {
+            console.error('Failed to load archives:', error);
             toast.error('Failed to load archives');
         } finally {
             setLoading(false);
@@ -88,6 +92,7 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
             toast.success('Highlight created successfully!');
             onBack();
         } catch (error) {
+            console.error('Failed to create highlight:', error);
             toast.error('Failed to create highlight');
         } finally {
             setIsCreating(false);
@@ -96,28 +101,31 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-                <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
-                <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Accessing Vault...</p>
+            <div className="flex flex-col items-center justify-center h-full bg-white md:rounded-[32px] gap-6">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-pink-100 border-t-pink-500 rounded-full animate-spin" />
+                    <FolderPlus className="w-6 h-6 text-pink-500 absolute inset-0 m-auto animate-pulse" />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Opening your vault...</p>
             </div>
         );
     }
 
     return (
-        <div className="h-full flex flex-col bg-bg-base/50 dark:bg-bg-base/20 backdrop-blur-sm relative overflow-hidden">
+        <div className="h-full flex flex-col bg-white md:rounded-[32px] relative overflow-hidden shadow-sm border border-gray-100">
             {/* Header */}
-            <div className="px-6 py-8 md:px-10 border-b border-border-base bg-white/40 dark:bg-bg-card/40 backdrop-blur-3xl shrink-0 flex items-center justify-between">
+            <div className="px-6 py-6 md:px-10 border-b border-gray-50 bg-white/80 backdrop-blur-xl shrink-0 flex items-center justify-between z-20">
                 <div className="flex items-center gap-6">
                     <button 
                         onClick={onBack}
-                        className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-slate-600 dark:text-text-base"
+                        className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-all text-slate-600 active:scale-95"
                     >
                         <ChevronLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-text-base tracking-tight">Create Highlight</h1>
-                        <p className="text-xs font-bold text-slate-400 dark:text-text-muted/60 uppercase tracking-widest mt-1">
-                            {step === 'select' ? 'Select Stories' : step === 'details' ? 'Add Details' : 'Choose Source'}
+                        <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight italic">Create Highlight</h1>
+                        <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest mt-0.5">
+                            {step === 'select' ? `Select Stories (${selectedStories.length})` : 'Name your collection'}
                         </p>
                     </div>
                 </div>
@@ -125,11 +133,11 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
                 <AnimatePresence>
                     {selectedStories.length > 0 && step === 'select' && (
                         <motion.button
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
                             onClick={() => setStep('details')}
-                            className="bg-brand-gradient text-white px-8 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-lg shadow-pink-500/20 active:scale-95 transition-all flex items-center gap-2"
+                            className="bg-brand-gradient text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-pink-500/20 active:scale-95 transition-all flex items-center gap-2"
                         >
                             Next <ArrowRight className="w-4 h-4" />
                         </motion.button>
@@ -138,7 +146,7 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 no-scrollbar">
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 no-scrollbar bg-gray-50/30">
                 <AnimatePresence mode="wait">
                     {step === 'select' ? (
                         <motion.div 
@@ -146,64 +154,60 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="max-w-5xl mx-auto space-y-8"
+                            className="max-w-5xl mx-auto"
                         >
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-sm font-black text-slate-500 dark:text-text-muted uppercase tracking-widest">
-                                    Archive ({archivedStories.length})
-                                </h2>
-                                <span className="text-[10px] font-bold text-pink-500 uppercase">
-                                    {selectedStories.length} Selected
-                                </span>
-                            </div>
-
                             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                 {archivedStories.map((story) => (
                                     <div 
                                         key={story.id}
                                         onClick={() => handleToggleSelect(story.id)}
-                                        className="relative aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer group border-2 transition-all duration-300"
+                                        className="relative aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer group border-2 transition-all duration-300 shadow-sm"
                                         style={{ 
                                             borderColor: selectedStories.includes(story.id) ? '#ec4899' : 'transparent' 
                                         }}
                                     >
                                         <img 
-                                            src={getMediaUrl(story.media_url, FALLBACKS.VAULT)}
+                                            src={getMediaUrl(story.media_url, FALLBACKS.POST)}
                                             className={cn(
                                                 "w-full h-full object-cover transition-transform duration-700",
                                                 selectedStories.includes(story.id) ? "scale-105 opacity-80" : "group-hover:scale-110"
                                             )}
                                         />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
                                         
                                         {/* Selection Indicator */}
                                         <div className={cn(
                                             "absolute top-2 right-2 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center transition-all",
-                                            selectedStories.includes(story.id) ? "bg-pink-500 scale-110 shadow-lg" : "bg-black/20"
+                                            selectedStories.includes(story.id) ? "bg-pink-500 scale-110 shadow-lg" : "bg-black/20 backdrop-blur-md"
                                         )}>
                                             {selectedStories.includes(story.id) && <Check className="w-3 h-3 text-white stroke-[4]" />}
                                         </div>
 
-                                        <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-                                            <Calendar className="w-3 h-3 text-white/70" />
-                                            <span className="text-[8px] font-black text-white/70 uppercase">
+                                        <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
+                                            <Calendar className="w-3 h-3 text-white/90" />
+                                            <span className="text-[9px] font-black text-white/90 uppercase tracking-tighter">
                                                 {new Date(story.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                             </span>
                                         </div>
                                     </div>
                                 ))}
                                 {archivedStories.length === 0 && (
-                                    <div className="col-span-full py-24 flex flex-col items-center gap-6 text-center bg-white/30 dark:bg-white/5 rounded-[40px] border-2 border-dashed border-border-base">
-                                        <div className="w-28 h-28 rounded-[50px] bg-brand-gradient flex items-center justify-center shadow-xl shadow-pink-500/20 rotate-3">
-                                            <FolderPlus className="w-12 h-12 text-white" />
+                                    <div className="col-span-full py-20 flex flex-col items-center gap-6 text-center">
+                                        <div className="w-24 h-24 rounded-[40px] bg-white border border-gray-100 flex items-center justify-center shadow-xl rotate-3">
+                                            <FolderPlus className="w-10 h-10 text-pink-500/30" />
                                         </div>
-                                        <div className="space-y-4 max-w-sm px-6">
-                                            <h3 className="text-2xl font-black text-slate-800 dark:text-text-base italic uppercase tracking-tight">Your Vault is Empty</h3>
-                                            <p className="text-[11px] font-bold text-slate-400 dark:text-text-muted/60 uppercase tracking-[0.2em] leading-loose">
-                                                Highlights are created from your <span className="text-pink-500">archived stories</span>. 
-                                                Open one of your active stories and click <span className="px-2 py-1 bg-pink-500/10 rounded-md text-pink-500 font-black">Archive to Vault</span> to begin your collection.
+                                        <div className="space-y-3 max-w-xs px-6">
+                                            <h3 className="text-xl font-black text-slate-800 italic uppercase">Your Vault is Empty</h3>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-loose">
+                                                Stories are automatically saved to your vault after they expire. Check back later!
                                             </p>
                                         </div>
+                                        <button 
+                                            onClick={onBack}
+                                            className="mt-4 px-6 py-3 bg-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:bg-gray-200 transition-all"
+                                        >
+                                            Go Back
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -213,52 +217,53 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
                             key="details"
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="max-w-md mx-auto space-y-12 py-10"
+                            className="max-w-md mx-auto space-y-10 py-6"
                         >
-                            <div className="relative group mx-auto w-40 h-40">
-                                <div className="w-full h-full rounded-[60px] overflow-hidden border-8 border-white dark:border-bg-card shadow-2xl bg-slate-100 dark:bg-white/5">
+                            <div className="relative group mx-auto w-44 h-44">
+                                <div className="w-full h-full rounded-[56px] overflow-hidden border-[6px] border-white shadow-2xl bg-white ring-1 ring-black/5">
                                     {selectedStories.length > 0 ? (
                                         <img 
-                                            src={getMediaUrl(archivedStories.find(s => s.id === selectedStories[0])?.media_url, FALLBACKS.VAULT)}
+                                            src={getMediaUrl(archivedStories.find(s => s.id === selectedStories[0])?.media_url, FALLBACKS.POST)}
                                             className="w-full h-full object-cover"
                                         />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center">
-                                            <FolderPlus className="w-12 h-12 text-slate-300" />
+                                            <FolderPlus className="w-12 h-12 text-slate-100" />
                                         </div>
                                     )}
                                 </div>
-                                <button className="absolute bottom-[-5px] right-[-5px] w-12 h-12 rounded-full bg-white dark:bg-bg-card border-4 border-slate-50 dark:border-bg-base/50 flex items-center justify-center text-pink-500 shadow-xl hover:scale-110 active:scale-95 transition-all">
+                                <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-pink-500 shadow-xl">
                                     <ImageIcon className="w-5 h-5" />
-                                </button>
+                                </div>
                             </div>
 
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 dark:text-text-muted/40 uppercase tracking-[0.2em] ml-2">Highlight Name</label>
+                            <div className="space-y-8">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] ml-2">Highlight Name</label>
                                     <input 
                                         type="text"
+                                        autoFocus
                                         value={newHighlight.title}
                                         onChange={(e) => setNewHighlight(prev => ({ ...prev, title: e.target.value }))}
-                                        placeholder="e.g. Summer Memories 🌴"
-                                        className="w-full px-8 py-5 rounded-[30px] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 focus:ring-4 focus:ring-pink-500/10 focus:border-pink-500/50 outline-none font-black text-slate-800 dark:text-text-base text-lg transition-all"
+                                        placeholder="e.g. Summer Memories"
+                                        className="w-full px-8 py-5 rounded-[24px] bg-white border border-gray-100 focus:ring-4 focus:ring-pink-500/5 focus:border-pink-500/30 outline-none font-black text-slate-800 text-lg transition-all shadow-sm"
                                     />
                                 </div>
 
-                                <div className="flex flex-col gap-4 pt-10">
+                                <div className="flex flex-col gap-3 pt-6">
                                     <button 
                                         onClick={handleCreateHighlight}
                                         disabled={isCreating}
-                                        className="w-full bg-brand-gradient text-white py-6 rounded-[32px] font-black uppercase tracking-widest text-sm shadow-2xl shadow-pink-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                        className="w-full bg-brand-gradient text-white py-5 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-xl shadow-pink-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                                     >
                                         {isCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5 stroke-[4]" />}
                                         Publish Highlight
                                     </button>
                                     <button 
                                         onClick={() => setStep('select')}
-                                        className="w-full py-5 rounded-[28px] bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-text-muted font-black uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all"
+                                        className="w-full py-4 rounded-[20px] text-slate-400 font-black uppercase tracking-widest text-[10px] hover:text-slate-600 transition-all"
                                     >
-                                        Go Back
+                                        Back to selection
                                     </button>
                                 </div>
                             </div>

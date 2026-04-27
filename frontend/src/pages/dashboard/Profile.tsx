@@ -37,6 +37,8 @@ interface ProfileData {
     bio: string;
     is_ghost_mode: boolean;
     post_count: number;
+    followers_count: number;
+    following_count: number;
     connection_count: number;
     crossings_count: number;
     last_active_at?: string;
@@ -76,7 +78,11 @@ export const Profile: FC<ProfileProps> = () => {
             fetchProfileData();
         };
         window.addEventListener('postCreated', handleRefresh);
-        return () => window.removeEventListener('postCreated', handleRefresh);
+        window.addEventListener('connectionsUpdated', handleRefresh);
+        return () => {
+            window.removeEventListener('postCreated', handleRefresh);
+            window.removeEventListener('connectionsUpdated', handleRefresh);
+        };
     }, [userId]);
 
     // Mock Highlights
@@ -183,6 +189,37 @@ export const Profile: FC<ProfileProps> = () => {
         }
     };
 
+    const handleHighlightClick = async (highlight: any) => {
+        try {
+            console.log('Fetching highlight details for:', highlight.id);
+            const { data } = await api.get(`/highlights/${highlight.id}`);
+            console.log('Highlight data received:', data);
+            
+            // Map archived stories to viewer format
+            const stories = (data || []).map((s: any) => ({
+                id: s.id,
+                user_id: s.user_id,
+                media_url: s.media_url,
+                media_type: s.media_type || 'image',
+                username: profile?.username || 'user',
+                avatar_url: profile?.avatar_url,
+                caption: s.caption?.String || s.caption || '',
+                created_at: s.original_created_at || s.created_at,
+                // For highlights, they don't expire
+                expires_at: null
+            }));
+
+            if (stories.length > 0) {
+                setViewingStories(stories);
+            } else {
+                toast.error('This highlight is empty');
+            }
+        } catch (error) {
+            console.error('Failed to load highlight details:', error);
+            toast.error('Failed to load highlight');
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center h-full bg-[#fcf5f8]">
@@ -283,14 +320,14 @@ export const Profile: FC<ProfileProps> = () => {
                                 onClick={() => navigate('/dashboard/connections?tab=followers')}
                                 className="flex flex-col items-center md:items-start cursor-pointer group/stat hover:opacity-80 transition-opacity"
                             >
-                                <span className="text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{profile?.connection_count || 0}</span>
+                                <span className="text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{profile?.followers_count || 0}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">followers</span>
                             </div>
                             <div 
                                 onClick={() => navigate('/dashboard/connections?tab=following')}
                                 className="flex flex-col items-center md:items-start cursor-pointer group/stat hover:opacity-80 transition-opacity"
                             >
-                                <span className="text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{Math.floor((profile?.connection_count || 0) * 0.8)}</span>
+                                <span className="text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{profile?.following_count || 0}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">following</span>
                             </div>
                             {isOwnProfile && streakData && (
@@ -348,8 +385,12 @@ export const Profile: FC<ProfileProps> = () => {
                                 <span className="text-[10px] font-black text-text-muted uppercase tracking-wider">New</span>
                             </div>
                         )}
-                        {(highlights.length > 0 ? highlights : mockHighlights).map((h: any) => (
-                            <div key={h.id} className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group">
+                        {(highlights.length > 0 ? highlights : (isOwnProfile ? [] : mockHighlights)).map((h: any) => (
+                            <div 
+                                key={h.id} 
+                                onClick={() => handleHighlightClick(h)}
+                                className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group"
+                            >
                                 <div className="w-16 h-16 md:w-18 md:h-18 rounded-full p-0.5 border border-border-base group-hover:border-primary transition-all overflow-hidden">
                                     <img
                                         src={h.img || getMediaUrl(h.cover_url, FALLBACKS.POST)}

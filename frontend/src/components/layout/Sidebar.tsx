@@ -113,7 +113,7 @@ const Sidebar: FC<SidebarProps> = ({
   ];
 
   return (
-    <div className={`relative flex flex-col h-full bg-bg-sidebar border-r border-border-base transition-all duration-300 ${isSearchOpen ? 'w-0 overflow-hidden border-none' : (effectiveCollapsed ? 'w-20' : 'w-full md:w-[260px]')}`}>
+    <div className={`relative flex flex-col h-full bg-bg-sidebar border-r border-border-base transition-all duration-300 ${effectiveCollapsed ? 'w-20' : 'w-full md:w-[260px]'}`}>
       <aside className="flex-1 flex flex-col px-3 py-5 h-full overflow-y-auto no-scrollbar">
 
         {/* ── Logo ── */}

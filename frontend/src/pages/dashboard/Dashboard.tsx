@@ -190,7 +190,7 @@ const Dashboard = () => {
     navigate(`/dashboard/user/${userId}`);
   };
 
-  const showRightSidebar = !pathname.includes('profile') && !pathname.includes('settings') && !pathname.includes('notifications') && !pathname.includes('explore') && !pathname.includes('connections');
+  const showRightSidebar = !pathname.includes('profile') && !pathname.includes('settings') && !pathname.includes('notifications') && !pathname.includes('explore') && !pathname.includes('connections') && !pathname.includes('manage-highlights');
 
   const renderRoutes = () => {
     return (
@@ -218,7 +218,7 @@ const Dashboard = () => {
         <Route path="search" element={<SearchView />} />
         <Route path="user/:id" element={<Profile onLogout={logout} />} />
         <Route path="profile/:id" element={<Profile onLogout={logout} />} />
-        <Route path="profile/manage-highlights" element={<ManageHighlights onBack={() => navigate('/dashboard/home')} />} />
+        <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
         
         <Route path="messages/*" element={
           <div className="flex-1 flex flex-col h-full bg-white md:rounded-[28px] overflow-hidden border border-pastel">
@@ -417,7 +417,7 @@ const Dashboard = () => {
               <Route path="search" element={<SearchView />} />
               <Route path="user/:id" element={<Profile onLogout={logout} />} />
               <Route path="profile/:id" element={<Profile onLogout={logout} />} />
-              <Route path="profile/manage-highlights" element={<ManageHighlights onBack={() => navigate('/dashboard/home')} />} />
+              <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
               <Route path="messages/*" element={
                 <div className="flex-1 flex flex-col h-full bg-bg-card overflow-hidden">
                   <ChatList onSelect={(id) => navigate(`/dashboard/messages/${id}`)} selectedId={pathname.split('/').pop()} />

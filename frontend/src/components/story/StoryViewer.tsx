@@ -236,7 +236,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
             {isVideo ? (
               <video
                 ref={videoRef}
-                src={`${BACKEND}${story.media_url}`}
+                src={story.media_url.startsWith('http') ? story.media_url : `${BACKEND}${story.media_url}`}
                 className="w-full h-full object-cover transition-transform duration-500"
                 style={story.crop_settings ? {
                   transform: `scale(${story.crop_settings.zoom}) translate(${story.crop_settings.position.x/10}px, ${story.crop_settings.position.y/10}px)`,
@@ -248,7 +248,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
               />
             ) : (
               <img
-                src={`${BACKEND}${story.media_url}`}
+                src={story.media_url.startsWith('http') ? story.media_url : `${BACKEND}${story.media_url}`}
                 alt="Story"
                 className="w-full h-full object-cover transition-transform duration-500"
                 style={story.crop_settings ? {

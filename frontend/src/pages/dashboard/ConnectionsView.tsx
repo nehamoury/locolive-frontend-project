@@ -10,6 +10,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
@@ -20,7 +21,10 @@ interface ConnectionsViewProps {
 }
 
 const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'requests', onUserSelect, onMessage }) => {
-  const [activeTab, setActiveTab] = useState<'requests' | 'followers' | 'following'>(initialTab);
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as 'requests' | 'followers' | 'following' | null;
+  
+  const [activeTab, setActiveTab] = useState<'requests' | 'followers' | 'following'>(tabParam || initialTab);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
@@ -76,6 +80,12 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'requests', on
 
 
   useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       if (activeTab === 'requests') {
@@ -117,6 +127,8 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'requests', on
         setSentRequests(prev => prev.filter(r => (r.target_id !== userId && r.id !== userId)));
       }
       loadAllCounts();
+      // Dispatch event to refresh profile data across the app
+      window.dispatchEvent(new Event('connectionsUpdated'));
     } catch (err) {
       console.error(`Failed to ${action} request:`, err);
     }
@@ -221,7 +233,7 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'requests', on
                             <section>
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-lg font-black text-gray-800 tracking-tight">
-                                        {activeTab === 'followers' ? `Your Followers (${followersCount})` : `People you follow (${followingCount + sentRequests.length})`}
+                                        {activeTab === 'followers' ? `Your Followers (${followersCount})` : `People you follow (${followingCount})`}
                                     </h2>
                                 </div>
                                 {activeTab === 'following' && connections.length === 0 && sentRequests.length === 0 ? (

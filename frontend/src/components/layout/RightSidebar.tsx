@@ -1,6 +1,13 @@
 import { useState, useEffect, type FC } from 'react';
-import { MapPin, TrendingUp, Users, Footprints, Star, Sparkles, Zap, ChevronRight, UserPlus } from 'lucide-react';
+import { 
+  MapPin, TrendingUp, Users, Footprints, 
+  Star, Zap, ChevronRight, 
+  UserPlus, Heart, PlayCircle,
+  ArrowRight
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
@@ -16,19 +23,24 @@ const RightSidebar: FC<RightSidebarProps> = ({
   nearbyCount = 0,
   storiesCount = 0
 }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   useEffect(() => {
     fetchSuggestions();
   }, []);
 
   const fetchSuggestions = async () => {
+    setIsLoadingSuggestions(true);
     try {
       const res = await api.get('/connections/suggested');
-      // Limit to 3 for sidebar
       setSuggestions((res.data || []).slice(0, 3));
     } catch (err) {
       console.error('Failed to fetch suggestions:', err);
+    } finally {
+      setIsLoadingSuggestions(false);
     }
   };
 
@@ -41,63 +53,119 @@ const RightSidebar: FC<RightSidebarProps> = ({
     }
   };
 
+  const navigateToExplore = (tab: string) => {
+    navigate(`/dashboard/explore?tab=${tab}`);
+  };
+
   return (
-    <aside className="h-full flex flex-col overflow-y-auto no-scrollbar pt-6 pb-8 px-6 gap-6">
+    <aside className="h-full flex flex-col overflow-y-auto no-scrollbar pt-6 pb-8 px-6 gap-8 bg-bg-sidebar/30 backdrop-blur-sm">
 
-      {/* ── Snap Match Card ── */}
+      {/* ── Snap Match Card (Premium Redesign) ── */}
       <motion.div
-        whileHover={{ y: -3, boxShadow: '0 20px 40px -10px rgba(255,59,142,0.35)' }}
-        transition={{ duration: 0.25 }}
-        className="bg-gradient-to-br from-[#FF3B8E] via-[#C94FD8] to-[#7B2FBE] rounded-[22px] p-5 text-white relative overflow-hidden shadow-xl shadow-pink-500/20 flex-shrink-0 cursor-pointer"
+        whileHover={{ y: -5, boxShadow: '0 25px 50px -12px rgba(255, 0, 110, 0.4)' }}
+        onClick={() => navigateToExplore('casting')}
+        className="group relative bg-brand-gradient rounded-[32px] p-6 text-white overflow-hidden shadow-2xl shadow-primary/20 flex-shrink-0 cursor-pointer"
       >
-        {/* Decorative blobs */}
-        <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 right-2 w-16 h-16 bg-white/5 rounded-full pointer-events-none" />
-
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-12 -mb-12 blur-xl" />
+        
         <div className="relative z-10">
-          <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center mb-3 backdrop-blur-sm">
-            <Zap className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between mb-5">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 group-hover:rotate-12 transition-transform">
+              <Zap className="w-6 h-6 text-white fill-white" />
+            </div>
+            <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/30 text-[10px] font-black uppercase tracking-widest">Live</div>
           </div>
-          <h3 className="text-[16px] font-black leading-tight mb-1.5 tracking-tight">Snap Match</h3>
-          <p className="text-white/70 text-[12px] leading-relaxed mb-4 font-medium">Find and connect with people attending the same events.</p>
-          <button className="w-full py-2.5 bg-white rounded-[14px] font-black text-[12px] text-[#C84FD8] hover:bg-pink-50 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm">
-            Find Matches <ChevronRight className="w-3.5 h-3.5" />
+          
+          <h3 className="text-[20px] font-black leading-tight mb-2 italic tracking-tighter">Snap Match</h3>
+          <p className="text-white/80 text-[12px] leading-relaxed mb-6 font-bold">Discover people attending the same events near you right now.</p>
+          
+          <button className="w-full py-3.5 bg-white text-primary rounded-[18px] font-black text-[13px] flex items-center justify-center gap-2 group-hover:gap-4 transition-all shadow-xl shadow-black/10">
+            <span>Find Matches</span>
+            <ChevronRight className="w-4 h-4 stroke-[3]" />
           </button>
         </div>
       </motion.div>
 
-      {/* ── Suggested for you ── */}
-      {suggestions.length > 0 && (
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[14px] font-black text-slate-800">Suggested for you</h3>
-            <button className="text-[11px] font-bold text-primary hover:underline">View all</button>
+      {/* ── Stats Grid (Modern Redesign) ── */}
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard 
+          label="Nearby" 
+          count={nearbyCount} 
+          icon={<MapPin className="w-4 h-4" />} 
+          color="pink" 
+          onClick={() => navigateToExplore('nearby')}
+        />
+        <StatCard 
+          label="Stories" 
+          count={storiesCount} 
+          icon={<PlayCircle className="w-4 h-4" />} 
+          color="purple" 
+          onClick={() => navigateToExplore('stories')}
+        />
+        <StatCard 
+          label="Crossings" 
+          count={crossingsToday} 
+          icon={<Footprints className="w-4 h-4" />} 
+          color="emerald" 
+          onClick={() => navigateToExplore('crossings')}
+        />
+        <StatCard 
+          label="Saved" 
+          count={0} 
+          icon={<Star className="w-4 h-4" />} 
+          color="amber" 
+          onClick={() => navigate(`/dashboard/profile/${user?.id}?tab=saved`)}
+        />
+      </div>
+
+      {/* ── Suggested for you (Functional) ── */}
+      <div className="flex flex-col gap-5">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4 text-primary" />
+            <h3 className="text-[14px] font-black text-text-base italic">Suggested</h3>
           </div>
-          <div className="flex flex-col gap-3">
+          <button 
+            onClick={() => navigateToExplore('all')}
+            className="text-[11px] font-black text-primary hover:bg-primary/5 px-2 py-1 rounded-lg transition-all uppercase tracking-wider"
+          >
+            See all
+          </button>
+        </div>
+        
+        <div className="flex flex-col gap-3">
+          {isLoadingSuggestions ? (
+            Array(3).fill(0).map((_, i) => (
+              <div key={i} className="h-16 bg-bg-base/50 rounded-2xl animate-pulse" />
+            ))
+          ) : suggestions.length > 0 ? (
             <AnimatePresence>
               {suggestions.map((u) => (
                 <motion.div
                   key={u.id}
                   layout
-                  initial={{ opacity: 0, x: 10 }}
+                  initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center justify-between group"
+                  className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-white dark:hover:bg-bg-base border border-transparent hover:border-border-base transition-all group"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-100">
-                      <img src={getMediaUrl(u.avatar_url, FALLBACKS.AVATAR(u.username))} alt="" className="w-full h-full object-cover" />
+                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/dashboard/profile/${u.id}`)}>
+                    <div className="w-11 h-11 rounded-xl overflow-hidden border-2 border-border-base/50 group-hover:border-primary/30 transition-colors">
+                      <img src={getMediaUrl(u.avatar_url, FALLBACKS.AVATAR(u.username))} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[13px] font-black text-slate-800 leading-none">@{u.username}</span>
-                      <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tight">{u.distance_km?.toFixed(1) || '0.5'}km away</span>
+                      <span className="text-[13px] font-black text-text-base leading-none group-hover:text-primary transition-colors">@{u.username}</span>
+                      <span className="text-[10px] font-bold text-text-muted mt-1 uppercase tracking-tight opacity-70">
+                        {u.distance_km < 1 ? `${(u.distance_km * 1000).toFixed(0)}m` : `${u.distance_km?.toFixed(1)}km`} away
+                      </span>
                     </div>
                   </div>
                   {u.requested ? (
-                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Sent</span>
+                    <div className="px-3 py-1.5 bg-bg-base rounded-xl text-[9px] font-black text-text-muted uppercase tracking-widest border border-border-base">Sent</div>
                   ) : (
                     <button
                       onClick={() => handleConnect(u.id)}
-                      className="p-2 text-primary hover:bg-primary/5 rounded-xl transition-all active:scale-90"
+                      className="w-10 h-10 bg-primary/5 hover:bg-primary text-primary hover:text-white rounded-xl transition-all active:scale-90 flex items-center justify-center border border-primary/10 shadow-sm"
                     >
                       <UserPlus className="w-4 h-4" />
                     </button>
@@ -105,45 +173,51 @@ const RightSidebar: FC<RightSidebarProps> = ({
                 </motion.div>
               ))}
             </AnimatePresence>
-          </div>
+          ) : (
+             <div className="py-8 text-center bg-bg-base/30 rounded-[24px] border border-dashed border-border-base/50">
+                <Users className="w-8 h-8 text-text-muted/20 mx-auto mb-2" />
+                <p className="text-[11px] font-bold text-text-muted">No suggestions right now</p>
+             </div>
+          )}
         </div>
-      )}
-
-      {/* ── Stats Grid ── */}
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Nearby" count={nearbyCount} icon={<MapPin className="w-3.5 h-3.5 text-[#FF3B8E]" />} iconBg="bg-pink-50" countColor="text-[#1A202C]" />
-        <StatCard label="Stories" count={storiesCount} icon={<Sparkles className="w-3.5 h-3.5 text-[#A855F7]" />} iconBg="bg-purple-50" countColor="text-[#1A202C]" />
-        <StatCard label="Crossings" count={crossingsToday} icon={<Footprints className="w-3.5 h-3.5 text-[#10B981]" />} iconBg="bg-emerald-50" countColor="text-[#1A202C]" />
-        <StatCard label="Saved" count={0} icon={<Star className="w-3.5 h-3.5 text-[#F59E0B]" />} iconBg="bg-amber-50" countColor="text-[#1A202C]" />
       </div>
 
-      {/* ── Trending Circles ── */}
-      <div className="flex-1">
-        <div className="flex items-center justify-between mb-4">
+      {/* ── Trending Circles (Functional Redesign) ── */}
+      <div className="flex flex-col gap-5 flex-1">
+        <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#FF3B8E]" />
-            <h3 className="text-[14px] font-black text-slate-800">Trending Circles</h3>
+            <TrendingUp className="w-4 h-4 text-orange-500" />
+            <h3 className="text-[14px] font-black text-text-base italic">Trending</h3>
           </div>
-          <button className="text-[12px] font-semibold text-[#FF3B8E] hover:text-pink-700 transition-colors cursor-pointer">See all</button>
+          <button onClick={() => navigate('/dashboard/explore')} className="text-[11px] font-black text-primary hover:underline uppercase tracking-wider">See all</button>
         </div>
 
-        <div className="space-y-1">
-          <TrendingItem emoji="📸" title="Photography" members="12.5k" color="bg-pink-100" />
-          <TrendingItem emoji="✈️" title="Travel Diaries" members="8.2k" color="bg-sky-100" />
-          <TrendingItem emoji="🍕" title="Food Lovers" members="15.3k" color="bg-orange-100" />
-          <TrendingItem emoji="🎵" title="Music Vibes" members="9.1k" color="bg-violet-100" />
+        <div className="space-y-2">
+          <TrendingItem emoji="📸" title="Photography" members="12.5k" color="pink" onClick={() => navigate('/dashboard/search?q=Photography')} />
+          <TrendingItem emoji="✈️" title="Travel Diaries" members="8.2k" color="blue" onClick={() => navigate('/dashboard/search?q=Travel')} />
+          <TrendingItem emoji="🍕" title="Food Lovers" members="15.3k" color="orange" onClick={() => navigate('/dashboard/search?q=Food')} />
+          <TrendingItem emoji="🎵" title="Music Vibes" members="9.1k" color="purple" onClick={() => navigate('/dashboard/search?q=Music')} />
         </div>
       </div>
 
-      {/* ── Popular Nearby (Compact) ── */}
-      <div className="bg-white rounded-[18px] border border-slate-100 p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <Users className="w-3.5 h-3.5 text-slate-400" />
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Popular Nearby</p>
+      {/* ── Popular Nearby (Premium Card) ── */}
+      <div className="relative group cursor-pointer" onClick={() => navigateToExplore('heatmap')}>
+        <div className="absolute inset-0 bg-brand-gradient blur-xl opacity-0 group-hover:opacity-10 transition-opacity rounded-[24px]" />
+        <div className="relative bg-white dark:bg-bg-base/40 backdrop-blur-md border border-border-base/50 rounded-[24px] p-5 shadow-sm group-hover:border-primary/20 transition-all">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Users className="w-4 h-4 text-primary" />
+            </div>
+            <p className="text-[10px] font-black text-text-muted uppercase tracking-[2px]">Hotspot Nearby</p>
+          </div>
+          <p className="text-[12px] font-bold text-text-base leading-relaxed">
+            Most connections happen at <span className="text-primary italic">"The Central Square"</span> this weekend.
+          </p>
+          <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-primary uppercase tracking-widest group-hover:gap-2.5 transition-all">
+             <span>View Heatmap</span>
+             <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
+          </div>
         </div>
-        <p className="text-[12px] font-medium text-slate-600 leading-relaxed">
-          Most connections happen at <span className="font-black text-slate-900">"The Central Square"</span> this weekend.
-        </p>
       </div>
 
     </aside>
@@ -152,31 +226,56 @@ const RightSidebar: FC<RightSidebarProps> = ({
 
 // ── Sub-components ──────────────────────────────────────────────────────────────
 
-const StatCard = ({ label, count, icon, iconBg, countColor }: { label: string; count: number; icon: React.ReactNode; iconBg: string; countColor: string }) => (
-  <div className="bg-white rounded-[18px] border border-slate-100/80 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-    <div className={`w-7 h-7 ${iconBg} rounded-xl flex items-center justify-center mb-3`}>
-      {icon}
-    </div>
-    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[1.5px] mb-0.5">{label}</p>
-    <span className={`text-[22px] font-black ${countColor} leading-none`}>{count}</span>
-  </div>
-);
+const StatCard = ({ label, count, icon, color, onClick }: { label: string; count: number; icon: React.ReactNode; color: string; onClick: () => void }) => {
+  const colors: Record<string, string> = {
+    pink: 'bg-pink-500/10 text-pink-500 border-pink-500/20 shadow-pink-500/5',
+    purple: 'bg-purple-500/10 text-purple-500 border-purple-500/20 shadow-purple-500/5',
+    emerald: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-emerald-500/5',
+    amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-500/5',
+  };
 
-const TrendingItem = ({ emoji, title, members, color }: { emoji: string; title: string; members: string; color: string }) => (
-  <motion.div
-    whileHover={{ x: 4 }}
-    transition={{ duration: 0.15 }}
-    className="flex items-center gap-3 cursor-pointer group py-2 px-2 rounded-xl hover:bg-slate-50 transition-colors"
-  >
-    <div className={`w-9 h-9 rounded-full ${color} flex items-center justify-center text-[16px] flex-shrink-0 group-hover:scale-110 transition-transform`}>
-      {emoji}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-[13px] font-bold text-slate-800 leading-tight truncate">{title}</p>
-      <p className="text-[11px] text-slate-400 font-medium">{members} members</p>
-    </div>
-    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#FF3B8E] transition-colors flex-shrink-0" />
-  </motion.div>
-);
+  return (
+    <motion.div 
+      whileHover={{ scale: 1.05, y: -2 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className={`bg-white dark:bg-bg-base/20 rounded-[24px] border border-border-base p-4 shadow-sm cursor-pointer transition-all hover:shadow-xl hover:border-primary/20 group relative overflow-hidden`}
+    >
+      <div className={`w-9 h-9 ${colors[color].split(' ')[0]} rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+        <span className={colors[color].split(' ')[1]}>{icon}</span>
+      </div>
+      <p className="text-[10px] font-black text-text-muted uppercase tracking-[1.5px] mb-1 opacity-70 leading-none">{label}</p>
+      <span className="text-[24px] font-black text-text-base leading-none tracking-tighter italic">{count}</span>
+    </motion.div>
+  );
+};
+
+const TrendingItem = ({ emoji, title, members, color, onClick }: { emoji: string; title: string; members: string; color: string; onClick: () => void }) => {
+  const colors: Record<string, string> = {
+    pink: 'bg-pink-500/10 text-pink-600',
+    blue: 'bg-blue-500/10 text-blue-600',
+    orange: 'bg-orange-500/10 text-orange-600',
+    purple: 'bg-purple-500/10 text-purple-600',
+  };
+
+  return (
+    <motion.div
+      whileHover={{ x: 6 }}
+      onClick={onClick}
+      className="flex items-center gap-3.5 cursor-pointer group py-2.5 px-3 rounded-[20px] hover:bg-white dark:hover:bg-bg-base border border-transparent hover:border-border-base transition-all"
+    >
+      <div className={`w-11 h-11 rounded-2xl ${colors[color].split(' ')[0]} flex items-center justify-center text-[20px] flex-shrink-0 group-hover:rotate-12 transition-transform shadow-sm`}>
+        {emoji}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[14px] font-black text-text-base leading-tight truncate group-hover:text-primary transition-colors italic">{title}</p>
+        <p className="text-[11px] text-text-muted font-bold opacity-60 mt-0.5">{members} members</p>
+      </div>
+      <div className="w-8 h-8 rounded-full bg-bg-base flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+        <ChevronRight className="w-4 h-4 text-primary stroke-[3]" />
+      </div>
+    </motion.div>
+  );
+};
 
 export default RightSidebar;
