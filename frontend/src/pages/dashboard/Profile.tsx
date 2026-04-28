@@ -244,12 +244,20 @@ export const Profile: FC<ProfileProps> = () => {
                             className="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] shadow-lg cursor-pointer hover:scale-[1.02] transition-all"
                             onClick={() => isOwnProfile && navigate('/dashboard/settings?section=account_info')}
                         >
-                            <div className="w-full h-full rounded-full border-[4px] border-white overflow-hidden bg-bg-base relative">
-                                <img
-                                    src={getMediaUrl(profile?.avatar_url, FALLBACKS.AVATAR(profile?.username))}
-                                    className="w-full h-full object-cover"
-                                    alt=""
-                                />
+                            <div className="w-full h-full rounded-full border-[4px] border-white overflow-hidden bg-[#e0e0e0] flex items-center justify-center relative">
+                                {profile?.avatar_url ? (
+                                    <img
+                                        src={getMediaUrl(profile?.avatar_url, FALLBACKS.AVATAR(profile?.username))}
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                    />
+                                ) : (
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-10 h-10 bg-white/40 rounded-full flex items-center justify-center mb-1">
+                                            <User className="w-6 h-6 text-white/80" />
+                                        </div>
+                                    </div>
+                                )}
                                 {isOwnProfile && (
                                     <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                                         <Camera className="w-6 h-6 text-white" />

@@ -1,7 +1,7 @@
 import { useState, type FC, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
-  ArrowLeft, User, Shield, Bell, Lock, Mail, 
+  ArrowLeft, User, Shield, Bell, Lock, 
   Palette, Globe, HardDrive, 
   HelpCircle, Info, ChevronRight, LogOut,
   RefreshCw
@@ -13,6 +13,10 @@ import { cn } from '../../utils/helpers';
 import AccountInfoSection from '../../components/settings/AccountInfoSection';
 import PrivacySection from '../../components/settings/PrivacySection';
 import AppearanceSection from '../../components/settings/AppearanceSection';
+import SecuritySection from '../../components/settings/SecuritySection';
+import NotificationsSection from '../../components/settings/NotificationsSection';
+import DataStorageSection from '../../components/settings/DataStorageSection';
+import SupportSection from '../../components/settings/SupportSection';
 import ComingSoonSection from '../../components/settings/ComingSoonSection';
 
 interface SettingsViewProps {
@@ -20,7 +24,7 @@ interface SettingsViewProps {
 }
 
 export type SettingsSection = 
-  | 'account_info' | 'privacy' | 'security' | 'email_notifications' | 'push_notifications'
+  | 'account_info' | 'privacy' | 'security' | 'notifications' | 'email_notifications' | 'push_notifications'
   | 'appearance' | 'content' | 'language' | 'data'
   | 'help' | 'about';
 
@@ -49,8 +53,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
         { id: 'account_info', label: 'Account Information', desc: 'Edit your profile, username and more', icon: <User className="w-4 h-4" />, color: 'bg-pink-100 text-pink-600' },
         { id: 'privacy', label: 'Privacy', desc: 'Manage your privacy settings', icon: <Shield className="w-4 h-4" />, color: 'bg-purple-100 text-purple-600' },
         { id: 'security', label: 'Security', desc: 'Password, 2FA and login activity', icon: <Lock className="w-4 h-4" />, color: 'bg-blue-100 text-blue-600' },
-        { id: 'email_notifications', label: 'Email Notifications', desc: 'Manage your email notifications', icon: <Mail className="w-4 h-4" />, color: 'bg-indigo-100 text-indigo-600' },
-        { id: 'push_notifications', label: 'Push Notifications', desc: 'Manage your push notifications', icon: <Bell className="w-4 h-4" />, color: 'bg-rose-100 text-rose-600', dot: true },
+        { id: 'notifications', label: 'Notifications', desc: 'Manage email and push alerts', icon: <Bell className="w-4 h-4" />, color: 'bg-rose-100 text-rose-600' },
       ]
     },
     {
@@ -80,19 +83,17 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
       case 'appearance':
         return <AppearanceSection />;
       case 'security':
-        return <ComingSoonSection title="Security" desc="Password, 2FA and login activity" />;
-      case 'email_notifications':
-        return <ComingSoonSection title="Email Notifications" desc="Manage your email notifications" />;
-      case 'push_notifications':
-        return <ComingSoonSection title="Push Notifications" desc="Manage your push notifications" />;
+        return <SecuritySection />;
+      case 'notifications':
+        return <NotificationsSection />;
       case 'content':
         return <ComingSoonSection title="Content Preferences" desc="Content and media preferences" />;
       case 'language':
         return <ComingSoonSection title="Language" desc="App language and region" />;
       case 'data':
-        return <ComingSoonSection title="Data & Storage" desc="Data usage and storage settings" />;
+        return <DataStorageSection />;
       case 'help':
-        return <ComingSoonSection title="Help & Support" desc="Help center and support" />;
+        return <SupportSection />;
       case 'about':
         return <ComingSoonSection title="About" desc="App info, terms and policies" />;
       default:
@@ -101,10 +102,10 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="h-full bg-[#fcf5f8] flex flex-col md:flex-row overflow-hidden">
+    <div className="h-full bg-bg-base flex flex-col md:flex-row overflow-hidden">
       
       {/* ── Left Sidebar: Menu ── */}
-      <div className="w-full md:w-[380px] h-full bg-white border-r border-border-base/50 flex flex-col shrink-0 overflow-y-auto no-scrollbar">
+      <div className="w-full md:w-[380px] h-full bg-bg-sidebar border-r border-border-base/50 flex flex-col shrink-0 overflow-y-auto no-scrollbar">
         <div className="px-8 pt-10 pb-6">
           <div className="flex items-center gap-4 mb-2">
             <button 
@@ -130,7 +131,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
                     className={cn(
                       "w-full flex items-center justify-between p-3.5 rounded-2xl transition-all group cursor-pointer",
                       activeSection === item.id 
-                        ? "bg-pink-50/80 shadow-sm border border-pink-100" 
+                        ? "bg-pink-50/20 dark:bg-pink-500/10 shadow-sm border border-pink-100/50 dark:border-pink-500/20" 
                         : "hover:bg-bg-base border border-transparent"
                     )}
                   >
@@ -143,7 +144,6 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
                           <span className={cn("text-[14px] font-black tracking-tight transition-colors", activeSection === item.id ? "text-pink-600" : "text-text-base")}>
                             {item.label}
                           </span>
-                          {item.dot && <div className="w-1.5 h-1.5 bg-pink-500 rounded-full animate-pulse" />}
                         </div>
                         <p className="text-[11px] text-text-muted font-bold leading-tight mt-0.5">{item.desc}</p>
                       </div>
@@ -158,11 +158,11 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
 
         {/* Logout Button in Sidebar */}
         <div className="mt-auto px-6 pb-8">
-           <button 
+          <button 
             onClick={() => logout()}
-            className="w-full flex items-center gap-4 p-4 bg-pink-50/50 hover:bg-pink-100/50 rounded-2xl border border-pink-100/50 transition-all group cursor-pointer"
+            className="w-full flex items-center gap-4 p-4 bg-pink-50/10 hover:bg-pink-100/20 rounded-2xl border border-pink-100/20 transition-all group cursor-pointer"
           >
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-pink-500 shadow-sm border border-pink-100">
+            <div className="w-8 h-8 bg-bg-card rounded-lg flex items-center justify-center text-pink-500 shadow-sm border border-pink-100/20">
               <LogOut className="w-4 h-4" />
             </div>
             <div className="text-left">
@@ -181,9 +181,9 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
           {activeSection === 'account_info' && (
              <button 
                 onClick={() => logout()}
-                className="w-full flex items-center gap-4 p-6 bg-pink-50/50 hover:bg-pink-100/50 rounded-[32px] border border-pink-100/50 transition-all group cursor-pointer mt-10"
+                className="w-full flex items-center gap-4 p-6 bg-pink-50/10 hover:bg-pink-100/20 rounded-[32px] border border-pink-100/20 transition-all group cursor-pointer mt-10"
               >
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-pink-500 shadow-sm border border-pink-100">
+                <div className="w-10 h-10 bg-bg-card rounded-xl flex items-center justify-center text-pink-500 shadow-sm border border-pink-100/20">
                   <LogOut className="w-5 h-5" />
                 </div>
                 <div className="text-left">

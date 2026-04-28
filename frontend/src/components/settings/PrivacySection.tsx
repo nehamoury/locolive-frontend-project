@@ -123,12 +123,12 @@ const PrivacySection: FC = () => {
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-[32px] border border-border-base/50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
+          <div className="bg-bg-card rounded-[32px] border border-border-base/50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
             <div className="p-8 space-y-8">
               {/* Private Account Toggle */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-500 shadow-sm">
+                  <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500 shadow-sm">
                     <Lock className="w-6 h-6" />
                   </div>
                   <div className="text-left">
@@ -144,11 +144,11 @@ const PrivacySection: FC = () => {
                   disabled={updatingPrivacy}
                   className={cn(
                     "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
-                    isPrivate ? "bg-pink-500" : "bg-gray-200"
+                    isPrivate ? "bg-pink-500" : "bg-bg-base border-border-base"
                   )}
                 >
                   <span className={cn(
-                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white dark:bg-bg-card shadow ring-0 transition duration-200 ease-in-out",
                     isPrivate ? "translate-x-5" : "translate-x-0"
                   )} />
                 </button>
@@ -157,7 +157,7 @@ const PrivacySection: FC = () => {
               {/* Ghost Mode Toggle */}
               <div className="flex items-center justify-between pt-8 border-t border-border-base/30">
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
+                  <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M9 10H9.01M15 10H15.01M12 2C7.03 2 3 6.03 3 11V22L12 19L21 22V11C21 6.03 16.97 2 12 2Z" /></svg>
                   </div>
                   <div className="text-left">
@@ -173,11 +173,11 @@ const PrivacySection: FC = () => {
                   disabled={updatingPrivacy}
                   className={cn(
                     "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
-                    isGhostMode ? "bg-blue-500" : "bg-gray-200"
+                    isGhostMode ? "bg-blue-500" : "bg-bg-base border-border-base"
                   )}
                 >
                   <span className={cn(
-                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white dark:bg-bg-card shadow ring-0 transition duration-200 ease-in-out",
                     isGhostMode ? "translate-x-5" : "translate-x-0"
                   )} />
                 </button>
@@ -186,7 +186,7 @@ const PrivacySection: FC = () => {
               {/* Panic Mode Section */}
               <div className="flex items-center justify-between pt-8 border-t border-border-base/30">
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 shadow-sm">
+                  <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 shadow-sm">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4m0 4h.01" /></svg>
                   </div>
                   <div className="text-left">
@@ -241,11 +241,11 @@ const PrivacySection: FC = () => {
                     <select 
                       value={whoCanSeeStories}
                       onChange={(e) => updatePrivacySetting('who_can_see_stories', e.target.value)}
-                      className="w-full bg-[#fcf5f8] border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all appearance-none cursor-pointer"
+                      className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all appearance-none cursor-pointer"
                     >
-                      <option value="everyone">Everyone</option>
-                      <option value="connections">Connections Only</option>
-                      <option value="nobody">No One</option>
+                      <option value="everyone" className="bg-bg-card">Everyone</option>
+                      <option value="connections" className="bg-bg-card">Connections Only</option>
+                      <option value="nobody" className="bg-bg-card">No One</option>
                     </select>
                   </div>
                   
@@ -254,11 +254,11 @@ const PrivacySection: FC = () => {
                     <select 
                       value={whoCanMessage}
                       onChange={(e) => updatePrivacySetting('who_can_message', e.target.value)}
-                      className="w-full bg-[#fcf5f8] border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all appearance-none cursor-pointer"
+                      className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all appearance-none cursor-pointer"
                     >
-                      <option value="everyone">Everyone</option>
-                      <option value="connections">Connections Only</option>
-                      <option value="nobody">No One</option>
+                      <option value="everyone" className="bg-bg-card">Everyone</option>
+                      <option value="connections" className="bg-bg-card">Connections Only</option>
+                      <option value="nobody" className="bg-bg-card">No One</option>
                     </select>
                   </div>
                 </div>
@@ -269,7 +269,7 @@ const PrivacySection: FC = () => {
           {/* Blocked Users Section */}
           <div className="space-y-4">
             <h3 className="text-[13px] font-black uppercase tracking-widest text-text-muted/60 px-2">Blocked Accounts</h3>
-            <div className="bg-white rounded-[32px] border border-border-base/50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
+            <div className="bg-bg-card rounded-[32px] border border-border-base/50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
               {blockedUsers.length === 0 ? (
                 <div className="p-8 text-center">
                   <p className="text-[13px] text-text-muted font-bold">You haven't blocked anyone yet.</p>

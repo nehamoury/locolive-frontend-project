@@ -62,80 +62,89 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
 
     let isSubscribed = true;
     const wsUrl = `${WS_BASE_URL}/api/ws/chat?token=${encodeURIComponent(token)}`;
-    const ws = new WebSocket(wsUrl);
-    socketRef.current = ws;
+    let initialConnectTimeout: any = null;
 
-    ws.onopen = () => {
-      if (!isSubscribed) {
-        ws.close();
-        return;
-      }
-      console.log('WS Connected');
-      setOnline(true);
-    };
-
-    ws.onmessage = (event) => {
+    const connect = () => {
       if (!isSubscribed) return;
-      const data = JSON.parse(event.data);
-      console.log('WS Message received:', data);
+      const ws = new WebSocket(wsUrl);
+      socketRef.current = ws;
 
-      if (data.type === 'new_message' || data.type === 'new_group_message') {
-        // Play sound if message is not from me
-        let isMe = false;
-        try {
-          const token = localStorage.getItem('token');
-          if (token) {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            if (payload.user_id === data.sender_id) isMe = true;
-          }
-        } catch(e) {}
-
-        if (!isMe) {
-          // Play the sound (using a simple Audio object for now)
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
-          audio.volume = 0.5;
-          audio.play().catch(() => {});
+      ws.onopen = () => {
+        if (!isSubscribed) {
+          ws.close();
+          return;
         }
-      }
-      
-      // ... same switch logic ...
+        console.log('WS Connected');
+        setOnline(true);
+      };
 
-      switch (data.type) {
-        case 'new_message':
-          // Add to messages if current conversation matches
-          const msg = data.payload;
-          if (msg.sender_id === targetUserId || msg.receiver_id === targetUserId) {
-             setMessages(prev => [...prev, msg]);
+      ws.onmessage = (event) => {
+        if (!isSubscribed) return;
+        try {
+          const data = JSON.parse(event.data);
+          console.log('WS Message received:', data);
+
+          if (data.type === 'new_message' || data.type === 'new_group_message') {
+            // Play sound if message is not from me
+            let isMe = false;
+            try {
+              const token = localStorage.getItem('token');
+              if (token) {
+                const payloadStr = atob(token.split('.')[1]);
+                const jwtPayload = JSON.parse(payloadStr);
+                if (jwtPayload.user_id === data.sender_id) isMe = true;
+              }
+            } catch(e) {}
+
+            if (!isMe) {
+              const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
+              audio.volume = 0.5;
+              audio.play().catch(() => {});
+            }
           }
-          break;
-        case 'new_group_message':
-          const groupMsg = data.payload;
-          if (groupMsg.group_id === targetUserId) {
-             setMessages(prev => [...prev, groupMsg]);
+          
+          switch (data.type) {
+            case 'new_message':
+              const msg = data.payload;
+              if (msg.sender_id === targetUserId || msg.receiver_id === targetUserId) {
+                 setMessages(prev => [...prev, msg]);
+              }
+              break;
+            case 'new_group_message':
+              const groupMsg = data.payload;
+              if (groupMsg.group_id === targetUserId) {
+                 setMessages(prev => [...prev, groupMsg]);
+              }
+              break;
+            case 'typing':
+              if (data.payload.user_id === targetUserId) {
+                setIsTyping(true);
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+              }
+              break;
+            case 'messages_read':
+              if (data.payload.reader_id === targetUserId) {
+                setMessages(prev => prev.map(m => ({ ...m, is_read: true })));
+              }
+              break;
           }
-          break;
-        case 'typing':
-          if (data.payload.user_id === targetUserId) {
-            setIsTyping(true);
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-            typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
-          }
-          break;
-        case 'messages_read':
-          if (data.payload.reader_id === targetUserId) {
-            setMessages(prev => prev.map(m => ({ ...m, is_read: true })));
-          }
-          break;
-      }
+        } catch (err) {
+          console.error('[WS] Failed to parse message:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('WS Disconnected');
+        setOnline(false);
+      };
     };
 
-    ws.onclose = () => {
-      console.log('WS Disconnected');
-      setOnline(false);
-    };
+    initialConnectTimeout = setTimeout(connect, 50);
 
     return () => {
       isSubscribed = false;
+      if (initialConnectTimeout) clearTimeout(initialConnectTimeout);
       if (socketRef.current) {
         socketRef.current.close();
       }

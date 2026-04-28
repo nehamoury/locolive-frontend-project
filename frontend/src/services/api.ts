@@ -74,8 +74,15 @@ api.interceptors.response.use(
       console.warn('Global 401 caught. Clearing session...');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      localStorage.removeItem('auth-storage');
+      
+      // If we're not already on the login page, redirect to it
+      const isAuthPage = window.location.pathname.includes('/login') || 
+                        window.location.pathname.includes('/signup') ||
+                        window.location.pathname.includes('/forgot-password');
+                        
+      if (!isAuthPage) {
+        window.location.replace('/login');
       }
     }
     return Promise.reject(error);

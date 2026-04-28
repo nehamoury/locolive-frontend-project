@@ -1,24 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Eye, EyeOff } from 'lucide-react';
+import { MapPin, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
-interface LoginProps {
-  onToggle: () => void;
-  onBack?: () => void;
+// Declare google for TypeScript
+declare global {
+  interface Window {
+    google: any;
+    google_initialized?: boolean;
+  }
 }
 
-const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
+interface LoginProps {
+  onToggle: () => void;
+}
+
+const Login: React.FC<LoginProps> = ({ onToggle }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ email: '', password: '' });
-  const { login } = useAuth();
+  const { login, setRequiresProfileCompletion } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (window.google && !window.google_initialized) {
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        use_fedcm_for_prompt: false,
+      });
+
+      window.google_initialized = true;
+    }
+  }, []);
+
+  const handleGoogleResponse = async (response: any) => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const res = await api.post('/auth/google', {
+        id_token: response.credential
+      });
+      const { access_token, user, requires_profile_completion } = res.data;
+      
+      if (requires_profile_completion) {
+        login(access_token, user, true);
+        setRequiresProfileCompletion(true);
+        navigate('/complete-profile');
+      } else {
+        login(access_token, user, false);
+        navigate('/dashboard/home');
+      }
+    } catch (err: any) {
+      console.error('Google Login Error:', err);
+      setError('Google login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    if (!window.google) {
+      setError('Google Sign-In is not available. Please try again later.');
+      return;
+    }
+
+    // Using OAuth2 Token Client flow which is more reliable for custom buttons
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      scope: 'openid email profile',
+      callback: async (tokenResponse: any) => {
+        if (tokenResponse && tokenResponse.access_token) {
+          setIsLoading(true);
+          try {
+            const res = await api.post('/auth/google', {
+              access_token: tokenResponse.access_token
+            });
+            const { access_token, user, requires_profile_completion } = res.data;
+            
+            if (requires_profile_completion) {
+              login(access_token, user, true);
+              setRequiresProfileCompletion(true);
+              navigate('/complete-profile');
+            } else {
+              login(access_token, user, false);
+              navigate('/dashboard/home');
+            }
+          } catch (err: any) {
+            console.error('Google Login Error:', err);
+            setError('Google login failed. Please try again.');
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      },
+    });
+
+    client.requestAccessToken();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,11 +114,15 @@ const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
     try {
       const response = await api.post('/users/login', formData);
       const { access_token, user } = response.data;
+      
       if (!access_token) {
         setError('Login successful but token missing.');
         return;
       }
-      login(access_token, user);
+      
+      // Manual login users have is_profile_complete = true by default
+      login(access_token, user, false);
+      navigate('/dashboard/home');
     } catch (err: any) {
       console.error('Login Error:', err);
       const errorMessage = err.response?.data?.error || err.message || 'Login failed.';
@@ -48,17 +138,6 @@ const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
       {/* Decorative Gradients */}
       <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[60%] h-[40%] bg-primary/20 blur-[130px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full" />
-
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="absolute top-6 left-6 flex items-center gap-2 text-sm text-text-muted hover:text-primary transition-all z-20 group"
-          aria-label="Back to home"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          Back to home
-        </button>
-      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -76,7 +155,7 @@ const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
         {/* Welcome Section */}
         <div className="mb-10 text-left">
           <h2 className="text-3xl font-bold text-text-base mb-2 tracking-tight">Welcome back</h2>
-          <p className="text-text-muted text-sm font-medium">Sign in to discover what's around you</p>
+          <p className="text-text-muted text-sm font-medium">Sign in to discover what&apos;s around you</p>
         </div>
 
         {error && (
@@ -147,9 +226,11 @@ const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
             <div className="h-[1px] flex-1 bg-border-base" />
           </div>
 
+
           {/* Social Login */}
           <button
             type="button"
+            onClick={handleGoogleLogin}
             className="w-full h-14 bg-bg-card/40 hover:bg-bg-card/60 border border-border-base rounded-2xl flex items-center justify-center gap-3 transition-all group active:scale-[0.98] shadow-sm cursor-pointer"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -164,7 +245,7 @@ const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
           {/* Footer */}
           <div className="text-center pt-4 flex flex-col gap-3">
             <div>
-              <span className="text-sm text-text-muted">Don't have an account? </span>
+              <span className="text-sm text-text-muted">Don&apos;t have an account? </span>
               <button
                 type="button"
                 onClick={onToggle}
@@ -193,3 +274,4 @@ const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
 };
 
 export default Login;
+

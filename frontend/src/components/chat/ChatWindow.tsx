@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   Send,
   ArrowLeft,
   CheckCheck,
@@ -24,7 +24,7 @@ interface ChatWindowProps {
 }
 
 const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: ChatWindowProps) => {
-   const { user } = useAuth();
+  const { user } = useAuth();
   const { messages, sendMessage, sendTyping, isTyping } = useChat(receiverId, isGroup);
   const { playSendSound } = useNotifications();
   const [content, setContent] = useState('');
@@ -77,7 +77,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
     }
   }, [receiverId, messages.length, isGroup]);
 
-   const handleSend = (e: React.FormEvent) => {
+  const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
     sendMessage(content);
@@ -97,7 +97,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
 
   return (
     <div className="flex flex-col h-full bg-[#f8f9fc] flex-1 relative overflow-hidden font-poppins">
-      
+
       {/* Chat Header */}
       <header className="h-[80px] px-8 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-20">
         <div className="flex items-center gap-4">
@@ -106,7 +106,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          
+
           <div className="flex items-center gap-3 cursor-pointer group" onClick={onToggleProfile}>
             <div className="relative">
               <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-purple-500">
@@ -121,11 +121,11 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
             </div>
             <div className="flex flex-col min-w-0">
-              <h3 className="text-[15px] font-black text-gray-900 leading-tight group-hover:text-pink-500 transition-colors uppercase italic truncate">
+              <h3 className="text-[15px] font-black text-gray-900 leading-tight group-hover:text-pink-500 transition-colors  truncate">
                 {recipient?.full_name || 'Locolive User'}
               </h3>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                <span className="text-[10px] font-bold text-gray-400 tracking-tighter">
                   @{recipient?.username}
                 </span>
                 <span className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
@@ -146,23 +146,23 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 no-scrollbar bg-white/40">
-        
+
         {/* Safety Header */}
         <div className="flex justify-center mb-6">
-           <div className="flex items-center gap-2 bg-[#f0f9ff] border border-[#e0f2fe] px-4 py-2 rounded-2xl shadow-sm">
-              <ShieldAlert className="w-3.5 h-3.5 text-sky-500" />
-              <span className="text-[11px] font-bold text-sky-700 leading-none text-center uppercase tracking-wider">
-                 End-to-End Secure Chat
-              </span>
-           </div>
+          <div className="flex items-center gap-2 bg-[#f0f9ff] border border-[#e0f2fe] px-4 py-2 rounded-2xl shadow-sm">
+            <ShieldAlert className="w-3.5 h-3.5 text-sky-500" />
+            <span className="text-[11px] font-bold text-sky-700 leading-none text-center uppercase tracking-wider">
+              End-to-End Secure Chat
+            </span>
+          </div>
         </div>
 
         <AnimatePresence>
           {messages.length === 0 && !isTyping ? (
-             <div className="flex flex-col items-center justify-center h-full text-center py-20 opacity-40">
-                <MessageCircle className="w-12 h-12 text-gray-300 mb-4" />
-                <h3 className="text-sm font-medium text-gray-800 uppercase italic">No messages yet</h3>
-             </div>
+            <div className="flex flex-col items-center justify-center h-full text-center py-20 opacity-40">
+              <MessageCircle className="w-12 h-12 text-gray-300 mb-4" />
+              <h3 className="text-sm font-medium text-gray-800 uppercase italic">No messages yet</h3>
+            </div>
           ) : (
             <>
               {messages.map((msg, idx) => {
@@ -171,7 +171,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
                 const senderAvatar = isMe ? user?.avatar_url : recipient?.avatar_url;
 
                 return (
-                  <motion.div 
+                  <motion.div
                     key={msg.id || idx}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -179,10 +179,10 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
                   >
                     {/* Header: Name and Time */}
                     <div className="flex items-center gap-2 mb-2 px-1">
-                       <span className="text-[11px] font-medium text-gray-900 italic tracking-tight">{senderName}</span>
-                       <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                       </span>
+                      <span className="text-[11px] font-medium text-gray-900 italic tracking-tight">{senderName}</span>
+                      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </span>
                     </div>
 
                     <div className={`flex gap-3 w-full ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -225,9 +225,9 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
 
         {/* Typing Indicator */}
         {isTyping && (
-           <div className="flex items-center gap-2 animate-pulse px-4">
-              <span className="text-[10px] font-medium text-gray-400 italic">User is typing...</span>
-           </div>
+          <div className="flex items-center gap-2 animate-pulse px-4">
+            <span className="text-[10px] font-medium text-gray-400 italic">User is typing...</span>
+          </div>
         )}
 
         <div ref={messagesEndRef} className="h-4" />
@@ -236,14 +236,14 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
       {/* Icebreakers UI */}
       <AnimatePresence>
         {messages.length === 0 && icebreakers.length > 0 && !content && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             className="px-6 py-2 flex flex-wrap justify-center gap-2 max-w-4xl mx-auto"
           >
             {icebreakers.slice(0, 3).map((text, i) => (
-              <button 
+              <button
                 key={i}
                 onClick={() => {
                   sendMessage(text);
@@ -261,11 +261,11 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
       {/* Input Area */}
       <div className="px-6 pb-6 pt-2 bg-transparent sticky bottom-0">
         <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-center gap-3 bg-white/90 backdrop-blur-xl p-2 rounded-full border border-gray-100/50 shadow-2xl shadow-gray-200/40">
-          
+
           <button type="button" className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all">
             <Plus className="w-5 h-5" />
           </button>
-          
+
           <button type="button" className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
           </button>
@@ -283,17 +283,16 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
             <button type="button" className="p-2 text-gray-400 hover:text-gray-900 transition-all">
               <Smile className="w-5 h-5" />
             </button>
-            
+
             <motion.button
               type="submit"
               disabled={!content.trim()}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-xl ${
-                content.trim()
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-xl ${content.trim()
                   ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-pink-500/30'
                   : 'bg-gray-100 text-gray-300'
-              }`}
+                }`}
             >
               <Send className="w-4 h-4 fill-white" />
             </motion.button>

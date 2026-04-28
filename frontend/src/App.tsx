@@ -5,8 +5,11 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { SoundProvider } from './context/SoundContext'
 import { NetworkProvider } from './context/NetworkContext'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+// import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { OfflineBanner } from './components/ui/OfflineBanner'
+import SplashScreen from './components/ui/SplashScreen'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { PublicRoute } from './components/auth/PublicRoute'
 
 // ─── Lazy Loaded Pages ────────────────────────────────────────────────────────
 // Auth pages (small, load fast)
@@ -15,6 +18,7 @@ const AdminLogin = lazy(() => import('./pages/auth/AdminLogin'))
 const Signup = lazy(() => import('./pages/auth/Signup'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'))
+const CompleteProfile = lazy(() => import('./pages/auth/CompleteProfile'))
 
 // Main app (large — only loaded after login)
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
@@ -78,63 +82,89 @@ function AppContent() {
   const navigate = useNavigate();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-bg-base flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <SplashScreen />;
   }
-
-  const isAdmin = user?.role === 'admin' || user?.role === 'moderator';
 
   return (
     <>
       <OfflineBanner />
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Public Routes */}
+          {/* Public Routes (Accessible only when logged out) */}
           <Route 
             path="/login" 
-            element={!user ? <Login onToggle={() => navigate('/signup')} onBack={() => navigate('/')} /> : <Navigate to="/dashboard/home" replace />} 
+            element={
+              <PublicRoute>
+                <Login onToggle={() => navigate('/signup')} />
+              </PublicRoute>
+            } 
           />
 
           <Route 
             path="/admin/login" 
-            element={!isAdmin ? <AdminLogin /> : <Navigate to="/admin" replace />} 
+            element={
+              <PublicRoute>
+                <AdminLogin />
+              </PublicRoute>
+            } 
           />
 
           <Route 
             path="/signup" 
-            element={!user ? <Signup onToggle={() => navigate('/login')} onBack={() => navigate('/login')} /> : <Navigate to="/dashboard/home" replace />} 
+            element={
+              <PublicRoute>
+                <Signup onToggle={() => navigate('/login')} onBack={() => navigate('/login')} />
+              </PublicRoute>
+            } 
           />
 
           <Route 
             path="/forgot-password" 
-            element={!user ? <ForgotPassword onBack={() => navigate('/login')} /> : <Navigate to="/dashboard/home" replace />} 
+            element={
+              <PublicRoute>
+                <ForgotPassword onBack={() => navigate('/login')} />
+              </PublicRoute>
+            } 
           />
 
           <Route 
             path="/reset-password" 
-            element={!user ? <ResetPassword /> : <Navigate to="/dashboard/home" replace />} 
+            element={
+              <PublicRoute>
+                <ResetPassword />
+              </PublicRoute>
+            } 
           />
 
-          {/* Protected Dashboard Route (Layout) */}
+          {/* Protected Routes (Accessible only when logged in) */}
+          
+          {/* Profile Completion — users can ONLY access this if authenticated but incomplete */}
+          <Route 
+            path="/complete-profile" 
+            element={
+              <ProtectedRoute>
+                <CompleteProfile />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Protected Dashboard Route */}
           <Route 
             path="/dashboard/*" 
-            element={user ? <Dashboard /> : <Navigate to="/login" replace />} 
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
           />
 
           {/* Admin Routes (Protected + Role Check) */}
           <Route 
             path="/admin" 
             element={
-              !user ? (
-                <Navigate to="/admin/login" replace />
-              ) : isAdmin ? (
+              <ProtectedRoute requireAdmin>
                 <AdminLayout />
-              ) : (
-                <Navigate to="/admin/login" replace />
-              )
+              </ProtectedRoute>
             } 
           >
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -181,7 +211,7 @@ function App() {
             </SoundProvider>
           </AuthProvider>
         </ThemeProvider>
-        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+        {/* {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />} */}
       </QueryClientProvider>
     </Router>
   );

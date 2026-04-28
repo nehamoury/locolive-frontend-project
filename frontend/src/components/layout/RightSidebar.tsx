@@ -62,12 +62,12 @@ const RightSidebar: FC<RightSidebarProps> = ({
 
       {/* ── Snap Match Card (Premium Redesign) ── */}
       <motion.div
-        whileHover={{ y: -5, boxShadow: '0 25px 50px -12px rgba(255, 0, 110, 0.4)' }}
+        whileHover={{ y: -5, boxShadow: '0 25px 50px -12px rgba(255, 0, 110, 0.1)' }}
         onClick={() => navigateToExplore('casting')}
-        className="group relative bg-brand-gradient rounded-[32px] p-6 text-white overflow-hidden shadow-2xl shadow-primary/20 flex-shrink-0 cursor-pointer"
+        className="group relative bg-bg-card/40 backdrop-blur-xl border border-border-base/50 rounded-[32px] p-6 text-text-base overflow-hidden shadow-sm flex-shrink-0 cursor-pointer"
       >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-12 -mb-12 blur-xl" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:scale-150 transition-transform duration-700" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary/5 rounded-full -ml-12 -mb-12 blur-2xl" />
         
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-5">
@@ -77,10 +77,10 @@ const RightSidebar: FC<RightSidebarProps> = ({
             <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/30 text-[10px] font-black uppercase tracking-widest">Live</div>
           </div>
           
-          <h3 className="text-[20px] font-black leading-tight mb-2 italic tracking-tighter">Snap Match</h3>
-          <p className="text-white/80 text-[12px] leading-relaxed mb-6 font-bold">Discover people attending the same events near you right now.</p>
+          <h3 className="text-[20px] font-black leading-tight mb-2 tracking-tighter">Snap Match</h3>
+          <p className="text-text-muted text-[12px] leading-relaxed mb-6 font-bold">Discover people attending the same events near you right now.</p>
           
-          <button className="w-full py-3.5 bg-white text-primary rounded-[18px] font-black text-[13px] flex items-center justify-center gap-2 group-hover:gap-4 transition-all shadow-xl shadow-black/10">
+          <button className="w-full py-3.5 bg-brand-gradient text-white rounded-[18px] font-black text-[13px] flex items-center justify-center gap-2 group-hover:gap-4 transition-all shadow-xl shadow-primary/20">
             <span>Find Matches</span>
             <ChevronRight className="w-4 h-4 stroke-[3]" />
           </button>
@@ -245,7 +245,7 @@ const StatCard = ({ label, count, icon, color, onClick }: { label: string; count
         <span className={colors[color].split(' ')[1]}>{icon}</span>
       </div>
       <p className="text-[10px] font-black text-text-muted uppercase tracking-[1.5px] mb-1 opacity-70 leading-none">{label}</p>
-      <span className="text-[24px] font-black text-text-base leading-none tracking-tighter italic">{count}</span>
+      <span className="text-[24px] font-medium text-text-base leading-none tracking-tighter">{count}</span>
     </motion.div>
   );
 };

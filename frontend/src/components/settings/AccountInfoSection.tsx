@@ -1,5 +1,5 @@
 import { useState, type FC, useEffect } from 'react';
-import { Camera, MapPin, RefreshCw, Check } from 'lucide-react';
+import { Camera, MapPin, RefreshCw, Check, ChevronRight } from 'lucide-react';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import { useAuth } from '../../context/AuthContext';
@@ -18,7 +18,6 @@ const AccountInfoSection: FC<AccountInfoSectionProps> = () => {
   // Username Check States
   const [usernameStatus, setUsernameStatus] = useState<'idle'|'checking'|'available'|'taken'|'invalid'|'error'>('idle');
   const [usernameMsg, setUsernameMsg] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,19 +33,16 @@ const AccountInfoSection: FC<AccountInfoSectionProps> = () => {
     if (username === user?.username) {
       setUsernameStatus('idle');
       setUsernameMsg('');
-      setSuggestions([]);
       return;
     }
     if (!username) {
       setUsernameStatus('idle');
       setUsernameMsg('');
-      setSuggestions([]);
       return;
     }
     if (username.length < 3) {
       setUsernameStatus('invalid');
       setUsernameMsg('Min 3 chars required');
-      setSuggestions([]);
       return;
     }
 
@@ -57,16 +53,13 @@ const AccountInfoSection: FC<AccountInfoSectionProps> = () => {
         if (res.data.available) {
           setUsernameStatus('available');
           setUsernameMsg('Username is available');
-          setSuggestions([]);
         } else {
           setUsernameStatus('taken');
           setUsernameMsg('Username is already taken');
-          if (res.data.suggestions) setSuggestions(res.data.suggestions);
         }
       } catch (err: any) {
         setUsernameStatus('error');
         setUsernameMsg(err.response?.data?.error || 'Error checking username');
-        setSuggestions([]);
       }
     }, 500);
 
@@ -107,151 +100,136 @@ const AccountInfoSection: FC<AccountInfoSectionProps> = () => {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6 pb-20">
       <div className="space-y-1">
         <h2 className="text-2xl font-black text-text-base">Account Information</h2>
         <p className="text-[14px] text-text-muted font-bold">Manage your personal information and account details</p>
       </div>
 
-      <div className="bg-white rounded-[32px] border border-border-base/50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
-        <div className="divide-y divide-border-base/30">
-          <div className="flex items-center justify-between p-6 hover:bg-bg-base transition-colors group">
-            <div className="flex items-center gap-5">
-              <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center text-pink-500 shadow-sm">
-                <Camera className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[15px] font-black text-text-base tracking-tight">Profile Photo</h4>
-                <p className="text-[12px] text-text-muted font-bold mt-0.5">Change your profile picture</p>
-              </div>
-            </div>
-            <label htmlFor="avatar-upload" className="cursor-pointer">
-              <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-bg-base shadow-md relative group/avatar">
-                <img src={avatarPreview || getMediaUrl(user?.avatar_url, FALLBACKS.AVATAR(user?.username))} className="w-full h-full object-cover" alt="" />
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                  <Camera className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-            </label>
+      {/* 1. Profile Photo Section */}
+      <div className="bg-bg-card rounded-[32px] border border-border-base/50 p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+        <div className="flex items-center gap-5">
+          <div className="w-12 h-12 bg-pink-500/10 rounded-2xl flex items-center justify-center text-pink-500 shadow-sm">
+            <Camera className="w-6 h-6" />
           </div>
-
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Full Name</label>
-                <input 
-                  type="text" 
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-[#fcf5f8] border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Username</label>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className={`w-full bg-[#fcf5f8] border rounded-2xl pl-5 pr-10 py-3.5 text-sm font-bold text-text-base outline-none transition-all ${
-                      (usernameStatus === 'invalid' || usernameStatus === 'taken' || usernameStatus === 'error') ? 'border-red-500/50 focus:border-red-500' :
-                      usernameStatus === 'available' ? 'border-green-500/50 focus:border-green-500' :
-                      'border-border-base/50 focus:border-pink-500/50'
-                    }`}
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
-                    {usernameStatus === 'checking' && <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
-                    {usernameStatus === 'available' && <Check className="w-4 h-4 text-green-500" />}
-                  </div>
-                </div>
-                {usernameMsg && (
-                  <p className={`text-[10px] font-bold px-1 ${usernameStatus === 'available' ? 'text-green-500' : 'text-red-500'}`}>
-                    {usernameMsg}
-                  </p>
-                )}
-                {suggestions.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {suggestions.map((sug) => (
-                      <button
-                        key={sug}
-                        type="button"
-                        onClick={() => setUsername(sug)}
-                        className="px-2 py-1 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors cursor-pointer"
-                      >
-                        @{sug}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+          <div className="text-left">
+            <h4 className="text-[16px] font-black text-text-base tracking-tight">Profile Photo</h4>
+            <p className="text-[12px] text-text-muted font-bold mt-0.5">Change your profile picture</p>
+          </div>
+        </div>
+        <label htmlFor="avatar-upload" className="cursor-pointer">
+          <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-bg-base shadow-md relative group/avatar">
+            <img src={avatarPreview || getMediaUrl(user?.avatar_url, FALLBACKS.AVATAR(user?.username))} className="w-full h-full object-cover" alt="" />
+            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+              <Camera className="w-4 h-4 text-white" />
             </div>
-            
-            <div className="space-y-2">
-              <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Bio</label>
-              <textarea 
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                rows={3}
-                className="w-full bg-[#fcf5f8] border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all resize-none"
+          </div>
+          <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+        </label>
+      </div>
+
+      {/* 2. Personal Details Section */}
+      <div className="bg-bg-card rounded-[32px] border border-border-base/50 p-8 space-y-6 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Full Name</label>
+            <input 
+              type="text" 
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-6 py-4 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all shadow-inner"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Username</label>
+            <div className="relative">
+              <input 
+                type="text" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={`w-full bg-bg-base/50 border rounded-2xl pl-6 pr-12 py-4 text-sm font-bold text-text-base outline-none transition-all shadow-inner ${
+                  (usernameStatus === 'invalid' || usernameStatus === 'taken' || usernameStatus === 'error') ? 'border-red-500/50 focus:border-red-500' :
+                  usernameStatus === 'available' ? 'border-green-500/50 focus:border-green-500' :
+                  'border-border-base/50 focus:border-pink-500/50'
+                }`}
               />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
+                {usernameStatus === 'checking' && <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
+                {usernameStatus === 'available' && <Check className="w-4 h-4 text-green-500" />}
+              </div>
             </div>
+            {usernameMsg && (
+              <p className={`text-[10px] font-bold px-1 mt-1 ${usernameStatus === 'available' ? 'text-green-500' : 'text-red-500'}`}>
+                {usernameMsg}
+              </p>
+            )}
+          </div>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2 opacity-60">
-                <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Email</label>
-                <input type="text" value={user?.email || "Not set"} disabled className="w-full bg-gray-50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-muted cursor-not-allowed" />
-              </div>
-              <div className="space-y-2 opacity-60">
-                <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Phone</label>
-                <input type="text" value={user?.phone || "Not set"} disabled className="w-full bg-gray-50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-muted cursor-not-allowed" />
-              </div>
-            </div>
-
-            {/* Location - Read Only */}
-            <div className="flex items-center justify-between py-4 border-t border-border-base/30 mt-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center text-pink-500 shadow-sm">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-[14px] font-black text-text-base">Current Location</h4>
-                  <p className="text-[11px] text-text-muted font-bold mt-0.5">Raipur, Chhattisgarh (Auto-detected)</p>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black uppercase rounded-full border border-green-100">Default</span>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-60">
+          <div className="space-y-2">
+            <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Email</label>
+            <input type="text" value={user?.email || "Not set"} disabled className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-6 py-4 text-sm font-bold text-text-muted cursor-not-allowed" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Phone</label>
+            <input type="text" value={user?.phone || "Not set"} disabled className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-6 py-4 text-sm font-bold text-text-muted cursor-not-allowed" />
           </div>
         </div>
       </div>
 
+      {/* 3. Bio Section */}
+      <div className="bg-bg-card rounded-[32px] border border-border-base/50 p-8 space-y-3 shadow-sm">
+        <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">About Me / Bio</label>
+        <textarea 
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          rows={4}
+          className="w-full bg-bg-base/50 border border-border-base/50 rounded-3xl px-6 py-4 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all resize-none shadow-inner"
+          placeholder="Write something about yourself..."
+        />
+      </div>
+
+      {/* 4. Location Section */}
+      <div className="bg-bg-card rounded-[32px] border border-border-base/50 p-6 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-5">
+          <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
+            <MapPin className="w-6 h-6" />
+          </div>
+          <div className="text-left">
+            <h4 className="text-[15px] font-black text-text-base tracking-tight">Current Location</h4>
+            <p className="text-[12px] text-text-muted font-bold mt-0.5">Raipur, Chhattisgarh (Auto-detected)</p>
+          </div>
+        </div>
+        <span className="px-4 py-1.5 bg-green-500/10 text-green-600 text-[10px] font-black uppercase rounded-full border border-green-500/20">Default</span>
+      </div>
+
+      {/* 5. Save Button */}
       <button 
         onClick={handleSaveProfile}
         disabled={saving}
-        className="w-full flex items-center justify-center gap-3 p-6 bg-brand-gradient hover:opacity-90 text-white rounded-[32px] shadow-lg shadow-primary/20 transition-all group cursor-pointer disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-3 p-6 bg-brand-gradient hover:opacity-90 text-white rounded-[32px] shadow-xl shadow-pink-500/20 transition-all group cursor-pointer disabled:opacity-50 active:scale-[0.98]"
       >
-        <div className="text-center">
-          <span className="text-[15px] font-black block">
-            {saving ? 'Saving Changes...' : 'Save Profile Changes'}
-          </span>
-        </div>
+        <span className="text-[16px] font-black">
+          {saving ? 'Saving Changes...' : 'Save All Changes'}
+        </span>
       </button>
 
-      <div className="space-y-4 pt-6">
-        <h3 className="text-[13px] font-black uppercase tracking-widest text-text-muted/60 px-2">Account Actions</h3>
-        <div className="bg-white rounded-[32px] border border-border-base/50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
-           <div className="flex items-center justify-between p-6 hover:bg-bg-base transition-colors group cursor-pointer">
-            <div className="flex items-center gap-5">
-              <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center text-pink-500 shadow-sm">
-                <RefreshCw className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <h4 className="text-[15px] font-black text-text-base tracking-tight">Switch Account</h4>
-                <p className="text-[12px] text-text-muted font-bold mt-0.5">Switch to another account</p>
-              </div>
+      {/* 6. Account Actions Section */}
+      <div className="space-y-4 pt-4">
+        <h3 className="text-[13px] font-black uppercase tracking-widest text-text-muted/60 px-4">More Actions</h3>
+        <button className="w-full bg-bg-card rounded-[32px] border border-border-base/50 p-6 flex items-center justify-between hover:bg-bg-base transition-all group cursor-pointer">
+          <div className="flex items-center gap-5">
+            <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500 shadow-sm">
+              <RefreshCw className="w-6 h-6" />
+            </div>
+            <div className="text-left">
+              <h4 className="text-[15px] font-black text-text-base tracking-tight">Switch Account</h4>
+              <p className="text-[12px] text-text-muted font-bold mt-0.5">Switch to another Locolive account</p>
             </div>
           </div>
-        </div>
+          <ChevronRight className="w-5 h-5 text-text-muted/30 group-hover:text-pink-500 group-hover:translate-x-1 transition-all" />
+        </button>
       </div>
     </div>
   );
