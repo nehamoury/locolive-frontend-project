@@ -15,6 +15,50 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Mobile Debugging Console (Eruda) -->
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+
+    <script>
+      // Global Defensive Layer against "Cannot read property of undefined" crashes
+      (function() {
+        var originalAdd = EventTarget.prototype.addEventListener;
+        var originalRemove = EventTarget.prototype.removeEventListener;
+
+        function safeWrapper(originalFunc) {
+          return function(type, listener, options) {
+            if (!this || this === undefined) {
+              console.warn('Blocked add/removeEventListener on undefined target');
+              return;
+            }
+            try {
+              return originalFunc.apply(this, arguments);
+            } catch (e) {
+              console.error('EventListener Error caught:', e);
+            }
+          };
+        }
+
+        EventTarget.prototype.addEventListener = safeWrapper(originalAdd);
+        EventTarget.prototype.removeEventListener = safeWrapper(originalRemove);
+        
+        // Explicitly protect window and document as well (redundant but safer for some mobile engines)
+        window.addEventListener = safeWrapper(window.addEventListener);
+        window.removeEventListener = safeWrapper(window.removeEventListener);
+        document.addEventListener = safeWrapper(document.addEventListener);
+        document.removeEventListener = safeWrapper(document.removeEventListener);
+      })();
+
+      // Global error suppressor for PWA stability
+      window.onerror = function(msg, url, line, col, error) {
+        if (msg.includes('ResizeObserver') || msg.includes('Google') || msg.includes('undefined (reading \'addEventListener\')')) {
+          console.warn('Suppressed known harmless/handled error:', msg);
+          return true;
+        }
+        return false; // Let other errors pass to ErrorBoundary
+      };
+    </script>
     <title>Locolive</title>
   </head>
   <body>

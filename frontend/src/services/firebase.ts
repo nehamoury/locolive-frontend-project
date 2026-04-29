@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
 import api from "./api";
 
 const firebaseConfig = {
@@ -14,7 +14,22 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+
+// Safe messaging initialization
+let messaging: any = null;
+
+// Immediately check support and initialize if possible
+const initMessaging = async () => {
+  try {
+    const supported = await isSupported();
+    if (supported) {
+      messaging = getMessaging(app);
+    }
+  } catch (e) {
+    console.warn('Firebase Messaging check failed:', e);
+  }
+};
+initMessaging();
 
 export const requestNotificationPermission = async () => {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
@@ -23,10 +38,15 @@ export const requestNotificationPermission = async () => {
   }
 
   try {
+    const supported = await isSupported();
+    if (!supported || !messaging) {
+      console.warn('FCM not supported in this browser');
+      return null;
+    }
+
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       // Ensure Service Worker is ready before getting token
-      // This prevents the 'AbortError: Registration failed' issue
       const registration = await navigator.serviceWorker.ready;
       
       const token = await getToken(messaging, {
@@ -54,6 +74,7 @@ export const requestNotificationPermission = async () => {
 
 export const onMessageListener = () =>
   new Promise((resolve) => {
+    if (!messaging) return;
     onMessage(messaging, (payload) => {
       resolve(payload);
     });

@@ -7,14 +7,21 @@ import axios from 'axios';
 const RAW_URL = import.meta.env.VITE_API_URL as string | undefined;
 
 // Fallback logic: 
-// 1. If VITE_API_URL is set (during build), use it.
+// 1. If VITE_API_URL is set (during build) and NOT a local IP (for prod safety), use it.
 // 2. If running on localhost, use the local backend port.
 // 3. Otherwise (Production), use the current browser origin.
 const FALLBACK_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
   ? 'http://localhost:8081' 
   : (typeof window !== 'undefined' ? window.location.origin : '');
 
-const BASE_HOST = (RAW_URL || FALLBACK_URL).replace(/\/api\/?$/, '').replace(/\/$/, '');
+// If the URL is a local IP, and we are not on localhost, it's likely a leftover from dev
+const isLocalIP = (url: string) => /192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\./.test(url) || url.includes('localhost') || url.includes('127.0.0.1');
+
+const FINAL_URL = (RAW_URL && (typeof window !== 'undefined' && window.location.hostname === 'localhost' || !isLocalIP(RAW_URL))) 
+  ? RAW_URL 
+  : FALLBACK_URL;
+
+const BASE_HOST = FINAL_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
 
 // The axios baseURL — always ends with /api (no trailing slash)
 export const API_BASE_URL = `${BASE_HOST}/api`;

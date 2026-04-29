@@ -70,10 +70,12 @@ export const useNotifications = () => {
         new Notification(title, defaultOptions);
       } catch (err) {
         // Fallback for devices that require service worker registration for notifications
-        if ('serviceWorker' in navigator) {
+        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker && navigator.serviceWorker.ready) {
           navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification(title, defaultOptions);
-          });
+            if (registration && registration.showNotification) {
+              registration.showNotification(title, defaultOptions);
+            }
+          }).catch(() => {});
         }
       }
     }
@@ -229,7 +231,7 @@ export const useNotifications = () => {
     fetchPendingRequestsCount();
 
     // Automatically request/refresh FCM token if permission was previously granted
-    if (Notification.permission === 'granted') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       requestFCMPermission();
     }
   }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount]);

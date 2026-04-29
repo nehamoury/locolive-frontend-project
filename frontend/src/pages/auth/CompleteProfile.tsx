@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AtSign, Phone, Check, ArrowRight, MapPin } from 'lucide-react';
+import { AtSign, Phone, Check, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import authService from '../../services/authService';
+import logo from '../../assets/WhatsApp Image 2026-04-28 at 4.00.46 PM.png';
+
 
 const CompleteProfile: React.FC = () => {
   const navigate = useNavigate();
@@ -146,11 +148,13 @@ const CompleteProfile: React.FC = () => {
         className="w-full max-w-md glass rounded-[28px] p-8 shadow-2xl relative z-10 border border-white/60"
       >
         {/* Logo */}
-        <div className="flex items-center gap-2.5 mb-7">
-          <div className="w-9 h-9 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/20">
-            <MapPin className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-xl font-black tracking-tight text-text-base">Locolive</span>
+        <div className="flex items-center gap-3 mb-8">
+          <img 
+            src={logo} 
+            alt="Locolive" 
+            className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary/10 border border-white/50"
+          />
+          <span className="text-xl font-black tracking-tight text-text-base leading-none">Locolive</span>
         </div>
 
         <div className="mb-6">

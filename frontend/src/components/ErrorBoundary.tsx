@@ -7,16 +7,18 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  error: Error | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
-    hasError: false
+    hasError: false,
+    error: null
   };
 
-  public static getDerivedStateFromError(_: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
-    return { hasError: true };
+    return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -44,16 +46,27 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center p-6 text-center">
-          <h1 className="text-4xl font-black text-primary mb-4">Oops!</h1>
-          <p className="text-text-muted mb-8">Something went wrong while loading the page.</p>
+          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
+            <span className="text-4xl">⚠️</span>
+          </div>
+          <h1 className="text-4xl font-black text-primary mb-2">Oops!</h1>
+          <p className="text-text-muted mb-6">Something went wrong while loading the page.</p>
+          
+          {this.state.error && (
+            <div className="mb-8 p-4 bg-red-500/5 border border-red-500/10 rounded-xl max-w-md w-full text-left overflow-auto">
+              <p className="text-red-500 font-bold text-xs uppercase mb-1">{this.state.error.name}</p>
+              <p className="text-text-base text-sm font-medium">{this.state.error.message}</p>
+            </div>
+          )}
+
           <button 
             onClick={() => {
               sessionStorage.removeItem('chunk-error-reloaded');
               window.location.reload();
             }}
-            className="px-6 py-3 bg-primary text-white font-bold rounded-xl active:scale-95 transition-all"
+            className="px-8 py-3 bg-primary text-white font-bold rounded-xl active:scale-95 transition-all shadow-lg shadow-primary/20"
           >
-            Refresh Page
+            Try Again
           </button>
         </div>
       );

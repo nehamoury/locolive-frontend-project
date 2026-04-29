@@ -1,12 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Bookmark, 
   RefreshCcw, 
-  QrCode, 
-  Info, 
-  EyeOff, 
-  Heart, 
   User, 
   Flag, 
   Settings
@@ -53,34 +48,23 @@ const ReelOptionsBottomSheet: React.FC<ReelOptionsBottomSheetProps> = ({
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>
 
-            {/* Top Grid Actions */}
-            <div className="grid grid-cols-3 gap-1 px-4 mb-4">
-              <ActionButton icon={<Bookmark className="w-6 h-6" />} label="Save" />
-              <ActionButton icon={<RefreshCcw className="w-6 h-6" />} label="Remix" />
-              <ActionButton icon={<QrCode className="w-6 h-6" />} label="QR code" />
-            </div>
-
-            <div className="h-[1px] bg-white/5 mx-4 mb-2" />
-
             {/* List Actions */}
             <div className="flex flex-col px-2 pb-8">
-              <ListButton icon={<Info className="w-5 h-5" />} label="Why you're seeing this post" />
-              <ListButton icon={<EyeOff className="w-5 h-5" />} label="Not interested" />
-              <ListButton icon={<Heart className="w-5 h-5" />} label="Interested" />
-              <ListButton icon={<User className="w-5 h-5" />} label={`About this account (@${username})`} />
+              <ListButton icon={<RefreshCcw className="w-5 h-5" />} label="Remix" onClick={() => { alert('Remix coming soon!'); onClose(); }} />
+              <ListButton icon={<User className="w-5 h-5" />} label={`About this account (@${username})`} onClick={() => { alert('Account info coming soon!'); onClose(); }} />
               
               {isOwner ? (
                 <ListButton 
                   icon={<Flag className="w-5 h-5" />} 
                   label="Delete" 
                   variant="danger" 
-                  onClick={onDelete}
+                  onClick={() => { onDelete?.(); onClose(); }}
                 />
               ) : (
-                <ListButton icon={<Flag className="w-5 h-5" />} label="Report" variant="danger" />
+                <ListButton icon={<Flag className="w-5 h-5" />} label="Report" variant="danger" onClick={() => { alert('Thank you for reporting. We will review this content.'); onClose(); }} />
               )}
               
-              <ListButton icon={<Settings className="w-5 h-5" />} label="Manage content preferences" />
+              <ListButton icon={<Settings className="w-5 h-5" />} label="Manage content preferences" onClick={() => { alert('Content preferences coming soon!'); onClose(); }} />
             </div>
           </motion.div>
         </>
@@ -89,17 +73,7 @@ const ReelOptionsBottomSheet: React.FC<ReelOptionsBottomSheetProps> = ({
   );
 };
 
-const ActionButton = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) => (
-  <button 
-    onClick={onClick}
-    className="flex flex-col items-center justify-center gap-2 p-4 hover:bg-white/5 rounded-2xl transition-all"
-  >
-    <div className="w-14 h-14 flex items-center justify-center rounded-full border border-white/20">
-      {icon}
-    </div>
-    <span className="text-[11px] font-medium text-white/80">{label}</span>
-  </button>
-);
+
 
 const ListButton = ({ 
   icon, 

@@ -1,7 +1,7 @@
 import { useState, useEffect, type FC } from 'react';
-import { 
-  MapPin, TrendingUp, Users, Footprints, 
-  Star, Zap, ChevronRight, 
+import {
+  MapPin, TrendingUp, Users, Footprints,
+  Star, ChevronRight,
   UserPlus, Heart, PlayCircle,
   ArrowRight
 } from 'lucide-react';
@@ -60,65 +60,6 @@ const RightSidebar: FC<RightSidebarProps> = ({
   return (
     <aside className="h-full flex flex-col overflow-y-auto no-scrollbar pt-6 pb-8 px-6 gap-8 bg-bg-sidebar/30 backdrop-blur-sm">
 
-      {/* ── Snap Match Card (Premium Redesign) ── */}
-      <motion.div
-        whileHover={{ y: -5, boxShadow: '0 25px 50px -12px rgba(255, 0, 110, 0.1)' }}
-        onClick={() => navigateToExplore('casting')}
-        className="group relative bg-bg-card/40 backdrop-blur-xl border border-border-base/50 rounded-[32px] p-6 text-text-base overflow-hidden shadow-sm flex-shrink-0 cursor-pointer"
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:scale-150 transition-transform duration-700" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary/5 rounded-full -ml-12 -mb-12 blur-2xl" />
-        
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-5">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 group-hover:rotate-12 transition-transform">
-              <Zap className="w-6 h-6 text-white fill-white" />
-            </div>
-            <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/30 text-[10px] font-black uppercase tracking-widest">Live</div>
-          </div>
-          
-          <h3 className="text-[20px] font-black leading-tight mb-2 tracking-tighter">Snap Match</h3>
-          <p className="text-text-muted text-[12px] leading-relaxed mb-6 font-bold">Discover people attending the same events near you right now.</p>
-          
-          <button className="w-full py-3.5 bg-brand-gradient text-white rounded-[18px] font-black text-[13px] flex items-center justify-center gap-2 group-hover:gap-4 transition-all shadow-xl shadow-primary/20">
-            <span>Find Matches</span>
-            <ChevronRight className="w-4 h-4 stroke-[3]" />
-          </button>
-        </div>
-      </motion.div>
-
-      {/* ── Stats Grid (Modern Redesign) ── */}
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard 
-          label="Nearby" 
-          count={nearbyCount} 
-          icon={<MapPin className="w-4 h-4" />} 
-          color="pink" 
-          onClick={() => navigateToExplore('nearby')}
-        />
-        <StatCard 
-          label="Stories" 
-          count={storiesCount} 
-          icon={<PlayCircle className="w-4 h-4" />} 
-          color="purple" 
-          onClick={() => navigateToExplore('stories')}
-        />
-        <StatCard 
-          label="Crossings" 
-          count={crossingsToday} 
-          icon={<Footprints className="w-4 h-4" />} 
-          color="emerald" 
-          onClick={() => navigateToExplore('crossings')}
-        />
-        <StatCard 
-          label="Saved" 
-          count={0} 
-          icon={<Star className="w-4 h-4" />} 
-          color="amber" 
-          onClick={() => navigate(`/dashboard/profile/${user?.id}?tab=saved`)}
-        />
-      </div>
-
       {/* ── Suggested for you (Functional) ── */}
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between px-1">
@@ -126,14 +67,14 @@ const RightSidebar: FC<RightSidebarProps> = ({
             <Heart className="w-4 h-4 text-primary" />
             <h3 className="text-[14px] font-black text-text-base italic">Suggested</h3>
           </div>
-          <button 
+          <button
             onClick={() => navigateToExplore('all')}
             className="text-[11px] font-black text-primary hover:bg-primary/5 px-2 py-1 rounded-lg transition-all uppercase tracking-wider"
           >
             See all
           </button>
         </div>
-        
+
         <div className="flex flex-col gap-3">
           {isLoadingSuggestions ? (
             Array(3).fill(0).map((_, i) => (
@@ -174,13 +115,47 @@ const RightSidebar: FC<RightSidebarProps> = ({
               ))}
             </AnimatePresence>
           ) : (
-             <div className="py-8 text-center bg-bg-base/30 rounded-[24px] border border-dashed border-border-base/50">
-                <Users className="w-8 h-8 text-text-muted/20 mx-auto mb-2" />
-                <p className="text-[11px] font-bold text-text-muted">No suggestions right now</p>
-             </div>
+            <div className="py-8 text-center bg-bg-base/30 rounded-[24px] border border-dashed border-border-base/50">
+              <Users className="w-8 h-8 text-text-muted/20 mx-auto mb-2" />
+              <p className="text-[11px] font-bold text-text-muted">No suggestions right now</p>
+            </div>
           )}
         </div>
       </div>
+
+      {/* ── Stats Grid (Modern Redesign) ── */}
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard
+          label="Nearby"
+          count={nearbyCount}
+          icon={<MapPin className="w-4 h-4" />}
+          color="pink"
+          onClick={() => navigateToExplore('nearby')}
+        />
+        <StatCard
+          label="Stories"
+          count={storiesCount}
+          icon={<PlayCircle className="w-4 h-4" />}
+          color="purple"
+          onClick={() => navigateToExplore('stories')}
+        />
+        <StatCard
+          label="Crossings"
+          count={crossingsToday}
+          icon={<Footprints className="w-4 h-4" />}
+          color="emerald"
+          onClick={() => navigateToExplore('crossings')}
+        />
+        <StatCard
+          label="Saved"
+          count={0}
+          icon={<Star className="w-4 h-4" />}
+          color="amber"
+          onClick={() => navigate(`/dashboard/profile/${user?.id}?tab=saved`)}
+        />
+      </div>
+
+
 
       {/* ── Trending Circles (Functional Redesign) ── */}
       <div className="flex flex-col gap-5 flex-1">
@@ -214,8 +189,8 @@ const RightSidebar: FC<RightSidebarProps> = ({
             Most connections happen at <span className="text-primary italic">"The Central Square"</span> this weekend.
           </p>
           <div className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-primary uppercase tracking-widest group-hover:gap-2.5 transition-all">
-             <span>View Heatmap</span>
-             <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
+            <span>View Heatmap</span>
+            <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
           </div>
         </div>
       </div>
@@ -235,7 +210,7 @@ const StatCard = ({ label, count, icon, color, onClick }: { label: string; count
   };
 
   return (
-    <motion.div 
+    <motion.div
       whileHover={{ scale: 1.05, y: -2 }}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}

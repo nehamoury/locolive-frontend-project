@@ -97,13 +97,13 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
   }
 
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] md:h-full bg-slate-50 overflow-hidden flex flex-col items-center justify-center">
+    <div className="relative w-full h-[100dvh] md:h-full bg-bg-base overflow-hidden flex flex-col items-center justify-center no-scrollbar">
 
       {/* Layout Wrapper: Center Reel + Right Sidebar/Arrows */}
-      <div className="flex items-center gap-6 z-10">
+      <div className="flex items-center justify-center md:gap-6 z-10 w-full h-full">
         
         {/* Main Reel Container */}
-        <div className="relative w-full h-full md:w-[420px] md:h-[calc(100vh-64px)] group bg-black shadow-[0_10px_60px_-10px_rgba(0,0,0,0.4)] overflow-hidden ring-1 ring-white/10">
+        <div className="relative w-full h-full md:w-[450px] md:max-h-[900px] group bg-black shadow-[20px_0_80px_-20px_rgba(0,0,0,0.3)] overflow-hidden md:rounded-[32px] md:border md:border-white/10">
           
           {/* Top Bar Navigation (IG Style) */}
           <div className="absolute top-4 md:top-6 w-full px-4 md:px-6 flex items-center justify-between z-50 pointer-events-auto">
@@ -126,8 +126,8 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
           <div
             ref={containerRef}
             onScroll={handleScroll}
-            className="w-full h-full bg-black scroll-smooth overflow-y-scroll snap-y snap-mandatory no-scrollbar relative z-10"
-            style={{ scrollSnapType: 'y mandatory' }}
+            className="w-full h-full bg-black scroll-smooth overflow-y-auto snap-y snap-mandatory scrollbar-hide relative z-10"
+            style={{ scrollSnapType: 'y mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {reels.length > 0 ? (
               reels.map((reel: Reel, idx: number) => (
@@ -159,7 +159,7 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => scrollBy('up')}
-            className="w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-zinc-900 border border-zinc-200"
+            className="w-12 h-12 rounded-full bg-bg-card shadow-xl flex items-center justify-center text-text-base border border-border-base"
           >
             <ChevronUp className="w-6 h-6" />
           </motion.button>
@@ -167,7 +167,7 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => scrollBy('down')}
-            className="w-12 h-12 rounded-full bg-white shadow-xl flex items-center justify-center text-zinc-900 border border-zinc-200"
+            className="w-12 h-12 rounded-full bg-bg-card shadow-xl flex items-center justify-center text-text-base border border-border-base"
           >
             <ChevronDown className="w-6 h-6" />
           </motion.button>

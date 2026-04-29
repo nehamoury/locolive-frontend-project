@@ -118,16 +118,15 @@ const Sidebar: FC<SidebarProps> = ({
 
         {/* ── Logo ── */}
         <div className={`mb-7 px-1 flex items-center ${effectiveCollapsed ? 'flex-col gap-3' : 'justify-between'}`}>
-          <div
-            className="flex items-center gap-2.5 cursor-pointer"
+          <div 
+            className="flex items-center gap-3 cursor-pointer"
             onClick={() => navigate('/dashboard/home')}
           >
-            <div className="w-9 h-9 rounded-[14px] bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/20 flex-shrink-0">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="12" cy="9" r="2.5" fill="white" />
-              </svg>
-            </div>
+            <img 
+              src="/src/assets/WhatsApp Image 2026-04-28 at 4.00.46 PM.png" 
+              alt="Locolive" 
+              className={`rounded-xl object-cover shadow-lg shadow-primary/10 border border-white/50 transition-all duration-300 ${effectiveCollapsed ? 'w-10 h-10' : 'w-9 h-9'}`}
+            />
             {!effectiveCollapsed && (
               <div className="flex flex-col leading-none">
                 <span className="text-[17px] font-black tracking-tight text-primary">Locolive</span>
@@ -167,7 +166,7 @@ const Sidebar: FC<SidebarProps> = ({
         />
 
         {/* ── Navigation ── */}
-        <nav className="flex-1 space-y-1 mb-5">
+        <nav className="space-y-1 mb-5">
           <NavItem icon={<Home className="w-6 h-6" />} label="Home" active={activeTab === 'home' && !isSearchOpen} onClick={() => { setActiveTab('home'); setIsSearchOpen(false); }} isCollapsed={effectiveCollapsed} />
           <NavItem icon={<Search className="w-6 h-6" />} label="Search" active={isSearchOpen} onClick={() => setIsSearchOpen(!isSearchOpen)} isCollapsed={effectiveCollapsed} />
           <NavItem icon={<Compass className="w-6 h-6" />} label="Explore" active={activeTab === 'explore' && !isSearchOpen} onClick={() => { setActiveTab('explore'); setIsSearchOpen(false); }} isCollapsed={effectiveCollapsed} />
@@ -177,15 +176,16 @@ const Sidebar: FC<SidebarProps> = ({
           <NavItem icon={<User className="w-6 h-6" />} label="Profile" active={activeTab === 'profile'} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} isCollapsed={effectiveCollapsed} />
         </nav>
 
-        {/* ── More Button & Menu ── */}
-        <div className="relative mb-4 px-1" ref={moreMenuRef}>
+        {/* ── Bottom Actions (More, Create Post, etc.) ── */}
+        <div className="mt-auto space-y-4">
+          <div className="relative px-1" ref={moreMenuRef}>
           <AnimatePresence>
             {isMoreMenuOpen && (
               <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                className={`absolute bottom-full left-0 mb-4 w-64 bg-white dark:bg-bg-sidebar border border-border-base rounded-2xl shadow-2xl z-[150] overflow-hidden ${effectiveCollapsed ? 'left-2' : ''}`}
+                className={`absolute bottom-full left-0 mb-4 w-64 bg-bg-card border border-border-base rounded-2xl shadow-2xl z-[150] overflow-hidden ${effectiveCollapsed ? 'left-2' : ''}`}
               >
                 <div className="p-2 py-3">
                   {moreMenuItems.map((item, idx) => (
@@ -235,7 +235,7 @@ const Sidebar: FC<SidebarProps> = ({
           {isInstallable && (
             <button
               onClick={installApp}
-              className={`${effectiveCollapsed ? 'w-11 h-11 p-0 rounded-2xl' : 'w-full py-2.5 px-4 rounded-[18px]'} bg-bg-base border border-border-base flex items-center justify-center gap-2 font-medium text-text-muted text-[12px] hover:text-primary hover:border-primary/30 transition-all`}
+              className={`${effectiveCollapsed ? 'w-11 h-11 p-0 rounded-2xl' : 'w-full py-2.5 px-4 rounded-[18px]'} bg-bg-card border border-border-base flex items-center justify-center gap-2 font-medium text-text-muted text-[12px] hover:text-primary hover:border-primary/30 transition-all`}
             >
               <Download className="w-4 h-4 shrink-0" />
               {!effectiveCollapsed && <span>Install App</span>}
@@ -252,8 +252,8 @@ const Sidebar: FC<SidebarProps> = ({
             </button>
           )}
         </div>
-
-      </aside>
+      </div>
+    </aside>
     </div>
   );
 };

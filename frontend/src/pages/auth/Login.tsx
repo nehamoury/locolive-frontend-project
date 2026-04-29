@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import logo from '../../assets/WhatsApp Image 2026-04-28 at 4.00.46 PM.png';
+
 
 // Declare google for TypeScript
 declare global {
@@ -145,11 +147,16 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
         className="w-full max-w-[440px] p-8 md:p-10 rounded-[40px] border border-white/60 glass shadow-2xl relative z-10"
       >
         {/* Logo Section */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <MapPin className="w-6 h-6 text-white" />
+        <div className="flex items-center gap-4 mb-10">
+          <img 
+            src={logo} 
+            alt="Locolive" 
+            className="w-12 h-12 rounded-2xl object-cover shadow-xl shadow-primary/20 border-2 border-white/50 ring-4 ring-primary/5"
+          />
+          <div>
+            <h1 className="text-2xl font-black text-text-base tracking-tighter leading-none">Locolive</h1>
+            <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Discover Nearby</p>
           </div>
-          <h1 className="text-2xl font-bold text-text-base tracking-tight">Locolive</h1>
         </div>
 
         {/* Welcome Section */}

@@ -71,18 +71,35 @@ export const useGeolocation = (enabled: boolean = true) => {
     if (!enabled || !('geolocation' in navigator)) return;
 
     // Try to query permission state (modern browsers)
-    if ('permissions' in navigator) {
+    if ('permissions' in navigator && navigator.permissions.query) {
       navigator.permissions.query({ name: 'geolocation' as PermissionName })
         .then((result) => {
-          setPermissionState(result.state as 'granted' | 'denied' | 'prompt');
-          result.addEventListener('change', () => {
+          if (!result) return;
+        
+          const handleChange = () => {
+            console.log('[Geolocation] Permission changed:', result.state);
             setPermissionState(result.state as 'granted' | 'denied' | 'prompt');
             if (result.state === 'granted') {
               hasLoggedPermissionError.current = false;
             }
-          });
+          };
+
+          try {
+            if (typeof result.addEventListener === 'function') {
+              result.addEventListener('change', handleChange);
+            } else if (typeof (result as any).addListener === 'function') {
+              (result as any).addListener(handleChange);
+            }
+          } catch (e) {
+            console.warn('[Geolocation] Could not add permission change listener:', e);
+          }
+
+          setPermissionState(result.state as 'granted' | 'denied' | 'prompt');
         })
-        .catch(() => setPermissionState('unknown'));
+        .catch((err) => {
+          console.warn('[Geolocation] Permissions API not fully supported:', err);
+          setPermissionState('unknown');
+        });
     }
   }, [enabled]);
 
@@ -157,11 +174,11 @@ export const useGeolocation = (enabled: boolean = true) => {
             }
           },
           (err) => handleGeolocationError(err, 'Watch position error'),
-          { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
+          { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
         );
       },
       (err) => handleGeolocationError(err, 'Initial position failed'),
-      { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
+      { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
     );
 
     // ── Forced periodic ping to keep Redis fresh (every 60s) ──

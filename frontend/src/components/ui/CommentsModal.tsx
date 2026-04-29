@@ -48,6 +48,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [, forceUpdate] = useState({});
 
   const isSidebar = variant === 'sidebar';
@@ -104,6 +105,11 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReply = (username: string) => {
+    setNewComment(`@${username} `);
+    inputRef.current?.focus();
   };
 
   return (
@@ -172,6 +178,12 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
                         <span className="text-[10px] text-text-muted">{formatRelativeTime(comment.created_at)}</span>
                       </div>
                       <p className="text-sm text-text-base/90 leading-relaxed">{comment.content}</p>
+                      <button 
+                        onClick={() => handleReply(comment.username)}
+                        className="mt-1.5 text-[10px] font-black text-text-muted hover:text-primary transition-colors uppercase tracking-widest"
+                      >
+                        Reply
+                      </button>
                     </div>
                   </div>
                 ))
@@ -181,7 +193,8 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
             {/* Input Area */}
             <div className="p-4 md:p-6 bg-bg-card border-t border-border-base/50 pb-safe">
               <form onSubmit={handleSubmit} className="relative flex items-center gap-3">
-                <input
+                 <input
+                  ref={inputRef}
                   type="text"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}

@@ -221,10 +221,10 @@ const Dashboard = () => {
         <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
         
         <Route path="messages/*" element={
-          <div className="flex-1 flex flex-col h-full bg-white md:rounded-[28px] overflow-hidden border border-pastel">
+          <div className="flex-1 flex flex-col h-full bg-bg-card md:rounded-[28px] overflow-hidden border border-border-base">
             <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-pastel shrink-0">
-                <h2 className="text-[18px] font-black text-slate-800 tracking-tight">Messages</h2>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border-base shrink-0">
+                <h2 className="text-[18px] font-black text-text-base tracking-tight">Messages</h2>
                  <div className="flex items-center gap-2">
                    <div className="flex -space-x-2">
                      <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-primary/20" />
@@ -261,8 +261,8 @@ const Dashboard = () => {
                         <div className="w-24 h-24 bg-white rounded-4xl shadow-2xl shadow-primary/5 flex items-center justify-center mb-6 border border-white/60">
                           <MessageSquare className="w-10 h-10 text-primary/30" />
                         </div>
-                        <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight italic">Your Inbox</h3>
-                        <p className="max-w-xs text-[10px] font-black text-gray-400 leading-relaxed uppercase tracking-[0.2em]">
+                        <h3 className="text-2xl font-black text-text-base mb-2 tracking-tight italic">Your Inbox</h3>
+                        <p className="max-w-xs text-[10px] font-black text-text-muted leading-relaxed uppercase tracking-[0.2em]">
                           Select a conversation from the left to start a new journey
                         </p>
                       </div>
@@ -280,7 +280,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-bg-base text-text-base font-body flex overflow-hidden p-0 md:p-3 lg:p-4 md:gap-3 lg:gap-4 transition-colors duration-400">
+    <div className="h-[100dvh] w-full bg-bg-base text-text-base font-body flex overflow-hidden p-0 md:p-3 lg:p-4 md:gap-3 lg:gap-4 transition-colors duration-400">
 
       {/* 1. Left Sidebar - Desktop/Tablet */}
       <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[24px] lg:rounded-[28px] shadow-soft relative shrink-0 border border-border-base transition-all duration-300 overflow-hidden z-[110]">
@@ -372,7 +372,7 @@ const Dashboard = () => {
       </div>
 
       {/* 3. Mobile View Structure */}
-      <main className="md:hidden flex-1 flex flex-col relative overflow-hidden h-full bg-bg-base">
+      <main className="md:hidden flex-1 flex flex-col relative overflow-hidden h-[100dvh] w-full bg-bg-base">
           {/* Mobile Header */}
           {!pathname.includes('reels') && !pathname.includes('search') && (
             <div className="w-full pt-5 pb-3 px-6 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl sticky top-0 z-[100] border-b border-border-base/10 shrink-0">
@@ -392,7 +392,7 @@ const Dashboard = () => {
           )}
 
           {/* Mobile Main Content Area */}
-          <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
+          <div className={`flex-1 overflow-y-auto no-scrollbar ${pathname.includes('reels') ? 'pb-0' : 'pb-20'}`}>
             <Routes>
               <Route path="home" element={
                 <HomeView
