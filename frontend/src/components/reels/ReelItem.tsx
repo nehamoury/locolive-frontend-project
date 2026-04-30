@@ -71,21 +71,27 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
     const video = videoRef.current;
     if (!video) return;
 
+    let isSubscribed = true;
+
     if (isActive) {
       video.muted = isMuted;
       video.currentTime = 0;
       const playPromise = video.play();
+      
       if (playPromise !== undefined) {
         playPromise.catch(error => {
-          console.log("Auto-play was prevented:", error);
+          // Only log if it's not an AbortError (expected when pausing)
+          if (isSubscribed && error.name !== 'AbortError') {
+            console.log("Auto-play was prevented:", error);
+          }
         });
       }
     } else {
       video.pause();
-      video.currentTime = 0;
     }
 
     return () => {
+      isSubscribed = false;
       video.pause();
     };
   }, [isActive, isMuted]);

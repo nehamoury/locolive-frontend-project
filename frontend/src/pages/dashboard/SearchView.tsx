@@ -43,13 +43,13 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
 
   return (
     <div className="flex flex-col h-full w-full bg-bg-base overflow-hidden transition-colors duration-300">
-      
+
       {/* ─── Top Huge Search Area ─── */}
       <div className="pt-12 pb-6 px-6 flex flex-col items-center justify-center shrink-0">
-        <h1 className="text-3xl md:text-4xl font-black text-text-base tracking-tighter mb-8 text-center italic">
+        <h1 className="text-3xl md:text-4xl font-black text-normal tracking-normal mb-8 text-center">
           Find People Near You
         </h1>
-        
+
         <div className="w-full max-w-2xl relative">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/50 to-accent/50 rounded-full blur-[2px] opacity-70" />
           <div className="relative bg-bg-card rounded-full flex items-center px-6 py-4 shadow-sm border border-border-base transition-colors duration-300">
@@ -96,16 +96,16 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
           </div>
         ) : loading ? (
           <div className="flex flex-col gap-0 divide-y divide-border-base">
-             {Array(4).fill(0).map((_, i) => (
-               <div key={i} className="flex items-center gap-4 py-6 animate-pulse">
-                 <div className="w-14 h-14 rounded-full bg-border-base shrink-0" />
-                 <div className="flex-1 space-y-2">
-                   <div className="h-4 bg-border-base rounded w-1/4" />
-                   <div className="h-3 bg-border-base rounded w-1/2" />
-                 </div>
-                 <div className="w-24 h-10 rounded-full bg-border-base shrink-0" />
-               </div>
-             ))}
+            {Array(4).fill(0).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 py-6 animate-pulse">
+                <div className="w-14 h-14 rounded-full bg-border-base shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-border-base rounded w-1/4" />
+                  <div className="h-3 bg-border-base rounded w-1/2" />
+                </div>
+                <div className="w-24 h-10 rounded-full bg-border-base shrink-0" />
+              </div>
+            ))}
           </div>
         ) : (!query && results.length === 0) ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -127,8 +127,8 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
             {results.map((user, i) => {
               // Mock bio/tagline since backend might not send it depending on struct fields
               const mBios = [
-                "Exploring every corner of Raipur 📍", 
-                "Coder by day 💻 Gamer by night 🎮", 
+                "Exploring every corner of Raipur 📍",
+                "Coder by day 💻 Gamer by night 🎮",
                 "5am runner ⚡ | Fitness & travel 🌍",
                 "Coffee addict ☕ & UI Designer",
                 "Local food explorer 🍜"
@@ -138,7 +138,7 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
               const col = colors[i % colors.length];
 
               return (
-                <div 
+                <div
                   key={user.id}
                   onClick={() => onUserSelect?.(user.id)}
                   className="flex items-center py-5 group cursor-pointer hover:bg-bg-sidebar/50 -mx-4 px-4 rounded-3xl transition-all"
@@ -148,10 +148,10 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
                     ${!user.avatar_url ? col : ''}`}
                   >
                     {user.avatar_url ? (
-                        <img src={`${BACKEND}${user.avatar_url}`} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        user.username?.charAt(0).toUpperCase()
-                      )}
+                      <img src={`${BACKEND}${user.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      user.username?.charAt(0).toUpperCase()
+                    )}
                   </div>
 
                   {/* Info */}
@@ -161,7 +161,7 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
                       {/* Fake verified badge for styling from mockup */}
                       {(i === 2 || user.is_verified) && (
                         <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
-                           <Check className="w-2.5 h-2.5 text-white stroke-[3px]" />
+                          <Check className="w-2.5 h-2.5 text-white stroke-[3px]" />
                         </div>
                       )}
                     </div>
@@ -173,16 +173,16 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
                   {/* Action Button */}
                   <div className="shrink-0 ml-4">
                     {!user.requested ? (
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); handleConnect(user.id); }}
                         className="px-6 py-2 rounded-full border border-primary text-primary text-sm font-bold hover:bg-primary/5 hover:scale-105 active:scale-95 transition-all w-[100px] cursor-pointer"
                       >
                         Connect
                       </button>
                     ) : (
-                      <button 
-                         disabled
-                         className="px-6 py-2 rounded-full border border-border-base bg-bg-sidebar text-text-muted/40 text-sm font-bold w-[100px] cursor-not-allowed"
+                      <button
+                        disabled
+                        className="px-6 py-2 rounded-full border border-border-base bg-bg-sidebar text-text-muted/40 text-sm font-bold w-[100px] cursor-not-allowed"
                       >
                         Pending
                       </button>

@@ -121,15 +121,15 @@ const NotifCard = ({
       {/* Content */}
       <div className="flex-1 min-w-0 pr-6">
         {notif.title && (
-          <h4 className="text-[13px] font-black text-text-base uppercase tracking-tight mb-0.5 leading-none italic">
+          <h4 className="text-[13px] font-black text-text-base uppercase tracking-tight mb-0.5 leading-none">
             {notif.title}
           </h4>
         )}
         <p className="text-sm text-text-muted leading-snug">
           {parseMessage(notif)}
         </p>
-        <p className="text-[11px] text-text-muted/40 mt-1 font-medium italic">{timeAgo(notif.created_at)}</p>
-        
+        <p className="text-[11px] text-text-muted/40 mt-1 font-medium">{timeAgo(notif.created_at)}</p>
+
         {/* Inline Actions for Connection Requests */}
         {notif.type === 'connection_request' && notif.related_user_id && (
           <div className="mt-3">
@@ -250,7 +250,7 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
       await api.put(`/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       window.dispatchEvent(new CustomEvent('notifications_updated'));
-      
+
       // If it's a social notification, navigate to profile
       if (relatedUserId && onUserSelect) {
         onUserSelect(relatedUserId);
@@ -268,7 +268,7 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-bg-base/80 backdrop-blur-md border-b border-border-base shadow-sm">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-xl font-black text-text-base italic tracking-tight uppercase leading-none">System Alerts</h1>
+          <h1 className="text-xl font-black text-text-normal  uppercase leading-none">Notifications</h1>
           {unreadCount > 0 && (
             <span className="min-w-[20px] h-5 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center px-1.5">
               {unreadCount}
@@ -303,20 +303,20 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
           <div className="w-16 h-16 bg-bg-sidebar rounded-[24px] flex items-center justify-center mb-4">
             <Bell className="w-7 h-7 text-text-muted/10" />
           </div>
-          <h3 className="text-sm font-black text-text-muted/40 uppercase italic tracking-widest">No alerts found</h3>
+          <h3 className="text-sm font-black text-text-muted/40 uppercase  tracking-widest">No notifications found</h3>
         </div>
       ) : (
         <div className="divide-y divide-border-base">
           {notifications.map((notif, idx) => (
-            <NotifCard 
-              key={`notification-${notif.id || idx}`} 
-              notif={notif} 
+            <NotifCard
+              key={`notification-${notif.id || idx}`}
+              notif={notif}
               onRead={(id) => {
-                const actorId = typeof notif.related_user_id === 'string' 
-                    ? notif.related_user_id 
-                    : notif.related_user_id?.UUID;
+                const actorId = typeof notif.related_user_id === 'string'
+                  ? notif.related_user_id
+                  : notif.related_user_id?.UUID;
                 markRead(id, actorId);
-              }} 
+              }}
             />
           ))}
         </div>

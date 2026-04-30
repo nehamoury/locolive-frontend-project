@@ -29,6 +29,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
   const { playSendSound } = useNotifications();
   const [content, setContent] = useState('');
   const [recipient, setRecipient] = useState<any>(null);
+  const [loadingRecipient, setLoadingRecipient] = useState(true);
   const [icebreakers, setIcebreakers] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -42,9 +43,15 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
 
   useEffect(() => {
     const fetchRecipient = async () => {
+      setLoadingRecipient(true);
       try {
+        if (!receiverId || receiverId === 'undefined' || receiverId === 'messages' || receiverId.length < 32) {
+          setLoadingRecipient(false);
+          return;
+        }
         const endpoint = isGroup ? `/groups/${receiverId}` : `/users/${receiverId}`;
         const res = await api.get(endpoint);
+        console.log('Chat recipient data:', res.data);
         if (isGroup) {
           // Map group data to look like recipient
           setRecipient({
@@ -58,6 +65,8 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
         }
       } catch (err) {
         console.error('Failed to fetch recipient profile:', err);
+      } finally {
+        setLoadingRecipient(false);
       }
     };
     fetchRecipient();
@@ -66,6 +75,9 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
   useEffect(() => {
     const fetchIcebreakers = async () => {
       try {
+        if (!receiverId || receiverId === 'undefined' || receiverId === 'messages' || receiverId.length < 32) {
+          return;
+        }
         const res = await api.get(`/chat/icebreakers?user_id=${receiverId}`);
         setIcebreakers(res.data.icebreakers || []);
       } catch (err) {
@@ -99,17 +111,17 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
     <div className="flex flex-col h-full bg-[#f8f9fc] flex-1 relative overflow-hidden font-poppins">
 
       {/* Chat Header */}
-      <header className="h-[80px] px-8 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-20">
-        <div className="flex items-center gap-4">
+      <header className="h-[70px] md:h-[80px] px-4 md:px-8 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-20">
+        <div className="flex items-center gap-2 md:gap-4">
           {onBack && (
-            <button onClick={onBack} className="md:hidden p-2 bg-gray-50 rounded-xl text-gray-500">
-              <ArrowLeft className="w-5 h-5" />
+            <button onClick={onBack} className="md:hidden p-2 bg-gray-50/50 rounded-xl text-gray-500 active:scale-90 transition-all">
+              <ArrowLeft className="w-5.5 h-5.5" />
             </button>
           )}
 
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={onToggleProfile}>
-            <div className="relative">
-              <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-purple-500">
+          <div className="flex items-center gap-2.5 md:gap-3 cursor-pointer group" onClick={onToggleProfile}>
+            <div className="relative shrink-0">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full p-[1.5px] bg-gradient-to-tr from-pink-500 to-purple-500">
                 <div className="w-full h-full rounded-full bg-white overflow-hidden border-2 border-white">
                   {recipient?.avatar_url ? (
                     <img src={recipient.avatar_url.startsWith('http') ? recipient.avatar_url : `${BACKEND}${recipient.avatar_url}`} alt="" className="w-full h-full object-cover" />
@@ -118,19 +130,29 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
                   )}
                 </div>
               </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
             </div>
-            <div className="flex flex-col min-w-0">
-              <h3 className="text-[15px] font-black text-gray-900 leading-tight group-hover:text-pink-500 transition-colors  truncate">
-                {recipient?.full_name || 'Locolive User'}
+            <div className="flex flex-col min-w-0 max-w-[150px] xs:max-w-[200px]">
+              <h3 className="text-[15px] font-black text-gray-900 leading-tight group-hover:text-pink-500 transition-colors truncate">
+                {loadingRecipient ? (
+                  <div className="w-24 h-4 bg-gray-100 animate-pulse rounded" />
+                ) : (
+                  recipient?.full_name || recipient?.username || 'Locolive User'
+                )}
               </h3>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-gray-400 tracking-tighter">
-                  @{recipient?.username}
-                </span>
-                <span className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
-                  <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /> Online
-                </span>
+                {loadingRecipient ? (
+                  <div className="w-16 h-3 bg-gray-50 animate-pulse rounded" />
+                ) : (
+                  <>
+                    <span className="text-[10px] font-bold text-gray-400 tracking-tighter">
+                      @{recipient?.username || 'user'}
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
+                      <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /> Online
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -145,7 +167,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 no-scrollbar bg-white/40">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8 no-scrollbar bg-white/40">
 
         {/* Safety Header */}
         <div className="flex justify-center mb-6">
@@ -200,12 +222,18 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
                       <div className="flex flex-col">
                         {/* Bubble */}
                         <div className={`
-                          px-5 py-3.5 text-[14px] font-medium leading-relaxed
+                          px-4 py-3 text-[14px] font-medium leading-relaxed max-w-[85vw] md:max-w-md
                           ${isMe
-                            ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-[24px] rounded-br-sm shadow-xl shadow-pink-500/20'
-                            : 'bg-white border border-gray-100 text-gray-800 rounded-[24px] rounded-tl-sm shadow-sm'}
+                            ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-[20px] rounded-br-sm shadow-lg shadow-pink-500/10'
+                            : 'bg-white border border-gray-100 text-gray-800 rounded-[20px] rounded-tl-sm shadow-sm'}
                         `}>
-                          {msg.content}
+                          {msg.content.split(/(https?:\/\/[^\s]+)/g).map((part, i) => 
+                            part.match(/https?:\/\/[^\s]+/) ? (
+                              <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline font-bold decoration-2 underline-offset-2 hover:opacity-80">
+                                {part}
+                              </a>
+                            ) : part
+                          )}
                         </div>
                         {/* Time */}
                         <span className={`text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest ${isMe ? 'text-right' : 'text-left'} flex items-center gap-1 justify-end`}>
@@ -259,7 +287,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
       </AnimatePresence>
 
       {/* Input Area */}
-      <div className="px-6 pb-6 pt-2 bg-transparent sticky bottom-0">
+      <div className="px-4 md:px-6 pb-2 md:pb-6 pt-2 bg-white/40 sticky bottom-0 z-30">
         <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-center gap-3 bg-white/90 backdrop-blur-xl p-2 rounded-full border border-gray-100/50 shadow-2xl shadow-gray-200/40">
 
           <button type="button" className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all">

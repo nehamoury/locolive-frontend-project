@@ -361,13 +361,40 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
     }, []);
 
     const fetchStories = async (bounds: L.LatLngBounds) => {
+        if (!bounds || typeof bounds.getNorth !== 'function') return;
+
         try {
-            const params = {
-                north: bounds.getNorth(),
-                south: bounds.getSouth(),
-                east: bounds.getEast(),
-                west: bounds.getWest(),
+            const north = bounds.getNorth();
+            const south = bounds.getSouth();
+            let east = bounds.getEast();
+            let west = bounds.getWest();
+
+            // Normalize longitudes to [-180, 180] for backend validation
+            const normalize = (lng: number) => {
+                let n = lng % 360;
+                if (n > 180) n -= 360;
+                if (n < -180) n += 360;
+                return n;
             };
+
+            const normEast = normalize(east);
+            const normWest = normalize(west);
+
+            // If it crosses the anti-meridian, normEast might be < normWest.
+            // Backend currently requires East > West, so we cap it to [-180, 180] strictly.
+            const finalEast = Math.max(-180, Math.min(180, normEast));
+            const finalWest = Math.max(-180, Math.min(180, normWest));
+
+            // Validation check to avoid 400 Bad Request
+            if (north <= south || Math.abs(finalEast - finalWest) < 0.0001) {
+                // Only log if it's not a tiny/empty box (to avoid noise during init)
+                if (Math.abs(north - south) > 0.0001) {
+                    console.warn('[Map] Invalid bounds:', { north, south, finalEast, finalWest });
+                }
+                return;
+            }
+
+            const params = { north, south, east: finalEast, west: finalWest };
             const res = await api.get('/stories/map', { params });
             setClusters(res.data.clusters || []);
         } catch (err) {

@@ -42,14 +42,14 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
   }, []);
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto no-scrollbar w-full bg-transparent">
+    <div className="flex flex-col w-full bg-transparent">
 
       {/* ── Feed Content ───────────────────── */}
-      <div className="w-full px-0 sm:px-4 md:px-6 pt-2 sm:pt-6 pb-24 md:pb-8 flex flex-col items-center">
-        <div className="w-full max-w-3xl flex flex-col gap-4 sm:gap-6">
+      <div className="w-full px-0 sm:px-4 md:px-6 pt-0 pb-24 md:pb-8 flex flex-col items-center">
+        <div className="w-full max-w-3xl flex flex-col gap-4 sm:gap-6 pt-2">
 
-          {/* Stories Card */}
-          <div className="w-full bg-bg-card md:rounded-[32px] border-b md:border border-border-base shadow-sm p-4 sm:p-5">
+          {/* Stories Section - Mobile: Transparent | Web: Glassmorphism */}
+          <div className="w-full bg-transparent md:bg-white/70 md:dark:bg-white/10 md:backdrop-blur-2xl md:rounded-[32px] md:border border-transparent md:border-white/40 md:dark:border-white/20 p-2 sm:p-4 md:shadow-sm">
             <StoryBar
               stories={stories}
               user={user}

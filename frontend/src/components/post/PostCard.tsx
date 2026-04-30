@@ -6,6 +6,7 @@ import api from '../../services/api';
 import { useSound } from '../../context/SoundContext';
 import { nullString } from '../../utils/string';
 import { CommentsModal, ReportModal } from '../ui';
+import ShareModal from '../share/ShareModal';
 
 interface PostCardProps {
   post: any;
@@ -32,6 +33,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const [showMenu, setShowMenu] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const isTextOnly = post.media_type === 'text' || !post.media_url || post.media_url === 'text';
   const isOwner = currentUserID && post.user_id === currentUserID;
   const { isMuted, toggleMute } = useSound();
@@ -48,18 +50,24 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const cleanCaption = caption.replace(/#[a-z0-9_]+/gi, '').trim();
 
   // Smart text display logic
-  const hasSeparateBody = !!bodyTextRaw;
-  const bubbleText = hasSeparateBody ? bodyTextRaw : caption;
-  const shouldShowCaption = cleanCaption && (!isTextOnly || hasSeparateBody);
+  const hasBody = !!bodyTextRaw.trim();
+  const hasCaption = !!cleanCaption.trim();
+  
+  // Use bodyText if available, otherwise use cleanCaption (which has no hashtags)
+  const mainDisplayContent = hasBody ? bodyTextRaw : cleanCaption;
+  
+  // Secondary caption only if it's different from the main display content
+  const secondaryCaption = (hasBody && hasCaption) ? cleanCaption : '';
+  const shouldShowSecondary = !!secondaryCaption;
 
   // Sync muted state with DOM element to bypass React reconciliation lag on media tags
   useEffect(() => {
-     if (videoRef.current) {
-        videoRef.current.muted = isMuted;
-        if (!isMuted) {
-           videoRef.current.play().catch(() => {});
-        }
-     }
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+      if (!isMuted) {
+        videoRef.current.play().catch(() => { });
+      }
+    }
   }, [isMuted]);
 
   const handleLike = async () => {
@@ -89,81 +97,64 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
     }
   };
 
-  const handleShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `Post by @${post.username}`,
-          text: cleanCaption,
-          url: `${window.location.origin}/posts/${post.id}`,
-        });
-        await api.post(`/posts/${post.id}/share`);
-      } else {
-        await navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`);
-        alert('Link copied to clipboard!');
-        await api.post(`/posts/${post.id}/share`);
-      }
-    } catch (err) {
-      console.error('Share failed', err);
-    }
+  const handleShare = () => {
+    setIsShareModalOpen(true);
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col bg-bg-card md:rounded-[32px] border-b md:border border-border-base/50 md:border-border-base shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col bg-bg-card md:rounded-[16px] border-b md:border border-border-base/40 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden mb-4"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 sm:px-6 pt-4 sm:pt-6 pb-4 md:pb-3">
-        <div 
-          className="flex items-center gap-3 cursor-pointer group/header"
+      {/* Header - Horizontal Alignment */}
+      <div className="flex items-start justify-between px-4 sm:px-5 pt-4 pb-2">
+        <div
+          className="flex gap-3 cursor-pointer group/header"
           onClick={() => navigate(`/dashboard/user/${post.user_id}`)}
         >
-          <div className="w-11 h-11 rounded-full p-[2px] bg-brand-gradient shadow-sm group-hover/header:scale-105 transition-transform duration-300">
-            <div className="w-full h-full rounded-full bg-bg-card p-[2px]">
-              <div className="w-full h-full rounded-full overflow-hidden bg-bg-base flex items-center justify-center">
-                <img
-                  src={getMediaUrl(avatarUrl, FALLBACKS.AVATAR(post.username))}
-                  className="w-full h-full object-cover"
-                  alt=""
-                />
-              </div>
-            </div>
+          {/* Avatar */}
+          <div className="w-11 h-11 rounded-full overflow-hidden bg-bg-base ring-1 ring-border-base/50 group-hover/header:ring-primary/50 transition-all duration-300 shrink-0">
+            <img
+              src={getMediaUrl(avatarUrl, FALLBACKS.AVATAR(post.username))}
+              className="w-full h-full object-cover"
+              alt={post.username}
+            />
           </div>
-          <div className="flex flex-col">
-            <h4 className="font-black text-text-base text-[14.5px] leading-none tracking-tight group-hover/header:text-primary transition-colors">
-              {post.full_name || post.username}
-            </h4>
-            <div className="flex items-center gap-1.5 mt-1 text-[11.5px] font-bold text-text-muted/60 uppercase tracking-wider">
-              <span>@{post.username}</span>
-              <span className="w-0.5 h-0.5 rounded-full bg-border-base" />
-              <span>{timeAgo(post.created_at)}</span>
-              {locationName && (
-                <>
-                  <span className="w-0.5 h-0.5 rounded-full bg-border-base" />
-                  <div className="flex items-center gap-0.5 text-primary">
-                    <MapPin className="w-2.5 h-2.5" />
-                    <span className="max-w-[120px] truncate">{locationName}</span>
-                  </div>
-                </>
-              )}
+
+          {/* Name & Username Row */}
+          <div className="flex flex-col pt-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h4 className="font-bold text-text-base text-[15.5px] leading-tight hover:underline">
+                {post.username}
+              </h4>
+              {/* Verified Badge Placeholder (can be conditional) */}
+              <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] text-primary fill-current">
+                <path d="M22.5 12.5c0-1.58-.8-2.47-1.24-3.23-.44-.76-.76-1.31-.76-2.27 0-1.51-1.22-2.73-2.73-2.73-.96 0-1.51-.32-2.27-.76C14.74 3.07 13.85 2.27 12.27 2.27c-1.58 0-2.47.8-3.23 1.24-.76.44-1.31.76-2.27.76-1.51 0-2.73 1.22-2.73 2.73 0 .96-.32 1.51-.76 2.27C3.07 10.03 2.27 10.92 2.27 12.5c0 1.58.8 2.47 1.24 3.23.44.76.76 1.31.76 2.27 0 1.51 1.22 2.73 2.73 2.73.96 0 1.51.32 2.27.76.76.44 1.65 1.24 3.23 1.24 1.58 0 2.47-.8 3.23-1.24.76-.44 1.31-.76 2.27-.76 1.51 0 2.73-1.22 2.73-2.73 0-.96.32-1.51.76-2.27.44-.76 1.24-1.65 1.24-3.23zM10.42 16.4L7.1 13.08l1.41-1.41 1.91 1.91 5.34-5.34 1.41 1.41-6.75 6.75z" />
+              </svg>
+              <span className="text-[14px] text-text-muted">·</span>
+              <span className="text-[14px] text-text-muted">{timeAgo(post.created_at)}</span>
             </div>
+            {locationName && (
+              <div className="flex items-center gap-1 text-[12px] text-primary font-medium mt-0.5">
+                <MapPin className="w-3 h-3" />
+                <span>{locationName}</span>
+              </div>
+            )}
           </div>
         </div>
-        <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-2 text-text-muted/40 hover:text-text-base transition-colors rounded-full hover:bg-bg-base cursor-pointer"
-          >
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
+
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className="p-2 text-text-muted/50 hover:text-primary hover:bg-primary/5 transition-all rounded-full cursor-pointer relative"
+        >
+          <MoreHorizontal className="w-5 h-5" />
           {showMenu && (
-            <div className="absolute right-0 top-10 bg-bg-card border border-border-base rounded-[20px] shadow-2xl z-20 py-2 min-w-[160px] overflow-hidden">
+            <div className="absolute right-0 top-10 bg-bg-card border border-border-base rounded-[12px] shadow-xl z-50 py-1 min-w-[180px] overflow-hidden">
               {isOwner && (
                 <button
                   onClick={() => { setShowMenu(false); handleDelete(); }}
-                  className="flex items-center gap-2 w-full px-4 py-3 text-red-500 hover:bg-red-500/5 text-sm font-bold transition-colors cursor-pointer"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-red-500 hover:bg-red-500/5 text-[14px] font-bold transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete Post
@@ -171,142 +162,149 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
               )}
               <button
                 onClick={() => { setShowMenu(false); handleShare(); }}
-                className="flex items-center gap-2 w-full px-4 py-3 text-text-base hover:bg-bg-base text-sm font-bold transition-colors cursor-pointer"
+                className="flex items-center gap-3 w-full px-4 py-3 text-text-base hover:bg-bg-base text-[14px] font-bold transition-colors cursor-pointer"
               >
                 <Send className="w-4 h-4" />
-                Share
+                Share Post
               </button>
               <button
                 onClick={() => { setShowMenu(false); setIsReportOpen(true); }}
-                className="flex items-center gap-2 w-full px-4 py-3 text-accent hover:bg-accent/5 text-sm font-bold transition-colors cursor-pointer border-t border-border-base/10"
+                className="flex items-center gap-3 w-full px-4 py-3 text-text-muted hover:bg-accent/5 text-[14px] font-bold transition-colors cursor-pointer border-t border-border-base/10"
               >
                 <MoreHorizontal className="w-4 h-4" />
-                Report
+                Report Post
               </button>
             </div>
           )}
-        </div>
+        </button>
       </div>
 
-      {/* Text Post Bubble */}
-      {isTextOnly && bubbleText && (
-        <div className="mx-4 sm:mx-6 mb-5 p-10 sm:p-14 rounded-[32px] bg-brand-gradient/5 border border-primary/10 flex items-center justify-center text-center">
-          <p className="text-text-base font-black text-xl sm:text-2xl leading-snug tracking-tight italic whitespace-pre-wrap">{bubbleText}</p>
-        </div>
-      )}
-
-      {/* Media */}
-      {!isTextOnly && post.media_url && (
-        <div
-          className="w-full sm:px-1 mb-5 md:mb-3 md:aspect-[4/5] lg:md:aspect-video md:rounded-[32px] overflow-hidden bg-bg-base cursor-pointer relative group/media transition-colors duration-300"
-          onClick={() => onImageClick?.(post)}
-        >
-          {post.media_type === 'video' ? (
-            <>
-              <video
-                ref={videoRef}
-                src={getMediaUrl(post.media_url)}
-                className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover sm:rounded-[24px] transition-transform duration-500"
-                style={post.crop_settings ? {
-                  transform: `scale(${post.crop_settings.zoom}) translate(${post.crop_settings.position.x/10}px, ${post.crop_settings.position.y/10}px)`,
-                  aspectRatio: post.crop_settings.ratio === 'original' ? 'auto' : post.crop_settings.ratio
-                } : {}}
-                muted={isMuted}
-                loop
-                autoPlay
-                playsInline
-                onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-              />
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 p-2.5 bg-black/60 backdrop-blur-xl rounded-full text-white transition-all duration-300 hover:scale-110 active:scale-95"
-              >
-                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-              </button>
-            </>
-          ) : (
-            <img
-              src={getMediaUrl(post.media_url, FALLBACKS.POST)}
-              alt=""
-              className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover sm:rounded-[24px] transition-transform duration-500"
-              style={post.crop_settings ? {
-                transform: `scale(${post.crop_settings.zoom}) translate(${post.crop_settings.position.x/10}px, ${post.crop_settings.position.y/10}px)`,
-                aspectRatio: post.crop_settings.ratio === 'original' ? 'auto' : post.crop_settings.ratio
-              } : {}}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Caption & Stats */}
-      <div className="px-4 sm:px-6 pb-5 sm:pb-6 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <button
-              onClick={handleLike}
-              className={`flex items-center gap-2 pr-3 py-2 rounded-2xl transition-all cursor-pointer group ${
-                liked ? 'text-primary' : 'text-text-muted hover:text-primary'
-              }`}
-            >
-              <Heart className={`w-6 h-6 transition-transform group-hover:scale-125 group-active:scale-90 ${liked ? 'fill-primary' : ''}`} />
-              <span className="text-[14px] font-black">{likeCount}</span>
-            </button>
-
-            <button
-              onClick={() => setIsCommentsOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-2xl text-text-muted hover:text-text-base transition-all group cursor-pointer"
-            >
-              <MessageCircle className="w-6 h-6 transition-transform group-hover:scale-125" />
-              <span className="text-[14px] font-black">{commentsCount}</span>
-            </button>
-
-            <button
-              onClick={handleShare}
-              className="px-3 py-2 rounded-2xl text-text-muted hover:text-text-base transition-all group cursor-pointer"
-            >
-              <Send className="w-6 h-6 transition-transform group-hover:rotate-12 group-hover:-translate-y-1" />
-            </button>
+      {/* Post Content */}
+      <div className="px-4 sm:px-5 pb-3">
+        {/* Primary Text Content */}
+        {mainDisplayContent && (
+          <div className="mb-2">
+            <p className={`text-text-base leading-relaxed tracking-tight whitespace-pre-wrap select-text ${isTextOnly ? 'text-[20px] font-bold' : 'text-[15px] font-medium'}`}>
+              {mainDisplayContent}
+            </p>
           </div>
-
-          <button className="p-2 rounded-2xl text-text-muted hover:text-primary transition-all group cursor-pointer">
-            <Bookmark className="w-6 h-6 transition-transform group-hover:scale-125" />
-          </button>
-        </div>
-
-        {shouldShowCaption && (
-          <p className="text-text-base/90 font-medium text-[14.5px] leading-relaxed tracking-tight select-text">
-            <span 
-              className="font-black mr-2 text-text-base cursor-pointer hover:text-primary transition-colors"
-              onClick={() => navigate(`/dashboard/user/${post.user_id}`)}
-            >
-              {post.username}
-            </span>
-            <span className="whitespace-pre-wrap">{cleanCaption}</span>
-          </p>
         )}
 
+        {/* Secondary Caption (if exists) */}
+        {shouldShowSecondary && (
+          <div className="mb-2">
+            <p className="text-text-base/80 text-[14px] leading-relaxed whitespace-pre-wrap">
+              {secondaryCaption}
+            </p>
+          </div>
+        )}
+
+        {/* Hashtags Row */}
         {hashtags.length > 0 && (
-          <div className="flex flex-wrap gap-x-3 gap-y-2">
+          <div className="flex flex-wrap gap-x-2 mb-3">
             {hashtags.map((tag: string, i: number) => (
-              <span key={i} className="text-primary font-black text-[11px] uppercase tracking-wider bg-primary/5 px-3 py-1 rounded-full">{tag}</span>
+              <span key={i} className="text-primary hover:underline cursor-pointer font-medium text-[14px]">{tag}</span>
             ))}
           </div>
         )}
+
+        {/* Media Block */}
+        {!isTextOnly && post.media_url && (
+          <div
+            className="w-full rounded-[16px] overflow-hidden bg-bg-base border border-border-base/50 cursor-pointer relative group/media aspect-auto max-h-[70vh]"
+            onClick={() => onImageClick?.(post)}
+          >
+            {post.media_type === 'video' ? (
+              <div className="relative h-full w-full">
+                <video
+                  ref={videoRef}
+                  src={getMediaUrl(post.media_url)}
+                  className="w-full h-auto object-contain"
+                  muted={isMuted}
+                  loop
+                  autoPlay
+                  playsInline
+                />
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                  className="absolute bottom-3 right-3 p-2 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all"
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+              </div>
+            ) : (
+              <img
+                src={getMediaUrl(post.media_url, FALLBACKS.POST)}
+                alt=""
+                className="w-full h-auto object-contain"
+              />
+            )}
+          </div>
+        )}
       </div>
 
-      <CommentsModal 
-        isOpen={isCommentsOpen} 
-        onClose={() => setIsCommentsOpen(false)} 
-        targetId={post.id} 
-        targetType="post" 
+      {/* Footer - Optimized Actions */}
+      <div className="px-4 sm:px-5 py-3 border-t border-border-base/30 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          {/* Like */}
+          <button
+            onClick={handleLike}
+            className={`flex items-center gap-2 group cursor-pointer transition-colors ${liked ? 'text-red-500' : 'text-text-muted hover:text-red-500'}`}
+          >
+            <div className={`p-2 rounded-full transition-colors ${liked ? 'bg-red-500/10' : 'group-hover:bg-red-500/10'}`}>
+              <Heart className={`w-[20px] h-[20px] ${liked ? 'fill-red-500 stroke-red-500' : 'stroke-current'}`} />
+            </div>
+            <span className="text-[13px] font-bold">{likeCount > 0 ? likeCount : ''}</span>
+          </button>
+
+          {/* Comment */}
+          <button
+            onClick={() => setIsCommentsOpen(true)}
+            className="flex items-center gap-2 group cursor-pointer text-text-muted hover:text-primary transition-colors"
+          >
+            <div className="p-2 rounded-full group-hover:bg-primary/10 transition-colors">
+              <MessageCircle className="w-[20px] h-[20px]" />
+            </div>
+            <span className="text-[13px] font-bold">{commentsCount > 0 ? commentsCount : ''}</span>
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-2 group cursor-pointer text-text-muted hover:text-primary transition-colors"
+          >
+            <div className="p-2 rounded-full group-hover:bg-primary/10 transition-colors">
+              <Send className="w-[20px] h-[20px]" />
+            </div>
+          </button>
+        </div>
+
+        {/* Save (Bookmark) */}
+        <button className="p-2 text-text-muted hover:text-primary hover:bg-primary/10 rounded-full transition-colors cursor-pointer">
+          <Bookmark className="w-[20px] h-[20px]" />
+        </button>
+      </div>
+
+      {/* Modals */}
+      <CommentsModal
+        isOpen={isCommentsOpen}
+        onClose={() => setIsCommentsOpen(false)}
+        targetId={post.id}
+        targetType="post"
         onCommentSuccess={() => setCommentsCount(prev => prev + 1)}
       />
-      <ReportModal 
-        isOpen={isReportOpen} 
-        onClose={() => setIsReportOpen(false)} 
-        targetId={post.id} 
-        targetType="post" 
+      <ReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        targetId={post.id}
+        targetType="post"
+      />
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shareUrl={`${window.location.origin}/posts/${post.id}`}
+        title={`post by @${post.username}`}
       />
     </motion.div>
   );

@@ -9,7 +9,7 @@ interface StoryBarProps {
   onStoryClick: (stories: any[], index: number) => void;
 }
 
-const RING_VIEWED = 'border-[1.5px] border-border-base';
+
 
 const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStoryClick }) => {
   const myStories = (stories || []).filter(s => s && s.username === user?.username);
@@ -29,14 +29,14 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
       {/* ── Your Story ── */}
       <div
         onClick={() => hasMyStories ? onStoryClick(myStories, 0) : onCreateStory()}
-        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group w-[72px] sm:w-[76px]"
+        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group w-[80px] sm:w-[88px]"
       >
         {/* Ring */}
         <div className={`
-          w-[68px] h-[68px] sm:w-[72px] sm:h-[72px] rounded-full transition-all duration-300 group-hover:scale-105 active:scale-95 relative
-          ${hasMyStories ? `p-[2.5px] bg-brand-gradient` : 'p-[2px] border-[2px] border-dashed border-border-base'}
+          w-[76px] h-[76px] sm:w-[84px] sm:h-[84px] rounded-full transition-all duration-300 group-hover:scale-105 active:scale-95 relative
+          ${hasMyStories ? `p-[2.5px] bg-brand-gradient` : 'p-[2px] border-[2px] border-dashed border-border-base/50'}
         `}>
-          <div className="w-full h-full rounded-full bg-bg-card p-[2px] overflow-hidden flex items-center justify-center">
+          <div className="w-full h-full rounded-full bg-white dark:bg-bg-card p-[2px] overflow-hidden flex items-center justify-center">
             <div className="w-full h-full rounded-full overflow-hidden bg-bg-base">
               {user?.avatar_url || (hasMyStories && myStories[0].avatar_url) ? (
                 <img
@@ -56,15 +56,15 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
           {!hasMyStories && (
             <div
               onClick={(e) => { e.stopPropagation(); onCreateStory(); }}
-              className="absolute bottom-0 right-0 w-5.5 h-5.5 rounded-full bg-primary border-2 border-bg-card flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer"
+              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary border-2 border-white dark:border-bg-card flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 stroke-[3] text-white" />
             </div>
           )}
         </div>
 
-        <span className="text-[11px] font-bold text-text-muted text-center leading-tight w-full truncate italic tracking-tight">
-          Your Story
+        <span className="text-[10px] font-medium text-text-muted tracking-wider text-center w-full truncate">
+          Add Story
         </span>
       </div>
 
@@ -77,22 +77,22 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
           <div
             key={story.id || story.username || `story-${index}`}
             onClick={() => onStoryClick(thisUserStories, 0)}
-            className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer w-[72px] sm:w-[76px]"
+            className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer w-[80px] sm:w-[88px]"
           >
             <div className={`
-              w-[68px] h-[68px] sm:w-[72px] sm:h-[72px] rounded-full transition-all duration-300 group-hover:scale-105 active:scale-95 relative
-              ${isViewed ? `p-[2.5px] ${RING_VIEWED}` : `p-[2.5px] bg-brand-gradient`}
+              w-[76px] h-[76px] sm:w-[84px] sm:h-[84px] rounded-full transition-all duration-300 group-hover:scale-105 group-hover:-translate-y-1 active:scale-95 relative
+              ${isViewed ? `p-[2.5px] border-2 border-border-base/30` : `p-[2.5px] bg-brand-gradient`}
             `}>
-              <div className="w-full h-full rounded-full bg-bg-card p-[2px] overflow-hidden">
+              <div className="w-full h-full rounded-full bg-white dark:bg-bg-card p-[2px] overflow-hidden">
                 <div className="w-full h-full rounded-full overflow-hidden bg-bg-base">
                   {story?.avatar_url ? (
                     <img
                       src={getMediaUrl(story.avatar_url, FALLBACKS.AVATAR(story.username))}
                       alt={story.username}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-fill"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-secondary/5 text-secondary font-black text-lg uppercase italic">
+                    <div className="w-full h-full flex items-baseline justify-center bg-secondary/5 text-secondary font-black text-lg">
                       {story?.username?.charAt(0) || '?'}
                     </div>
                   )}
@@ -100,8 +100,8 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
               </div>
             </div>
 
-            <span className={`text-[11px] font-bold text-center leading-tight w-full truncate italic tracking-tight ${isViewed ? 'text-text-muted/50' : 'text-text-base'}`}>
-              {story?.full_name?.split(' ')[0] || story?.username || 'User'}
+            <span className={`text-[10px] font-medium tracking-wider text-center w-full truncate ${isViewed ? 'text-text-muted/40' : 'text-text-base'}`}>
+              {story?.username || 'User'}
             </span>
           </div>
         );

@@ -4,12 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import EditProfileModal from './EditProfileModal';
 import { nullString } from '../../utils/string';
+import { BACKEND } from '../../utils/config';
 
 interface ProfileViewProps {
   onLogout?: () => void;
 }
-
-import { BACKEND } from '../../utils/config';
 
 const ProfileView: React.FC<ProfileViewProps> = () => {
   const { user } = useAuth();
@@ -89,46 +88,76 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
         ) : (
           <>
             {/* ── Profile Card ───────────────────────────────── */}
-            <div className="flex flex-col items-center text-center mb-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-accent border-2 border-white flex items-center justify-center shadow-xl shadow-primary/20 mb-4 overflow-hidden">
-                {displayProfile?.avatar_url ? (
-                  <img
-                    src={displayProfile.avatar_url.startsWith('http') ? displayProfile.avatar_url : `${BACKEND}${displayProfile.avatar_url}`}
-                    alt="Avatar"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-3xl font-bold text-white">{displayProfile?.full_name?.charAt(0) || 'U'}</span>
+            <div className="flex flex-col md:items-center mb-8">
+              <div className="flex items-center md:flex-col gap-6 md:gap-4 mb-6 md:text-center w-full">
+                {/* Avatar */}
+                <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-gradient-to-tr from-primary to-accent p-[3px] shadow-xl shadow-primary/20 shrink-0">
+                  <div className="w-full h-full rounded-full bg-white p-1">
+                    <div className="w-full h-full rounded-full overflow-hidden bg-bg-base flex items-center justify-center">
+                      {displayProfile?.avatar_url ? (
+                        <img
+                          src={displayProfile.avatar_url.startsWith('http') ? displayProfile.avatar_url : `${BACKEND}${displayProfile.avatar_url}`}
+                          alt="Avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl md:text-4xl font-black text-primary/30 uppercase italic">
+                          {displayProfile?.username?.charAt(0) || 'U'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info & Stats Container */}
+                <div className="flex flex-col flex-1 min-w-0">
+                  <div className="mb-3">
+                    <h2 className="text-xl font-black tracking-tight text-slate-900 truncate">
+                      {displayProfile?.full_name || 'Locolive User'}
+                    </h2>
+                    <p className="text-primary font-bold text-sm">@{displayProfile?.username || 'username'}</p>
+                  </div>
+
+                  {/* Stats - Responsive Row */}
+                  <div className="flex items-center gap-5 md:justify-center">
+                    <div className="flex flex-col md:items-center">
+                      <span className="text-base font-black text-slate-900">{myPosts.length}</span>
+                      <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Posts</span>
+                    </div>
+                    <div className="flex flex-col md:items-center">
+                      <span className="text-base font-black text-slate-900">{profile?.followers_count || 0}</span>
+                      <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Followers</span>
+                    </div>
+                    <div className="flex flex-col md:items-center">
+                      <span className="text-base font-black text-slate-900">{profile?.following_count || 0}</span>
+                      <span className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Following</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio & Actions */}
+              <div className="w-full md:text-center">
+                {displayProfile?.bio && (
+                  <p className="text-[13px] text-slate-600 font-medium leading-relaxed mb-4 md:max-w-md md:mx-auto">
+                    {displayProfile.bio}
+                  </p>
                 )}
-              </div>
-              <h2 className="text-lg font-bold mb-1 tracking-tight text-black">{displayProfile?.full_name || 'User'}</h2>
-              <p className="text-black/60 font-medium text-sm mb-2">@{displayProfile?.username || 'username'}</p>
-              {displayProfile?.bio && (
-                <p className="text-xs text-black/40 max-w-xs mb-3">{displayProfile.bio}</p>
-              )}
-
-              {/* Stats */}
-              <div className="flex space-x-8 mt-2">
-                <div className="flex flex-col items-center">
-                  <span className="text-base font-bold text-slate-900">{myPosts.length}</span>
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Posts</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-base font-bold text-slate-900">{myStories.length}</span>
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Stories</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-base font-bold text-slate-900">{profile?.connection_count || 0}</span>
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Following</span>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsEditOpen(true)}
+                    className="flex-1 md:flex-none md:px-10 py-3 bg-white border border-border-base rounded-2xl text-[13px] font-black text-slate-900 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    className="px-4 py-3 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all shadow-sm active:scale-95 md:hidden"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
-
-              <button
-                onClick={() => setIsEditOpen(true)}
-                className="mt-4 px-6 py-2 bg-primary/10 rounded-lg text-xs font-bold text-black hover:bg-primary/20 transition-colors border border-primary/10"
-              >
-                Edit Profile
-              </button>
             </div>
 
             {/* ── Highlights Row ─────────────────────────────── */}
@@ -249,13 +278,11 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
                       <div className="absolute top-1 right-1">
                         <Bookmark className="w-3 h-3 text-white drop-shadow" />
                       </div>
-                      {/* Add to Highlight button */}
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-end p-2 gap-1">
                         {highlights.length > 0 && (
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
-                              // Pick first highlight for simplicity; could open a picker modal
                               const h = highlights[0];
                               try {
                                 await api.post(`/highlights/${h.id}/stories`, { archived_story_id: story.id });

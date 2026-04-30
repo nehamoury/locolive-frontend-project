@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Compass, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Camera, Compass, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -31,6 +32,7 @@ interface ReelsViewProps {
 
 const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -98,6 +100,13 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
 
   return (
     <div className="relative w-full h-[100dvh] md:h-full bg-bg-base overflow-hidden flex flex-col items-center justify-center no-scrollbar">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate('/dashboard/home')}
+        className="absolute top-6 left-6 z-50 p-2.5 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-black/40 transition-all active:scale-95 shadow-lg md:hidden"
+      >
+        <ArrowLeft className="w-6 h-6" />
+      </button>
 
       {/* Layout Wrapper: Center Reel + Right Sidebar/Arrows */}
       <div className="flex items-center justify-center md:gap-6 z-10 w-full h-full">

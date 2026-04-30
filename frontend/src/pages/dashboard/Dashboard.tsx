@@ -1,13 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, Home, User, MessageSquare, Plus, Bell, Search, Video, MoreVertical } from 'lucide-react';
+import { ShieldAlert, Home, User, MessageSquare, Plus, Search, Video, Bell, MapPin } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
-
 import { useNotifications } from '../../hooks/useNotifications';
-import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 // Views and Components
 import Sidebar from '../../components/layout/Sidebar';
@@ -21,6 +19,7 @@ import SearchView from './SearchView';
 import { ManageHighlights } from './ManageHighlights';
 import ExplorePage from './ExplorePage';
 import ReelsView from '../../components/reels/ReelsView';
+import MapPage from './MapPage';
 import { useGeolocation } from '../../hooks/useGeolocation';
 
 // Modals
@@ -31,6 +30,26 @@ import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
 import ChatProfileSidebar from '../../components/chat/ChatProfileSidebar';
 import { IOSInstallBanner } from '../../components/ui/IOSInstallBanner';
+
+const MobileChatWrapper = ({ onUserSelect }: { onUserSelect: (id: string) => void }) => {
+  const { userId } = useParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const isGroup = searchParams.get('isGroup') === 'true';
+
+  if (!userId) return <Navigate to="/dashboard/messages" replace />;
+
+  return (
+    <div className="flex-1 h-full w-full">
+      <ChatWindow
+        receiverId={userId}
+        isGroup={isGroup}
+        onBack={() => navigate('/dashboard/messages')}
+        onToggleProfile={() => onUserSelect(userId)}
+      />
+    </div>
+  );
+};
 
 const MessageThreadWrapper = ({
   onViewFullProfile,
@@ -114,12 +133,8 @@ const Dashboard = () => {
   const storiesCount = 0;
   const crossingsCount = 0;
   const [refreshKey, setRefreshKey] = useState(0);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
   const [showChatProfile, setShowChatProfile] = useState(false);
-
-  const menuRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Stats fetching logic (no dependencies to avoid recreating on every render)
   const fetchStats = useCallback(async (coords?: { lat: number, lng: number }) => {
@@ -170,16 +185,7 @@ const Dashboard = () => {
     fetchStories(currentGeoPos);
   }, [currentGeoPos, refreshKey]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node) &&
-          buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+
 
   const handleStoryClick = (userStories: any[], index: number) => {
     setViewingStories(userStories);
@@ -192,7 +198,10 @@ const Dashboard = () => {
 
   const showRightSidebar = !pathname.includes('profile') && !pathname.includes('settings') && !pathname.includes('notifications') && !pathname.includes('explore') && !pathname.includes('connections') && !pathname.includes('manage-highlights');
 
-  const renderRoutes = () => {
+  // ─── Memoized Sub-Routes ───────────────────────────────────────────────────
+  // We useMemo here to prevent the entire route tree from remounting 
+  // every time the Dashboard re-renders (e.g. when geolocation updates).
+  const renderedRoutes = useMemo(() => {
     return (
       <Routes>
         <Route path="home" element={
@@ -206,9 +215,10 @@ const Dashboard = () => {
         } />
         <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} onStoryClick={handleStoryClick} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
         <Route path="reels" element={<ReelsView />} />
+        <Route path="map" element={<MapPage />} />
         <Route path="connections" element={
-          <ConnectionsView 
-            initialTab={(searchParams.get('tab') as any) || 'requests'} 
+          <ConnectionsView
+            initialTab={(searchParams.get('tab') as any) || 'requests'}
             onUserSelect={handleUserSelect}
             onMessage={(id) => navigate(`/dashboard/messages/${id}`)}
           />
@@ -216,21 +226,21 @@ const Dashboard = () => {
         <Route path="notifications" element={<NotificationsView />} />
         <Route path="settings/*" element={<SettingsView onBack={() => navigate('/dashboard/home')} />} />
         <Route path="search" element={<SearchView />} />
-        <Route path="user/:id" element={<Profile onLogout={logout} />} />
-        <Route path="profile/:id" element={<Profile onLogout={logout} />} />
+        <Route path="user/:id" element={<Profile onLogout={logout} onCreatePost={() => setIsCreateModalOpen(true)} />} />
+        <Route path="profile/:id" element={<Profile onLogout={logout} onCreatePost={() => setIsCreateModalOpen(true)} />} />
         <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
-        
+
         <Route path="messages/*" element={
           <div className="flex-1 flex flex-col h-full bg-bg-card md:rounded-[28px] overflow-hidden border border-border-base">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between px-6 py-4 border-b border-border-base shrink-0">
                 <h2 className="text-[18px] font-black text-text-base tracking-tight">Messages</h2>
-                 <div className="flex items-center gap-2">
-                   <div className="flex -space-x-2">
-                     <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-primary/20" />
-                     <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-accent/20" />
-                   </div>
-                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-primary/20" />
+                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-accent/20" />
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-1 overflow-hidden relative z-10">
@@ -277,10 +287,10 @@ const Dashboard = () => {
         <Route path="/" element={<Navigate to="home" replace />} />
       </Routes>
     );
-  };
+  }, [stories, loadingStories, currentGeoPos, pathname, showChatProfile, totalUnreadCount, unreadMessagesCount]);
 
   return (
-    <div className="h-[100dvh] w-full bg-bg-base text-text-base font-body flex overflow-hidden p-0 md:p-3 lg:p-4 md:gap-3 lg:gap-4 transition-colors duration-400">
+    <div className="h-[100dvh] w-full bg-bg-base text-text-base font-body flex overflow-hidden p-0 md:gap-0 transition-colors duration-400">
 
       {/* 1. Left Sidebar - Desktop/Tablet */}
       <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[24px] lg:rounded-[28px] shadow-soft relative shrink-0 border border-border-base transition-all duration-300 overflow-hidden z-[110]">
@@ -296,69 +306,19 @@ const Dashboard = () => {
       </div>
 
 
-      {/* 2. Main Desktop/Tablet Structure */}
-      <div className="hidden md:flex flex-1 flex-col overflow-hidden h-full gap-3 lg:gap-4 relative">
-        
-        {/* Global Desktop Header - Only on Home Feed */}
-        {pathname.includes('/dashboard/home') && (
-          <header className="shrink-0 flex items-center justify-between px-2">
-            <div className="flex-1 flex justify-center">
-              <div
-                className="flex items-center gap-3 bg-bg-card border border-border-base rounded-full px-6 py-2.5 cursor-pointer shadow-sm hover:shadow-md transition-all group w-full max-w-[400px]"
-                onClick={() => navigate('/dashboard/search')}
-              >
-                <Search className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors shrink-0" />
-                <span className="text-text-muted text-[13px] font-medium leading-none select-none">Search Locolive</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <motion.button
-                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                onClick={() => setIsCreateModalOpen(true)}
-                className="w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-card border border-border-base text-text-muted hover:text-primary hover:border-primary/40 transition-all shadow-sm cursor-pointer"
-              >
-                <Plus className="w-5 h-5 stroke-[2.5]" />
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/dashboard/notifications')}
-                className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-card border border-border-base text-text-muted hover:text-primary hover:border-primary/40 transition-all shadow-sm cursor-pointer"
-              >
-                <Bell className="w-5 h-5" />
-                {totalUnreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 min-w-[17px] h-[17px] bg-primary text-[9px] font-black text-white rounded-full flex items-center justify-center border-2 border-bg-card px-0.5 shadow-sm">
-                    {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
-                  </span>
-                )}
-              </motion.button>
-
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="w-10 h-10 rounded-2xl overflow-hidden cursor-pointer shadow-sm ring-2 ring-transparent hover:ring-primary/30 transition-all ml-1 border border-border-base"
-                onClick={() => navigate(`/dashboard/profile/${user?.id}`)}
-              >
-                <img
-                  src={getMediaUrl(user?.avatar_url, FALLBACKS.AVATAR(user?.username))}
-                  className="w-full h-full object-cover"
-                  alt="Profile"
-                />
-              </motion.div>
-            </div>
-          </header>
-        )}
+      {/* 2. Main Desktop Structure */}
+      <div className="hidden md:flex flex-1 flex-col overflow-hidden h-full gap-0 relative">
 
         {/* Desktop Content Row */}
-        <div className="flex-1 flex overflow-hidden gap-3 lg:gap-4">
-          <main className="flex-1 relative flex flex-col overflow-hidden bg-transparent z-10 no-scrollbar">
-             {renderRoutes()}
+        <div className="flex-1 flex overflow-hidden gap-0">
+          <main className="flex-1 relative flex flex-col overflow-y-auto bg-transparent z-10 no-scrollbar">
+            {renderedRoutes}
           </main>
 
-          {/* Right Sidebar Desktop - Hidden on small laptops/tablets (< 1150px approx for comfort) */}
+          {/* Right Sidebar Desktop */}
           {showRightSidebar && !pathname.includes('messages') && !pathname.includes('reels') && (
             <div className="hidden xl:flex w-72 xl:w-80 shrink-0 h-full">
-              <div className="w-full h-full bg-bg-sidebar border border-border-base rounded-[24px] lg:rounded-[28px] overflow-hidden shadow-sm">
+              <div className="w-full h-full bg-bg-sidebar border-l border-border-base overflow-hidden shadow-sm">
                 <RightSidebar
                   crossingsToday={crossingsCount}
                   nearbyCount={nearbyCount}
@@ -373,88 +333,115 @@ const Dashboard = () => {
 
       {/* 3. Mobile View Structure */}
       <main className="md:hidden flex-1 flex flex-col relative overflow-hidden h-[100dvh] w-full bg-bg-base">
-          {/* Mobile Header */}
-          {!pathname.includes('reels') && !pathname.includes('search') && (
-            <div className="w-full pt-5 pb-3 px-6 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl sticky top-0 z-[100] border-b border-border-base/10 shrink-0">
-               <div className="flex items-center gap-2.5 active:scale-95 transition-all cursor-pointer" onClick={() => navigate('/dashboard/home')}>
-                  <div className="w-8.5 h-8.5 rounded-[12px] bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/20">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <span className="text-[22px] font-black italic tracking-tighter text-primary">Locolive</span>
-               </div>
-               <div className="flex items-center gap-2.5">
-                 <button onClick={() => navigate('/dashboard/search')} className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base shadow-sm"><Search className="w-5 h-5 text-text-muted" /></button>
-                 <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base shadow-sm"><MoreVertical className="w-5 h-5 text-text-muted" /></button>
-               </div>
+
+
+        {/* Mobile Main Content Area - Scrollable */}
+        <div className={`flex-1 overflow-y-auto no-scrollbar ${pathname.includes('reels') ? 'pb-0' : 'pb-20'}`}>
+          {/* Mobile Header - Only visible on Home page */}
+          {pathname.endsWith('/home') && !isCreateModalOpen && (
+            <div className="w-full pt-5 pb-3 px-6 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl relative z-[100] border-b border-border-base/10 shrink-0">
+              <div className="flex items-center gap-2.5 active:scale-95 transition-all cursor-pointer" onClick={() => navigate('/dashboard/map')}>
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm border border-primary/5">
+                  <MapPin className="w-5.5 h-5.5 text-primary" />
+                </div>
+                <span className="text-[22px] font-black tracking-tighter text-primary">Locolive</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                {/* Messages Button */}
+                <button
+                  onClick={() => navigate('/dashboard/messages')}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary/10 text-primary active:scale-95 transition-all relative border border-primary/5 shadow-sm"
+                >
+                  <MessageSquare className="w-5.5 h-5.5" />
+                  {unreadMessagesCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-bg-base shadow-sm">
+                      {unreadMessagesCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notifications Button */}
+                <button
+                  onClick={() => navigate('/dashboard/notifications')}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary/10 text-primary active:scale-95 transition-all relative border border-primary/5 shadow-sm"
+                >
+                  <Bell className="w-5.5 h-5.5" />
+                  {totalUnreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-bg-base shadow-sm">
+                      {totalUnreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           )}
+          <Routes>
+            <Route path="home" element={
+              <HomeView
+                stories={stories}
+                user={user}
+                loading={loadingStories}
+                onCreateStory={() => setIsCreateModalOpen(true)}
+                onStoryClick={handleStoryClick}
+              />
+            } />
+            <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} onStoryClick={handleStoryClick} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
+            <Route path="reels" element={<ReelsView />} />
+            <Route path="map" element={<MapPage />} />
+            <Route path="connections" element={
+              <ConnectionsView
+                initialTab={(searchParams.get('tab') as any) || 'requests'}
+                onUserSelect={handleUserSelect}
+                onMessage={(id) => navigate(`/dashboard/messages/${id}`)}
+              />
+            } />
+            <Route path="notifications" element={<NotificationsView />} />
+            <Route path="settings/*" element={<SettingsView onBack={() => navigate('/dashboard/home')} />} />
+            <Route path="search" element={<SearchView />} />
+            <Route path="user/:id" element={<Profile onLogout={logout} />} />
+            <Route path="profile/:id" element={<Profile onLogout={logout} />} />
+            <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
+            <Route path="messages/*" element={
+              <div className="flex-1 flex flex-col h-full bg-bg-card overflow-hidden">
+                <Routes>
+                  <Route path=":userId" element={<MobileChatWrapper onUserSelect={handleUserSelect} />} />
+                  <Route path="/" element={
+                    <ChatList onSelect={(id) => navigate(`/dashboard/messages/${id}`)} selectedId={pathname.split('/').pop()} />
+                  } />
+                </Routes>
+              </div>
+            } />
+            <Route path="/" element={<Navigate to="home" replace />} />
+          </Routes>
+        </div>
 
-          {/* Mobile Main Content Area */}
-          <div className={`flex-1 overflow-y-auto no-scrollbar ${pathname.includes('reels') ? 'pb-0' : 'pb-20'}`}>
-            <Routes>
-              <Route path="home" element={
-                <HomeView
-                  stories={stories}
-                  user={user}
-                  loading={loadingStories}
-                  onCreateStory={() => setIsCreateModalOpen(true)}
-                  onStoryClick={handleStoryClick}
-                />
-              } />
-              <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} onStoryClick={handleStoryClick} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
-              <Route path="reels" element={<ReelsView />} />
-              <Route path="connections" element={
-          <ConnectionsView 
-            initialTab={(searchParams.get('tab') as any) || 'requests'} 
-            onUserSelect={handleUserSelect}
-            onMessage={(id) => navigate(`/dashboard/messages/${id}`)}
-          />
-        } />
-              <Route path="notifications" element={<NotificationsView />} />
-              <Route path="settings/*" element={<SettingsView onBack={() => navigate('/dashboard/home')} />} />
-              <Route path="search" element={<SearchView />} />
-              <Route path="user/:id" element={<Profile onLogout={logout} />} />
-              <Route path="profile/:id" element={<Profile onLogout={logout} />} />
-              <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
-              <Route path="messages/*" element={
-                <div className="flex-1 flex flex-col h-full bg-bg-card overflow-hidden">
-                  <ChatList onSelect={(id) => navigate(`/dashboard/messages/${id}`)} selectedId={pathname.split('/').pop()} />
-                </div>
-              } />
-              <Route path="/" element={<Navigate to="home" replace />} />
-            </Routes>
-          </div>
+        <IOSInstallBanner />
 
-          <IOSInstallBanner />
-
-          {/* Mobile Tab Bar - Premium Glass Feel */}
-          {!pathname.includes('reels') && (
-            <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-bg-card/80 backdrop-blur-2xl flex items-center justify-around z-[100] border-t border-border-base/50 px-6 safe-area-bottom shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
-               <MobileNavItem icon={<Home className="w-[22px] h-[22px]" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
-               <MobileNavItem icon={<Search className="w-[22px] h-[22px]" />} active={pathname.includes('search')} onClick={() => navigate('/dashboard/search')} />
-               <motion.button 
-                 whileTap={{ scale: 0.9, rotate: 90 }} 
-                 onClick={() => setIsCreateModalOpen(true)} 
-                 className="w-13 h-13 bg-brand-gradient rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 text-white -mt-8 border-4 border-bg-base"
-               >
-                 <Plus className="w-7 h-7 stroke-[3]" />
-               </motion.button>
-               <MobileNavItem icon={<Video className="w-[22px] h-[22px]" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
-               <MobileNavItem icon={<User className="w-[22px] h-[22px]" />} active={pathname.includes('profile')} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} />
-            </nav>
-          )}
+        {/* Mobile Tab Bar */}
+        {!pathname.includes('reels') && (
+          <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-bg-card/80 backdrop-blur-2xl flex items-center justify-around z-[100] border-t border-border-base/50 px-6 safe-area-bottom shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
+            <MobileNavItem icon={<Home className="w-[22px] h-[22px]" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
+            <MobileNavItem icon={<Search className="w-[22px] h-[22px]" />} active={pathname.includes('search')} onClick={() => navigate('/dashboard/search')} />
+            <motion.button
+              whileTap={{ scale: 0.9, rotate: 90 }}
+              onClick={() => setIsCreateModalOpen(true)}
+              className="w-13 h-13 bg-brand-gradient rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 text-white -mt-8 border-4 border-bg-base"
+            >
+              <Plus className="w-7 h-7 stroke-[3]" />
+            </motion.button>
+            <MobileNavItem icon={<Video className="w-[22px] h-[22px]" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
+            <MobileNavItem icon={<User className="w-[22px] h-[22px]" />} active={pathname.includes('profile')} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} />
+          </nav>
+        )}
       </main>
 
-      {/* Modals & Overlays - Responsive Optimized */}
+      {/* Modals & Overlays */}
       <CreatePostModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => { fetchStories(); setRefreshKey(prev => prev + 1); }}
         onRequestReelModal={() => { setIsCreateModalOpen(false); setIsCreateReelModalOpen(true); }}
       />
-      {/* ... (other modals kept same for brevity, but ensuring they use semantic colors inside) */}
       <CreateReelModal
         isOpen={isCreateReelModalOpen}
         onClose={() => setIsCreateReelModalOpen(false)}
@@ -475,15 +462,15 @@ const Dashboard = () => {
       )}
       {showPanicConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-950/20 backdrop-blur-xl p-6">
-           <div className="bg-bg-card rounded-[32px] p-8 max-w-sm w-full shadow-2xl border border-border-base text-center">
-              <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-black text-text-base mb-2">Are you sure?</h2>
-              <p className="text-text-muted mb-8 font-medium">This will immediately hide your location and profile from everyone nearby.</p>
-              <div className="flex flex-col gap-3">
-                 <button className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 active:scale-95 transition-all">YES, DISAPPEAR NOW</button>
-                 <button onClick={() => setShowPanicConfirm(false)} className="w-full py-4 bg-bg-base text-text-base rounded-2xl font-bold border border-border-base">CANCEL</button>
-              </div>
-           </div>
+          <div className="bg-bg-card rounded-[32px] p-8 max-w-sm w-full shadow-2xl border border-border-base text-center">
+            <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-black text-text-base mb-2">Are you sure?</h2>
+            <p className="text-text-muted mb-8 font-medium">This will immediately hide your location and profile from everyone nearby.</p>
+            <div className="flex flex-col gap-3">
+              <button className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 active:scale-95 transition-all">YES, DISAPPEAR NOW</button>
+              <button onClick={() => setShowPanicConfirm(false)} className="w-full py-4 bg-bg-base text-text-base rounded-2xl font-bold border border-border-base">CANCEL</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

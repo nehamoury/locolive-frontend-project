@@ -12,7 +12,8 @@ import {
     Lock,
     Share2,
     Heart,
-    MessageCircle
+    MessageCircle,
+    ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -21,6 +22,7 @@ import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { cn } from '../../utils/helpers';
 import PostCard from '../../components/post/PostCard';
+import ShareModal from '../../components/share/ShareModal';
 import { X as CloseIcon } from 'lucide-react';
 
 
@@ -48,9 +50,10 @@ interface ProfileData {
 
 interface ProfileProps {
     onLogout?: () => void;
+    onCreatePost?: () => void;
 }
 
-export const Profile: FC<ProfileProps> = () => {
+export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
     const navigate = useNavigate();
     const { id: urlUserId } = useParams();
     const { user } = useAuth();
@@ -69,6 +72,7 @@ export const Profile: FC<ProfileProps> = () => {
     const [badges, setBadges] = useState<Badge[]>([]);
     const [followStatus, setFollowStatus] = useState<'none' | 'pending' | 'accepted'>('none');
     const [selectedPost, setSelectedPost] = useState<any>(null);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const userId = urlUserId || user?.id;
     const isOwnProfile = userId === user?.id;
@@ -194,7 +198,7 @@ export const Profile: FC<ProfileProps> = () => {
             console.log('Fetching highlight details for:', highlight.id);
             const { data } = await api.get(`/highlights/${highlight.id}`);
             console.log('Highlight data received:', data);
-            
+
             // Map archived stories to viewer format
             const stories = (data || []).map((s: any) => ({
                 id: s.id,
@@ -233,15 +237,110 @@ export const Profile: FC<ProfileProps> = () => {
             activeTab === 'saved' ? savedReels : [];
 
     return (
-        <div className="h-full overflow-y-auto no-scrollbar scroll-smooth bg-[#fcf5f8] text-text-base p-2 md:p-6">
-            <div className="max-w-[1200px] mx-auto bg-white rounded-[32px] shadow-[0_20px_70px_-15px_rgba(0,0,0,0.05)] overflow-hidden min-h-full flex flex-col pb-12">
+        <div className="bg-bg-base text-text-base p-0 md:p-6">
+            <div className="max-w-[1200px] mx-auto bg-bg-card shadow-[0_20px_70px_-15px_rgba(0,0,0,0.05)] overflow-hidden min-h-full flex flex-col pb-24 md:pb-12">
 
                 {/* ── Profile Header ── */}
-                <div className="px-6 md:px-12 pt-10 pb-8 flex flex-col md:flex-row items-center gap-8 lg:gap-14">
-                    {/* Avatar with Story Ring */}
-                    <div className="relative shrink-0">
+                <div className="px-5 md:px-12 pt-4 md:pt-14 pb-8 flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-14 relative">
+                    {/* Mobile Navigation Header (Back Only if not own profile) */}
+                    {!isOwnProfile && (
+                        <div className="absolute top-2 left-2 md:hidden z-[60]">
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="p-2 text-slate-400 active:scale-95 transition-all bg-bg-base/50 backdrop-blur-md rounded-full"
+                            >
+                                <ArrowLeft className="w-6 h-6" />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* ── Refined Profile Info (Mobile) ── */}
+                    <div className="flex flex-col w-full md:hidden mt-4">
+                        <div className="flex items-center gap-6 mb-6">
+                            {/* Avatar */}
+                            <div className="relative shrink-0">
+                                <div className="w-[86px] h-[86px] rounded-full p-0.5 bg-gradient-to-tr from-primary via-accent to-secondary">
+                                    <div className="w-full h-full rounded-full border-2 border-bg-base overflow-hidden bg-bg-sidebar">
+                                        <img
+                                            src={getMediaUrl(profile?.avatar_url, FALLBACKS.AVATAR(profile?.username))}
+                                            className="w-full h-full object-cover"
+                                            alt=""
+                                        />
+                                    </div>
+                                </div>
+                                {isOwnProfile && (
+                                    <div className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 border-2 border-bg-base rounded-full flex items-center justify-center text-white" onClick={onCreatePost}>
+                                        <Plus className="w-4 h-4 stroke-[3]" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Names Column */}
+                            <div className="flex-1 flex flex-col">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-black tracking-tight text-text-base flex items-center gap-1.5 mb-0.5">
+                                        {profile?.username}
+                                        <CheckCircle2 className="w-4.5 h-4.5 text-primary fill-primary/10" strokeWidth={2.5} />
+                                    </h2>
+                                    {isOwnProfile && (
+                                        <button
+                                            onClick={() => navigate('/dashboard/settings')}
+                                            className="p-1 text-text-muted hover:text-primary transition-colors"
+                                        >
+                                            <Settings className="w-6 h-6" />
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-[14px] font-bold text-text-muted">{profile?.full_name}</p>
+                            </div>
+                        </div>
+
+                        {/* Stats Row */}
+                        <div className="flex items-center justify-between px-2 mb-6 border-y border-border-base/10 py-3">
+                            <div className="flex flex-col items-center flex-1">
+                                <span className="text-[17px] font-black text-text-base leading-none">{profile?.post_count || 0}</span>
+                                <span className="text-[11px] font-bold text-text-muted mt-1 uppercase tracking-wider">posts</span>
+                            </div>
+                            <div onClick={() => navigate('/dashboard/connections?tab=followers')} className="flex flex-col items-center flex-1 cursor-pointer border-x border-border-base/10">
+                                <span className="text-[17px] font-black text-text-base leading-none">{profile?.followers_count || 0}</span>
+                                <span className="text-[11px] font-bold text-text-muted mt-1 uppercase tracking-wider">followers</span>
+                            </div>
+                            <div onClick={() => navigate('/dashboard/connections?tab=following')} className="flex flex-col items-center flex-1 cursor-pointer">
+                                <span className="text-[17px] font-black text-text-base leading-none">{profile?.following_count || 0}</span>
+                                <span className="text-[11px] font-bold text-text-muted mt-1 uppercase tracking-wider">following</span>
+                            </div>
+                        </div>
+
+                        {/* Bio Section */}
+                        <div className="mb-5 px-1">
+                            <p className="text-[14px] text-text-base leading-relaxed whitespace-pre-wrap">{profile?.bio}</p>
+                        </div>
+
+                        {/* Action Row */}
+                        <div className="flex gap-2 mb-2">
+                            <button
+                                onClick={isOwnProfile ? () => navigate('/dashboard/settings?section=account_info') : handleFollow}
+                                className="flex-1 bg-primary text-white py-2.5 rounded-xl text-[13px] font-black active:scale-95 transition-all shadow-md shadow-primary/10"
+                            >
+                                {isOwnProfile ? 'Edit profile' : (
+                                    followStatus === 'accepted' ? 'Following' :
+                                        followStatus === 'pending' ? 'Requested' :
+                                            'Follow'
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setIsShareModalOpen(true)}
+                                className="flex-1 bg-bg-base border border-border-base/40 py-2.5 rounded-xl text-[13px] font-black text-text-base active:scale-95 transition-all"
+                            >
+                                Share profile
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Desktop Avatar Only */}
+                    <div className="hidden md:block shrink-0 relative">
                         <div
-                            className="w-32 h-32 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] shadow-lg cursor-pointer hover:scale-[1.02] transition-all"
+                            className="w-40 h-40 rounded-full p-1 bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] shadow-lg cursor-pointer hover:scale-[1.02] transition-all"
                             onClick={() => isOwnProfile && navigate('/dashboard/settings?section=account_info')}
                         >
                             <div className="w-full h-full rounded-full border-[4px] border-white overflow-hidden bg-[#e0e0e0] flex items-center justify-center relative">
@@ -253,9 +352,7 @@ export const Profile: FC<ProfileProps> = () => {
                                     />
                                 ) : (
                                     <div className="flex flex-col items-center">
-                                        <div className="w-10 h-10 bg-white/40 rounded-full flex items-center justify-center mb-1">
-                                            <User className="w-6 h-6 text-white/80" />
-                                        </div>
+                                        <User className="w-10 h-10 text-white/80" />
                                     </div>
                                 )}
                                 {isOwnProfile && (
@@ -270,110 +367,103 @@ export const Profile: FC<ProfileProps> = () => {
                         )}
                     </div>
 
-                    {/* Info Section */}
-                    <div className="flex-1 text-center md:text-left">
-                        <div className="flex flex-col md:flex-row items-center gap-4 mb-5">
-                            <h2 className="text-[28px] md:text-[28px] font-bold tracking-tight text-normal  flex items-center gap-2 leading-none">
-                                {profile?.username}
-                                {profile?.is_private && <Lock className="w-5 h-5 text-text-muted" />}
-                                <CheckCircle2 className="w-6 h-6 text-primary fill-primary/10" strokeWidth={2.5} />
-                            </h2>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={isOwnProfile ? () => navigate('/dashboard/settings?section=account_info') : handleFollow}
-                                    className="px-5 py-2 bg-bg-base border border-border-base rounded-xl text-[12px] font-black uppercase tracking-wider hover:bg-bg-sidebar transition-all cursor-pointer"
-                                >
-                                    {isOwnProfile ? 'Edit Profile' : (
-                                        followStatus === 'accepted' ? 'Following' :
-                                            followStatus === 'pending' ? 'Requested' :
-                                                'Follow'
-                                    )}
-                                </button>
-                                <button 
-                                    onClick={() => {
-                                        if (navigator.share) {
-                                            navigator.share({
-                                                title: `${profile?.full_name || profile?.username} on Locolive`,
-                                                text: `Check out ${profile?.username}'s profile on Locolive!`,
-                                                url: window.location.href,
-                                            }).catch(() => {});
-                                        } else {
-                                            navigator.clipboard.writeText(window.location.href);
-                                            toast.success('Link copied to clipboard!');
-                                        }
-                                    }}
-                                    className="p-2 bg-[#ff006e]/5 text-primary border border-primary/20 rounded-xl hover:bg-primary/10 transition-all cursor-pointer"
-                                    title="Share Profile"
-                                >
-                                    <Share2 className="w-5 h-5" />
-                                </button>
-                                {isOwnProfile && (
+                    {/* Info & Stats Section (Desktop: Below Avatar | Mobile: Below Name Column) */}
+                    <div className="flex-1 w-full">
+                        {/* Desktop Only Info */}
+                        <div className="hidden md:block">
+                            <div className="flex items-center gap-4 mb-5">
+                                <h2 className="text-[28px] font-bold tracking-tight text-normal flex items-center gap-2 leading-none">
+                                    {profile?.username}
+                                    {profile?.is_private && <Lock className="w-5 h-5 text-text-muted" />}
+                                    <CheckCircle2 className="w-6 h-6 text-primary fill-primary/10" strokeWidth={2.5} />
+                                </h2>
+                                <div className="flex items-center gap-2">
                                     <button
-                                        onClick={() => navigate('/dashboard/settings')}
-                                        className="p-2 bg-bg-base border border-border-base rounded-xl hover:bg-bg-sidebar transition-all cursor-pointer"
+                                        onClick={isOwnProfile ? () => navigate('/dashboard/settings?section=account_info') : handleFollow}
+                                        className="px-5 py-2 bg-bg-base border border-border-base rounded-xl text-[12px] font-black uppercase tracking-wider hover:bg-bg-sidebar transition-all cursor-pointer"
                                     >
-                                        <Settings className="w-5 h-5 text-text-muted" />
+                                        {isOwnProfile ? 'Edit Profile' : (
+                                            followStatus === 'accepted' ? 'Following' :
+                                                followStatus === 'pending' ? 'Requested' :
+                                                    'Follow'
+                                        )}
                                     </button>
-                                )}
+                                    <button
+                                        onClick={() => setIsShareModalOpen(true)}
+                                        className="p-2 bg-[#ff006e]/5 text-primary border border-primary/20 rounded-xl hover:bg-primary/10 transition-all cursor-pointer"
+                                    >
+                                        <Share2 className="w-5 h-5" />
+                                    </button>
+                                    {isOwnProfile && (
+                                        <button
+                                            onClick={() => navigate('/dashboard/settings')}
+                                            className="p-2 bg-bg-base border border-border-base rounded-xl hover:bg-bg-sidebar transition-all cursor-pointer"
+                                        >
+                                            <Settings className="w-5 h-5 text-text-muted" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Stats */}
-                        <div className="flex items-center justify-center md:justify-start gap-10 mb-6">
-                            <div className="flex flex-col items-center md:items-start">
-                                <span className="text-xl font-black  leading-none">{profile?.post_count || 0}</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">posts</span>
+                        {/* Stats - Responsive (Desktop Only) */}
+                        <div className="hidden md:flex items-center justify-between md:justify-start gap-2 md:gap-10 mb-6  p-4 md:p-0 rounded-2xl md:rounded-none">
+                            <div className="flex flex-col items-center md:items-start flex-1 md:flex-none">
+                                <span className="text-lg md:text-xl font-black leading-none">{profile?.post_count || 0}</span>
+                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">posts</span>
                             </div>
-                            <div 
+                            <div
                                 onClick={() => navigate('/dashboard/connections?tab=followers')}
-                                className="flex flex-col items-center md:items-start cursor-pointer group/stat hover:opacity-80 transition-opacity"
+                                className="flex flex-col items-center md:items-start flex-1 md:flex-none cursor-pointer group/stat"
                             >
-                                <span className="text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{profile?.followers_count || 0}</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">followers</span>
+                                <span className="text-lg md:text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{profile?.followers_count || 0}</span>
+                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">followers</span>
                             </div>
-                            <div 
+                            <div
                                 onClick={() => navigate('/dashboard/connections?tab=following')}
-                                className="flex flex-col items-center md:items-start cursor-pointer group/stat hover:opacity-80 transition-opacity"
+                                className="flex flex-col items-center md:items-start flex-1 md:flex-none cursor-pointer group/stat"
                             >
-                                <span className="text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{profile?.following_count || 0}</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">following</span>
+                                <span className="text-lg md:text-xl font-black leading-none group-hover/stat:text-primary transition-colors">{profile?.following_count || 0}</span>
+                                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">following</span>
                             </div>
                             {isOwnProfile && streakData && (
-                                <div className="flex flex-col items-center md:items-start group cursor-help">
+                                <div className="flex flex-col items-center md:items-start flex-1 md:flex-none group">
                                     <div className="flex items-center gap-1">
-                                        <span className="text-xl font-black leading-none text-[#ff4d00]">{streakData.current_streak}</span>
-                                        <Flame className={cn("w-5 h-5 fill-[#ff4d00] text-[#ff4d00]", streakData.current_streak > 0 ? "animate-bounce" : "opacity-30")} />
+                                        <span className="text-lg md:text-xl font-black leading-none text-[#ff4d00]">{streakData.current_streak}</span>
+                                        <Flame className={cn("w-4 h-4 md:w-5 md:h-5 fill-[#ff4d00] text-[#ff4d00]", streakData.current_streak > 0 ? "animate-bounce" : "opacity-30")} />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">streak</span>
+                                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">streak</span>
                                 </div>
                             )}
                         </div>
 
-                        <div>
+                        <div className="md:block hidden">
                             <p className="text-[16px] font-black text-text-base  mb-0.5">{profile?.full_name}</p>
                             <p className="text-[13px] text-text-muted font-bold leading-relaxed max-w-md">
                                 {profile?.bio}
                             </p>
                         </div>
 
-                        {/* Badges Display */}
+                        {/* Mobile Bio */}
+                        <div className="md:hidden px-1">
+                            <p className="text-[13px] text-slate-600 font-medium leading-relaxed">
+                                {profile?.bio}
+                            </p>
+                        </div>
+
+                        {/* Badges Display - Desktop Only or refined for mobile */}
                         {isOwnProfile && badges && badges.length > 0 && (
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {badges.slice(0, 5).map((badge) => (
-                                    <div 
-                                        key={badge.id} 
+                                    <div
+                                        key={badge.id}
                                         title={badge.name + ": " + badge.description}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#fce7f3] border border-[#f9a8d4] rounded-full hover:scale-105 transition-all cursor-help"
+                                        className="flex items-center gap-1.5 px-3 py-1 bg-[#fce7f3] border border-[#f9a8d4] rounded-full hover:scale-105 transition-all"
                                     >
-                                        <span className="text-sm">{badge.icon}</span>
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-[#be185d]">{badge.name}</span>
+                                        <span className="text-xs">{badge.icon}</span>
+                                        <span className="text-[9px] font-black uppercase tracking-wider text-[#be185d]">{badge.name}</span>
                                     </div>
                                 ))}
-                                {badges && badges.length > 5 && (
-                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-base border border-border-base text-[10px] font-black text-text-muted">
-                                        +{badges.length - 5}
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
@@ -394,8 +484,8 @@ export const Profile: FC<ProfileProps> = () => {
                             </div>
                         )}
                         {(highlights.length > 0 ? highlights : (isOwnProfile ? [] : mockHighlights)).map((h: any) => (
-                            <div 
-                                key={h.id} 
+                            <div
+                                key={h.id}
                                 onClick={() => handleHighlightClick(h)}
                                 className="flex flex-col items-center gap-2 shrink-0 cursor-pointer group"
                             >
@@ -470,18 +560,26 @@ export const Profile: FC<ProfileProps> = () => {
                             )}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-3 gap-1 md:gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-1 md:gap-2">
                             {currentTabItems.map((item) => (
-                                <div 
-                                    key={item.id} 
+                                <div
+                                    key={item.id}
                                     onClick={() => setSelectedPost(item)}
-                                    className="aspect-square bg-bg-base rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all"
+                                    className="aspect-square bg-bg-base rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all flex items-center justify-center p-2"
                                 >
-                                    <img
-                                        src={getMediaUrl(item.media_url || item.video_url, FALLBACKS.POST)}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                        alt=""
-                                    />
+                                    {(item.media_url || item.video_url) ? (
+                                        <img
+                                            src={getMediaUrl(item.media_url || item.video_url, FALLBACKS.POST)}
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                            alt=""
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5 p-4 text-center">
+                                            <p className="text-[10px] font-bold text-text-base line-clamp-4 leading-relaxed italic">
+                                                "{item.content}"
+                                            </p>
+                                        </div>
+                                    )}
                                     {/* Hover Overlay */}
                                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6 text-white">
                                         <div className="flex items-center gap-2">
@@ -521,28 +619,28 @@ export const Profile: FC<ProfileProps> = () => {
             {/* Post Detail Modal */}
             <AnimatePresence>
                 {selectedPost && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8"
                         onClick={() => setSelectedPost(null)}
                     >
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             className="w-full max-w-2xl relative"
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                         >
-                            <button 
+                            <button
                                 onClick={() => setSelectedPost(null)}
                                 className="absolute -top-12 right-0 md:-right-12 p-2 text-white/60 hover:text-white transition-colors"
                             >
                                 <CloseIcon className="w-8 h-8" />
                             </button>
-                            <PostCard 
-                                post={selectedPost} 
+                            <PostCard
+                                post={selectedPost}
                                 currentUserID={user?.id}
                                 onDelete={() => {
                                     setSelectedPost(null);
@@ -553,6 +651,14 @@ export const Profile: FC<ProfileProps> = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Share Modal */}
+            <ShareModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                shareUrl={window.location.href}
+                title={`profile @${profile?.username}`}
+            />
         </div>
     );
 };

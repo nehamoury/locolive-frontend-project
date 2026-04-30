@@ -10,8 +10,12 @@ const RAW_URL = import.meta.env.VITE_API_URL as string | undefined;
 // 1. If VITE_API_URL is set (during build) and NOT a local IP (for prod safety), use it.
 // 2. If running on localhost, use the local backend port.
 // 3. Otherwise (Production), use the current browser origin.
-const FALLBACK_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-  ? 'http://localhost:8081' 
+const FALLBACK_URL = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || 
+   window.location.hostname === '127.0.0.1' || 
+   window.location.port === '5173' || 
+   window.location.port === '5174')
+  ? `${window.location.protocol}//${window.location.hostname}:8080`
   : (typeof window !== 'undefined' ? window.location.origin : '');
 
 // If the URL is a local IP, and we are not on localhost, it's likely a leftover from dev

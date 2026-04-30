@@ -30,36 +30,22 @@ const Stories = ({ stories, onStoryClick, onCreateStory }: StoriesProps) => {
   };
 
   return (
-    <div className="relative group">
-      {/* Scroll Buttons */}
-      <button
-        onClick={() => scroll('left')}
-        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity -ml-4 hidden md:flex"
-      >
-        ←
-      </button>
-      <button
-        onClick={() => scroll('right')}
-        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity -mr-4 hidden md:flex"
-      >
-        →
-      </button>
-
-      {/* Stories Row */}
+    <div className="relative group mb-6">
+      {/* Stories Row - Premium Glass Feel */}
       <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto scrollbar-hide py-2 px-4 md:px-0 md:mx-auto md:max-w-[600px]"
+        className="flex gap-5 overflow-x-auto scrollbar-hide py-5 px-6 bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {/* Your Story */}
         <div
           onClick={onCreateStory}
-          className="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0 group/my-story"
+          className="flex flex-col items-center gap-2 cursor-pointer flex-shrink-0 group/my-story"
         >
           <div className="relative">
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full p-[3px] bg-gradient-to-tr from-pink-500 via-purple-500 to-amber-500">
-              <div className="w-full h-full rounded-full bg-white p-[2px]">
-                <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+            <div className="w-16 h-16 md:w-[72px] md:h-[72px] rounded-2xl p-[2px] bg-brand-gradient shadow-lg shadow-primary/20 transition-transform group-hover/my-story:scale-105 duration-300">
+              <div className="w-full h-full rounded-2xl bg-white dark:bg-bg-card p-[2px]">
+                <div className="w-full h-full rounded-2xl bg-gray-100 dark:bg-bg-base flex items-center justify-center overflow-hidden">
                   {stories[0]?.avatar_url ? (
                     <img
                       src={stories[0].avatar_url.startsWith('http') ? stories[0].avatar_url : `${BACKEND}${stories[0].avatar_url}`}
@@ -72,12 +58,12 @@ const Stories = ({ stories, onStoryClick, onCreateStory }: StoriesProps) => {
                 </div>
               </div>
             </div>
-            <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center border-2 border-white">
-              <Plus className="w-3 h-3 text-white stroke-[3]" />
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-lg flex items-center justify-center border-2 border-white dark:border-bg-card shadow-lg">
+              <Plus className="w-3.5 h-3.5 text-white stroke-[3]" />
             </div>
           </div>
-          <span className="text-[10px] md:text-xs text-gray-600 font-medium max-w-[64px] md:max-w-[80px] truncate">
-            Your Story
+          <span className="text-[10px] font-black text-text-muted uppercase tracking-wider">
+            Add
           </span>
         </div>
 
@@ -86,17 +72,17 @@ const Stories = ({ stories, onStoryClick, onCreateStory }: StoriesProps) => {
           <div
             key={story.id}
             onClick={() => onStoryClick?.(story, index + 1)}
-            className="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0 group/story"
+            className="flex flex-col items-center gap-2 cursor-pointer flex-shrink-0 group/story"
           >
             <div
-              className={`w-16 h-16 md:w-20 md:h-20 rounded-full p-[3px] transition-transform group-hover/story:scale-105 ${
+              className={`w-16 h-16 md:w-[72px] md:h-[72px] rounded-2xl p-[2px] transition-all duration-300 group-hover/story:scale-105 group-hover/story:-translate-y-1 ${
                 story.isViewed
-                  ? 'bg-gray-300'
-                  : 'bg-gradient-to-tr from-pink-500 via-purple-500 to-amber-500'
+                  ? 'bg-gray-200 dark:bg-white/10'
+                  : 'bg-brand-gradient shadow-lg shadow-primary/10'
               }`}
             >
-              <div className="w-full h-full rounded-full bg-white p-[2px]">
-                <div className="w-full h-full rounded-full bg-gray-100 overflow-hidden">
+              <div className="w-full h-full rounded-2xl bg-white dark:bg-bg-card p-[2px]">
+                <div className="w-full h-full rounded-2xl bg-gray-100 dark:bg-bg-base overflow-hidden">
                   {story.avatar_url ? (
                     <img
                       src={story.avatar_url.startsWith('http') ? story.avatar_url : `${BACKEND}${story.avatar_url}`}
@@ -113,14 +99,28 @@ const Stories = ({ stories, onStoryClick, onCreateStory }: StoriesProps) => {
                 </div>
               </div>
             </div>
-            <span className={`text-[10px] md:text-xs max-w-[64px] md:max-w-[80px] truncate ${
-              story.isViewed ? 'text-gray-500' : 'text-gray-700 font-medium'
+            <span className={`text-[10px] uppercase tracking-wider truncate max-w-[64px] ${
+              story.isViewed ? 'text-text-muted/60 font-medium' : 'text-text-base font-black'
             }`}>
               {story.username}
             </span>
           </div>
         ))}
       </div>
+
+      {/* Scroll Buttons */}
+      <button
+        onClick={() => scroll('left')}
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center text-text-base opacity-0 group-hover:opacity-100 transition-all shadow-xl -ml-5 hidden md:flex hover:scale-110 active:scale-95"
+      >
+        ←
+      </button>
+      <button
+        onClick={() => scroll('right')}
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/80 dark:bg-black/50 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center text-text-base opacity-0 group-hover:opacity-100 transition-all shadow-xl -mr-5 hidden md:flex hover:scale-110 active:scale-95"
+      >
+        →
+      </button>
     </div>
   );
 };
