@@ -9,7 +9,8 @@ import {
   Sparkles, 
   PlayCircle, 
   Flame,
-  Layout
+  Layout,
+  ArrowLeft
 } from 'lucide-react';
 import { useExploreData } from '../../hooks/useExploreData';
 import { ExploreFeed } from '../../components/explore/ExploreFeed';
@@ -26,7 +27,7 @@ export type ExploreTab = 'all' | 'nearby' | 'crossings' | 'casting' | 'stories' 
 const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePageProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTabState] = useState<ExploreTab>((searchParams.get('tab') as ExploreTab) || 'all');
-  const [viewMode, setViewMode] = useState<'feed' | 'map'>('feed');
+  const [viewMode, setViewMode] = useState<'feed' | 'map'>('map');
 
   const setActiveTab = (tab: ExploreTab) => {
     setActiveTabState(tab);
@@ -66,63 +67,81 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
 
   return (
     <div className="h-full w-full bg-bg-base flex flex-col overflow-hidden relative transition-colors duration-300">
-      {/* Header & Tabs */}
-      <header className="px-4 sm:px-8 pt-4 sm:pt-6 pb-4 bg-bg-base/80 backdrop-blur-xl border-b border-border-base sticky top-0 z-30">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex flex-col">
-            <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-text-base">Explore</h1>
-            <p className="text-[9px] sm:text-[10px] font-bold text-text-muted uppercase tracking-[3px] mt-0.5 sm:mt-1">Discover your world</p>
-          </div>
+      
+      {/* ─── Map View Overlay UI (Floating) ─── */}
+      <AnimatePresence>
+        {viewMode === 'map' && (
+          <>
+            {/* Minimalist Back to Feed Toggle (Naked Arrow) */}
+            <motion.div 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -20, opacity: 0 }}
+              className="absolute top-6 left-4 z-[700]"
+            >
+              <button
+                onClick={() => setViewMode('feed')}
+                className="w-10 h-10 flex items-center justify-center text-black hover:scale-110 active:scale-90 transition-all"
+              >
+                <ArrowLeft className="w-7 h-7 stroke-[2.5]" />
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-          <div className="flex items-center gap-1.5 bg-bg-card p-1 rounded-2xl border border-border-base self-start sm:self-auto">
-            <button
-              onClick={() => setViewMode('feed')}
-              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all ${
-                viewMode === 'feed' 
-                  ? 'bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-pink-500/20' 
-                  : 'text-text-muted hover:text-text-base'
-              }`}
-            >
-              <Layout className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Feed View</span>
-              <span className="xs:hidden">Feed</span>
-            </button>
-            <button
-              onClick={() => setViewMode('map')}
-              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all ${
-                viewMode === 'map' 
-                  ? 'bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-pink-500/20' 
-                  : 'text-text-muted hover:text-text-base'
-              }`}
-            >
-              <MapIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Map View</span>
-              <span className="xs:hidden">Map</span>
-            </button>
-          </div>
-        </div>
+      {/* ─── Feed View Header (Structured) ─── */}
+      <AnimatePresence>
+        {viewMode === 'feed' && (
+          <motion.header 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-4 sm:px-8 pt-6 pb-4 bg-bg-base/80 backdrop-blur-xl border-b border-border-base sticky top-0 z-30 overflow-hidden"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div className="flex flex-col">
+                <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-text-base">Explore</h1>
+                <p className="text-[9px] sm:text-[10px] font-bold text-text-muted uppercase tracking-[3px] mt-1">Discover your world</p>
+              </div>
 
-        <nav className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1.5 -mx-4 px-4 sm:mx-0 sm:px-0">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id as ExploreTab);
-                if (tab.id === 'heatmap') setViewMode('map');
-              }}
-              className={`flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
-                activeTab === tab.id
-                  ? 'bg-text-base text-bg-base border-text-base shadow-xl scale-105 z-10'
-                  : 'bg-bg-card text-text-muted border-border-base hover:border-text-muted/30'
-              }`}
-            >
-              <span className="sm:hidden scale-90">{tab.icon}</span>
-              <span className="hidden sm:inline">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </header>
+              <div className="flex items-center gap-1.5 bg-bg-card p-1 rounded-2xl border border-border-base shadow-sm">
+                <button
+                  onClick={() => setViewMode('feed')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all bg-gradient-to-r from-primary to-accent text-white shadow-lg`}
+                >
+                  <Layout className="w-4 h-4" />
+                  <span>Feed View</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all text-text-muted hover:text-text-base`}
+                >
+                  <MapIcon className="w-4 h-4" />
+                  <span>Map View</span>
+                </button>
+              </div>
+            </div>
+
+            <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1.5">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as ExploreTab)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
+                    activeTab === tab.id
+                      ? 'bg-text-base text-bg-base border-text-base shadow-xl'
+                      : 'bg-bg-card text-text-muted border-border-base hover:border-text-muted/30'
+                  }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </motion.header>
+        )}
+      </AnimatePresence>
 
 
       {/* Main Content Area */}

@@ -9,7 +9,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import './MapPage.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BACKEND } from '../../utils/config';
-import { Ghost, ShieldAlert, Navigation, Star, Heart, MapPin } from 'lucide-react';
+import { Ghost, Navigation, Star, Heart } from 'lucide-react';
 import { MapFilters } from '../../components/map/MapFilters';
 import { UserPreviewCard } from '../../components/map/UserPreviewCard';
 import CreateStoryModal from '../../components/story/CreateStoryModal';
@@ -171,7 +171,6 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
 
     // Sync local state with AuthContext
     const isGhostMode = user?.is_ghost_mode || false;
-    const isPanicActive = user?.panic_mode || false;
 
     const handleGhostToggle = async () => {
         try {
@@ -188,20 +187,6 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
         }
     };
 
-    const handlePanicToggle = async () => {
-        try {
-            const nextState = !isPanicActive;
-            // Update UI immediately (optimistic)
-            updateUser({ panic_mode: nextState });
-
-            await api.post('/users/panic', { enabled: nextState });
-            console.log(`[Map] Panic Mode ${nextState ? 'Activated' : 'Deactivated'}`);
-        } catch (err) {
-            console.error('[Map] Panic toggle failed:', err);
-            // Revert on error
-            updateUser({ panic_mode: isPanicActive });
-        }
-    };
     const latestPositionRef = useRef<[number, number] | null>(externalPosition || null);
 
     // Throttling Refs
@@ -554,48 +539,42 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
                 }
             </MapContainer>
 
-            {/* Overlays */}
-            <div className="absolute top-6 left-6 right-6 z-[600] flex items-center justify-between pointer-events-none">
-                <div className="flex items-center gap-3 pointer-events-auto">
-                    <div className="flex items-center gap-3 px-4 py-2.5 bg-bg-base/95 backdrop-blur-2xl border border-border-base rounded-2xl shadow-xl transition-colors duration-300">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
-                        <span className="text-[10px] font-black text-text-base uppercase tracking-[2px] leading-none mt-0.5">Live Live</span>
+            {/* Combined Premium Live + Address Badge */}
+            <div className="absolute top-6 right-4 z-[600] pointer-events-none">
+                <motion.div 
+                    initial={{ x: 50, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    className="flex items-center gap-3 px-4 py-2.5 bg-bg-base/90 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] pointer-events-auto"
+                >
+                    <div className="relative">
+                        <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping absolute inset-0" />
+                        <div className="w-2.5 h-2.5 bg-green-500 rounded-full relative z-10" />
                     </div>
-                    
-                    <div className="flex items-center gap-2 px-4 py-2.5 bg-bg-base/95 backdrop-blur-2xl border border-border-base rounded-2xl shadow-xl transition-colors duration-300">
-                        <MapPin size={14} className="text-primary" />
-                        <span className="text-[11px] font-bold text-text-base uppercase tracking-wider">{locationName}</span>
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-green-500 uppercase tracking-[2px] leading-none mb-1">Live Now</span>
+                        <span className="text-[11px] font-black text-text-base uppercase tracking-widest leading-none truncate max-w-[140px]">{locationName}</span>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             <MapFilters onFilterChange={setActiveFilters} activeFilters={activeFilters} />
 
-            <div className="absolute bottom-10 left-10 z-[600] flex flex-col gap-4">
-                <motion.button
-                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={handlePanicToggle}
-                    className={`w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-2xl border border-white/20 transition-all shadow-2xl cursor-pointer ${
-                        isPanicActive ? 'bg-red-500 text-white border-red-400' : 'bg-bg-base/90 text-red-500 hover:bg-bg-base'
-                    }`}
-                >
-                    <ShieldAlert className={`w-6 h-6 ${isPanicActive ? 'animate-pulse' : ''}`} />
-                </motion.button>
+            <div className="absolute bottom-24 left-4 z-[600] flex flex-col gap-3">
                 <motion.button
                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                     onClick={handleGhostToggle}
-                    className={`w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-2xl border border-white/20 transition-all shadow-2xl cursor-pointer ${
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-2xl border border-white/10 transition-all shadow-2xl cursor-pointer ${
                         isGhostMode ? 'bg-purple-600 text-white border-purple-400' : 'bg-bg-base/90 text-purple-500 hover:bg-bg-base'
                     }`}
                 >
-                    <Ghost className="w-6 h-6" />
+                    <Ghost className="w-5 h-5" />
                 </motion.button>
                 <motion.button
                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                     onClick={() => { if (userPosition) setFlyTo([...userPosition]); }}
-                    className="w-14 h-14 bg-bg-base/90 backdrop-blur-2xl border border-white/20 rounded-2xl flex items-center justify-center shadow-2xl hover:bg-bg-base transition-all text-text-base cursor-pointer"
+                    className="w-12 h-12 bg-bg-base/90 backdrop-blur-2xl border border-white/10 rounded-2xl flex items-center justify-center shadow-2xl hover:bg-bg-base transition-all text-text-base cursor-pointer"
                 >
-                    <Navigation className="w-6 h-6" />
+                    <Navigation className="w-5 h-5" />
                 </motion.button>
             </div>
 

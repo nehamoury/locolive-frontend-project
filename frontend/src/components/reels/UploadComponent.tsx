@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { Upload, Video, Image as ImageIcon } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface UploadComponentProps {
@@ -33,7 +33,7 @@ const UploadComponent: React.FC<UploadComponentProps> = ({ onFileSelect, isImage
       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
-      className={`relative w-full h-[400px] md:h-full flex flex-col items-center justify-center p-8 transition-all duration-500 overflow-hidden ${isDragging ? 'bg-primary/5 ring-4 ring-primary/20 ring-inset' : 'bg-zinc-950/20'}`}
+      className={`relative w-full h-[400px] md:h-full flex flex-col items-center justify-center p-8 transition-all duration-500 overflow-hidden ${isDragging ? 'bg-primary/5 ring-4 ring-primary/10 ring-inset' : 'bg-gray-50'}`}
     >
       <input 
         type="file" 
@@ -54,27 +54,13 @@ const UploadComponent: React.FC<UploadComponentProps> = ({ onFileSelect, isImage
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => fileInputRef.current?.click()}
-          className={`w-24 h-24 rounded-[32px] flex items-center justify-center transition-all duration-300 border-2 border-dashed ${isDragging ? 'border-primary bg-primary/20' : 'border-white/10 bg-white/5 hover:border-primary/50'}`}
+          className={`w-24 h-24 rounded-[32px] flex items-center justify-center transition-all duration-300 border-2 border-dashed ${isDragging ? 'border-primary bg-primary/20' : 'border-gray-200 bg-white hover:border-primary/50'}`}
         >
-          <Upload className={`w-8 h-8 ${isDragging ? 'text-primary' : 'text-zinc-500'}`} />
+          <Upload className={`w-8 h-8 ${isDragging ? 'text-primary' : 'text-gray-400'}`} />
         </motion.button>
 
         <div className="space-y-2">
-          <h4 className="text-lg font-black text-text-base italic tracking-tight uppercase">Upload Media</h4>
-          <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest max-w-[200px]">
-            Drag & drop images or videos (max 100MB)
-          </p>
-        </div>
-
-        <div className="flex gap-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
-            <Video className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Video</span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
-            <ImageIcon className="w-3.5 h-3.5 text-secondary" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Image</span>
-          </div>
+          <h4 className="text-lg font-black text-text-base tracking-tight uppercase">Upload Media</h4>
         </div>
       </motion.div>
     </div>

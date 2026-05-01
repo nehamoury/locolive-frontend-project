@@ -280,7 +280,7 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
             onClick={markAllRead}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-base text-[10px] font-black uppercase tracking-widest text-text-muted/40 hover:text-primary transition-all cursor-pointer"
           >
-            Clear All
+            Marked All
           </button>
         )}
       </div>

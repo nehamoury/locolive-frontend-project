@@ -44,14 +44,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // If no token, we're definitely not logged in
       if (!storedToken || !storedUser) {
-        setTimeout(() => setLoading(false), 2000);
+        setLoading(false);
         return;
       }
 
       // If already in store, we might not need to verify every time on mount
-      // but let's do a quiet check to ensure session is still valid
       if (authStore.isAuthenticated && authStore.user) {
-        setTimeout(() => setLoading(false), 2000);
+        setLoading(false);
         return;
       }
       
@@ -65,16 +64,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authStore.login(storedToken, user, !user.is_profile_complete);
       } catch (err: any) {
         console.error('Token verification failed:', err);
-        // Only logout if it's an auth error (401/403)
-        // If it's a network error, keep the local state but maybe show a warning
         if (err.response?.status === 401 || err.response?.status === 403) {
           handleLogout();
         }
       } finally {
-        // Minimum splash screen time for better UX/Branding
-        setTimeout(() => {
-          setLoading(false);
-        }, 2000);
+        setLoading(false);
       }
     };
 

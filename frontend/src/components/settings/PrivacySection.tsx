@@ -124,108 +124,113 @@ const PrivacySection: FC = () => {
       ) : (
         <>
           <div className="bg-bg-card rounded-[32px] border border-border-base/50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
-            <div className="p-8 space-y-8">
+            <div className="p-5 md:p-8 space-y-8">
               {/* Private Account Toggle */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500 shadow-sm">
+                  <div className="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500 shadow-sm shrink-0">
                     <Lock className="w-6 h-6" />
                   </div>
                   <div className="text-left">
-                    <h4 className="text-[16px] font-black text-text-base tracking-tight">Private Account</h4>
-                    <p className="text-[13px] text-text-muted font-bold mt-0.5 max-w-[400px]">
-                      Only people you approve can see your photos, videos and profile details.
+                    <h4 className="text-[16px] font-black text-text-base tracking-tight leading-none mb-1">Private Account</h4>
+                    <p className="text-[13px] text-text-muted font-bold leading-tight">
+                      Only people you approve can see your profile.
                     </p>
                   </div>
                 </div>
                 
-                <button 
-                  onClick={handleTogglePrivacy}
-                  disabled={updatingPrivacy}
-                  className={cn(
-                    "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
-                    isPrivate ? "bg-pink-500" : "bg-bg-base border-border-base"
-                  )}
-                >
-                  <span className={cn(
-                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white dark:bg-bg-card shadow ring-0 transition duration-200 ease-in-out",
-                    isPrivate ? "translate-x-5" : "translate-x-0"
-                  )} />
-                </button>
+                <div className="flex justify-end sm:justify-start">
+                  <button 
+                    onClick={handleTogglePrivacy}
+                    disabled={updatingPrivacy}
+                    className={cn(
+                      "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
+                      isPrivate ? "bg-pink-500" : "bg-bg-base border-border-base"
+                    )}
+                  >
+                    <span className={cn(
+                      "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white dark:bg-bg-card shadow ring-0 transition duration-200 ease-in-out",
+                      isPrivate ? "translate-x-5" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
               </div>
 
               {/* Ghost Mode Toggle */}
-              <div className="flex items-center justify-between pt-8 border-t border-border-base/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 border-t border-border-base/30">
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
+                  <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 shadow-sm shrink-0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M9 10H9.01M15 10H15.01M12 2C7.03 2 3 6.03 3 11V22L12 19L21 22V11C21 6.03 16.97 2 12 2Z" /></svg>
                   </div>
                   <div className="text-left">
-                    <h4 className="text-[16px] font-black text-text-base tracking-tight">Ghost Mode</h4>
-                    <p className="text-[13px] text-text-muted font-bold mt-0.5 max-w-[400px]">
-                      Your location will be hidden from everyone on the map until you turn it back on.
+                    <h4 className="text-[16px] font-black text-text-base tracking-tight leading-none mb-1">Ghost Mode</h4>
+                    <p className="text-[13px] text-text-muted font-bold leading-tight">
+                      Hide your location from everyone on the map.
                     </p>
                   </div>
                 </div>
                 
-                <button 
-                  onClick={handleToggleGhostMode}
-                  disabled={updatingPrivacy}
-                  className={cn(
-                    "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
-                    isGhostMode ? "bg-blue-500" : "bg-bg-base border-border-base"
-                  )}
-                >
-                  <span className={cn(
-                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white dark:bg-bg-card shadow ring-0 transition duration-200 ease-in-out",
-                    isGhostMode ? "translate-x-5" : "translate-x-0"
-                  )} />
-                </button>
+                <div className="flex justify-end sm:justify-start">
+                  <button 
+                    onClick={handleToggleGhostMode}
+                    disabled={updatingPrivacy}
+                    className={cn(
+                      "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
+                      isGhostMode ? "bg-blue-500" : "bg-bg-base border-border-base"
+                    )}
+                  >
+                    <span className={cn(
+                      "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white dark:bg-bg-card shadow ring-0 transition duration-200 ease-in-out",
+                      isGhostMode ? "translate-x-5" : "translate-x-0"
+                    )} />
+                  </button>
+                </div>
               </div>
 
               {/* Panic Mode Section */}
-              <div className="flex items-center justify-between pt-8 border-t border-border-base/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 border-t border-border-base/30">
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 shadow-sm">
+                  <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 shadow-sm shrink-0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4m0 4h.01" /></svg>
                   </div>
                   <div className="text-left">
-                    <h4 className="text-[16px] font-black text-red-600 tracking-tight">Panic Mode</h4>
-                    <p className="text-[13px] text-text-muted font-bold mt-0.5 max-w-[400px]">
-                      Immediate emergency invisibility. All traces of your existence will be scrubbed until you manually recover your account.
+                    <h4 className="text-[16px] font-black text-red-600 tracking-tight leading-none mb-1">Panic Mode</h4>
+                    <p className="text-[13px] text-text-muted font-bold leading-tight">
+                      Immediate emergency invisibility. 
                     </p>
                   </div>
                 </div>
                 
-                <button 
-                  onClick={() => setShowPanicConfirm(true)}
-                  disabled={updatingPrivacy || panicMode}
-                  className={cn(
-                    "px-5 py-2.5 rounded-2xl text-[12px] font-black uppercase tracking-wider transition-all",
-                    panicMode ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-200 active:scale-95"
-                  )}
-                >
-                  {panicMode ? "Activated" : "Activate"}
-                </button>
+                <div className="flex justify-end sm:justify-start">
+                  <button 
+                    onClick={() => setShowPanicConfirm(true)}
+                    disabled={updatingPrivacy || panicMode}
+                    className={cn(
+                      "px-5 py-2.5 rounded-2xl text-[12px] font-black uppercase tracking-wider transition-all w-full sm:w-auto",
+                      panicMode ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-500 text-white hover:bg-red-600 shadow-md active:scale-95"
+                    )}
+                  >
+                    {panicMode ? "Activated" : "Activate"}
+                  </button>
+                </div>
               </div>
 
               {showPanicConfirm && (
                 <div className="p-6 bg-red-50 rounded-3xl border border-red-100 animate-in zoom-in-95 duration-200">
                   <h5 className="text-red-700 font-black text-[15px] mb-2">Are you absolutely sure?</h5>
                   <p className="text-red-600/70 text-[12px] font-bold mb-5 leading-relaxed">
-                    This will immediately hide your profile, scrub your location, and terminate all active sessions. 
-                    This action is designed for emergency situations.
+                    This will immediately hide your profile and scrub your location.
                   </p>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button 
                       onClick={handleActivatePanicMode}
-                      className="px-6 py-2.5 bg-red-600 text-white text-[11px] font-black uppercase rounded-xl hover:bg-red-700 transition-colors"
+                      className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white text-[11px] font-black uppercase rounded-xl hover:bg-red-700 transition-colors"
                     >
                       Yes, Scrub Everything
                     </button>
                     <button 
                       onClick={() => setShowPanicConfirm(false)}
-                      className="px-6 py-2.5 bg-white text-gray-600 text-[11px] font-black uppercase rounded-xl border border-red-100 hover:bg-gray-50 transition-colors"
+                      className="w-full sm:w-auto px-6 py-2.5 bg-white text-gray-600 text-[11px] font-black uppercase rounded-xl border border-red-100 hover:bg-gray-50 transition-colors"
                     >
                       Cancel
                     </button>
@@ -235,17 +240,17 @@ const PrivacySection: FC = () => {
 
               <div className="pt-6 border-t border-border-base/30 space-y-6">
                 <h3 className="text-[14px] font-black uppercase tracking-widest text-text-muted/60">Interactions</h3>
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Mentions (Who can see your stories)</label>
+                    <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Mentions</label>
                     <select 
                       value={whoCanSeeStories}
                       onChange={(e) => updatePrivacySetting('who_can_see_stories', e.target.value)}
-                      className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all appearance-none cursor-pointer"
+                      className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-[13px] font-bold text-text-base outline-none focus:border-pink-500/50 transition-all appearance-none cursor-pointer shadow-inner"
                     >
-                      <option value="everyone" className="bg-bg-card">Everyone</option>
-                      <option value="connections" className="bg-bg-card">Connections Only</option>
-                      <option value="nobody" className="bg-bg-card">No One</option>
+                      <option value="everyone">Everyone</option>
+                      <option value="connections">Connections</option>
+                      <option value="nobody">No One</option>
                     </select>
                   </div>
                   
@@ -254,11 +259,11 @@ const PrivacySection: FC = () => {
                     <select 
                       value={whoCanMessage}
                       onChange={(e) => updatePrivacySetting('who_can_message', e.target.value)}
-                      className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all appearance-none cursor-pointer"
+                      className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-[13px] font-bold text-text-base outline-none focus:border-pink-500/50 transition-all appearance-none cursor-pointer shadow-inner"
                     >
-                      <option value="everyone" className="bg-bg-card">Everyone</option>
-                      <option value="connections" className="bg-bg-card">Connections Only</option>
-                      <option value="nobody" className="bg-bg-card">No One</option>
+                      <option value="everyone">Everyone</option>
+                      <option value="connections">Connections</option>
+                      <option value="nobody">No One</option>
                     </select>
                   </div>
                 </div>

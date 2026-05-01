@@ -2,9 +2,7 @@ import { type FC, useState, useEffect } from 'react';
 import {
     Camera,
     Settings,
-    Video,
     User,
-    Bookmark,
     Grid,
     Plus,
     CheckCircle2,
@@ -13,7 +11,9 @@ import {
     Share2,
     Heart,
     MessageCircle,
-    ArrowLeft
+    ArrowLeft,
+    Clapperboard,
+    PenLine
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -62,11 +62,10 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
     const [posts, setPosts] = useState<any[]>([]);
     const [reels, setReels] = useState<any[]>([]);
     const [highlights, setHighlights] = useState<any[]>([]);
-    const [savedReels, setSavedReels] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchParams] = useSearchParams();
-    const initialTab = searchParams.get('tab') as 'posts' | 'reels' | 'saved' | 'tagged' || 'posts';
-    const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>(initialTab);
+    const initialTab = (searchParams.get('tab') as any) === 'tagged' || (searchParams.get('tab') as any) === 'saved' ? 'thoughts' : (searchParams.get('tab') as 'posts' | 'reels' | 'thoughts' || 'posts');
+    const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'thoughts'>(initialTab);
     const [viewingStories, setViewingStories] = useState<any[]>([]);
     const [streakData, setStreakData] = useState<StreakData | null>(null);
     const [badges, setBadges] = useState<Badge[]>([]);
@@ -125,12 +124,6 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
 
             const reelsRes = await api.get(`/users/${userId}/reels`).catch(() => ({ data: { reels: [] } }));
 
-            let saved = [];
-            if (isOwnProfile) {
-                const savedRes = await api.get('/reels/saved').catch(() => ({ data: { reels: [] } }));
-                saved = savedRes.data?.reels || savedRes.data || [];
-            }
-
             let status: 'none' | 'pending' | 'accepted' = 'none';
             if (!isOwnProfile) {
                 const [myConnsRes, mySentRes] = await Promise.all([
@@ -153,7 +146,6 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
             setPosts(postsRes.data?.posts || []);
             setHighlights(highlightsRes.data || []);
             setReels(reelsRes.data?.reels || reelsRes.data || []);
-            setSavedReels(saved);
 
             // Fetch Gamification Data
             if (isOwnProfile) {
@@ -232,13 +224,13 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
         );
     }
 
-    const currentTabItems = activeTab === 'posts' ? posts :
+    const currentTabItems = activeTab === 'posts' ? posts.filter(p => (p.media_url && p.media_url !== 'text') || p.video_url) :
         activeTab === 'reels' ? reels :
-            activeTab === 'saved' ? savedReels : [];
+            activeTab === 'thoughts' ? posts.filter(p => p.media_type === 'text' || !p.media_url || p.media_url === 'text') : [];
 
     return (
         <div className="bg-bg-base text-text-base p-0 md:p-6">
-            <div className="max-w-[1200px] mx-auto bg-bg-card shadow-[0_20px_70px_-15px_rgba(0,0,0,0.05)] overflow-hidden min-h-full flex flex-col pb-24 md:pb-12">
+            <div className="max-w-[1200px] mx-auto bg-bg-card shadow-[0_20px_70px_-15px_rgba(0,0,0,0.05)] overflow-hidden min-h-full flex flex-col pb-6 md:pb-12">
 
                 {/* ── Profile Header ── */}
                 <div className="px-5 md:px-12 pt-4 md:pt-14 pb-8 flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-14 relative">
@@ -444,12 +436,6 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
                             </p>
                         </div>
 
-                        {/* Mobile Bio */}
-                        <div className="md:hidden px-1">
-                            <p className="text-[13px] text-slate-600 font-medium leading-relaxed">
-                                {profile?.bio}
-                            </p>
-                        </div>
 
                         {/* Badges Display - Desktop Only or refined for mobile */}
                         {isOwnProfile && badges && badges.length > 0 && (
@@ -504,7 +490,7 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
 
                 {/* ── Content Tabs ── */}
                 <div className="flex justify-center border-b border-border-base/50">
-                    {(['posts', 'reels', 'saved', 'tagged'] as const).map((tab) => (
+                    {(['posts', 'reels', 'thoughts'] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -516,9 +502,8 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
                             )}
                         >
                             {tab === 'posts' && <Grid className="w-4 h-4" />}
-                            {tab === 'reels' && <Video className="w-4 h-4" />}
-                            {tab === 'saved' && <Bookmark className="w-4 h-4" />}
-                            {tab === 'tagged' && <User className="w-4 h-4" />}
+                            {tab === 'reels' && <Clapperboard className="w-4 h-4" />}
+                            {tab === 'thoughts' && <PenLine className="w-4 h-4" />}
                             <span className="text-[10px] font-black uppercase tracking-[2px]">{tab}</span>
                         </button>
                     ))}
@@ -540,22 +525,22 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-20 h-20 bg-bg-base rounded-full flex items-center justify-center mb-5 shadow-sm">
                                 {activeTab === 'posts' ? <Camera className="w-8 h-8 text-text-muted/50" /> :
-                                    activeTab === 'reels' ? <Video className="w-8 h-8 text-text-muted/50" /> :
-                                        <Bookmark className="w-8 h-8 text-text-muted/50" />}
+                                    activeTab === 'reels' ? <Clapperboard className="w-8 h-8 text-text-muted/50" /> :
+                                        <PenLine className="w-8 h-8 text-text-muted/50" />}
                             </div>
                             <h3 className="text-xl font-black  text-text-base mb-1">No {activeTab} yet</h3>
                             <p className="text-[12px] text-text-muted font-bold mb-6 max-w-[220px]">
                                 {activeTab === 'posts' ? 'Share your moments with the world.' :
                                     activeTab === 'reels' ? 'Create fun videos to share.' :
-                                        'Your saved items will appear here.'}
+                                        'Express yourself with text posts.'}
                             </p>
-                            {isOwnProfile && activeTab !== 'tagged' && (
+                            {isOwnProfile && (
                                 <button
-                                    onClick={() => navigate('/dashboard/home')}
+                                    onClick={() => activeTab === 'reels' ? navigate('/dashboard/reels') : navigate('/dashboard/home')}
                                     className="px-6 py-2.5 bg-brand-gradient text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all cursor-pointer"
                                 >
                                     <Plus className="inline-block w-3 h-3 mr-1.5 -mt-0.5" />
-                                    Create {activeTab === 'posts' ? 'Post' : 'Reel'}
+                                    Create {activeTab === 'reels' ? 'Reel' : 'Post'}
                                 </button>
                             )}
                         </div>
@@ -564,19 +549,43 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
                             {currentTabItems.map((item) => (
                                 <div
                                     key={item.id}
-                                    onClick={() => setSelectedPost(item)}
+                                    onClick={() => {
+                                        // For reels, navigate to the dedicated Reels discovery page with this reel's ID
+                                        if (activeTab === 'reels' || item.video_url || item.VideoURL || item.media_type === 'video') {
+                                            navigate(`/dashboard/reels?id=${item.id}`);
+                                        } else {
+                                            setSelectedPost(item);
+                                        }
+                                    }}
                                     className="aspect-square bg-bg-base rounded-lg overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-md transition-all flex items-center justify-center p-2"
                                 >
-                                    {(item.media_url || item.video_url) ? (
-                                        <img
-                                            src={getMediaUrl(item.media_url || item.video_url, FALLBACKS.POST)}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                            alt=""
-                                        />
+                                    {((item.media_url && item.media_url !== 'text') || item.video_url || item.VideoURL || activeTab === 'reels') ? (
+                                        (activeTab === 'reels' || item.media_type === 'video' || item.video_url || item.VideoURL) ? (
+                                            <video
+                                                src={getMediaUrl(item.video_url || item.VideoURL || item.media_url)}
+                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                muted
+                                                playsInline
+                                                loop
+                                                autoPlay
+                                                preload="auto"
+                                                onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                                                onMouseLeave={() => {
+                                                    // Continue playing if it was autoPlay, or pause if preferred. 
+                                                    // Let's keep it playing since it's a preview.
+                                                }}
+                                            />
+                                        ) : (
+                                            <img
+                                                src={getMediaUrl(item.media_url || item.video_url, FALLBACKS.POST)}
+                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                alt=""
+                                            />
+                                        )
                                     ) : (
                                         <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5 p-4 text-center">
-                                            <p className="text-[10px] font-bold text-text-base line-clamp-4 leading-relaxed italic">
-                                                "{item.content}"
+                                            <p className="text-[11px] font-black text-text-base line-clamp-6 leading-relaxed italic">
+                                                "{item.body_text || item.content || item.caption || 'Text Post'}"
                                             </p>
                                         </div>
                                     )}
@@ -593,7 +602,7 @@ export const Profile: FC<ProfileProps> = ({ onCreatePost }) => {
                                     </div>
                                     {activeTab === 'reels' && (
                                         <div className="absolute top-2 right-2">
-                                            <Video className="w-4 h-4 text-white drop-shadow-md" />
+                                            <Clapperboard className="w-4 h-4 text-white drop-shadow-md" />
                                         </div>
                                     )}
                                 </div>

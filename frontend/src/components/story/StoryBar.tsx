@@ -89,7 +89,7 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
                     <img
                       src={getMediaUrl(story.avatar_url, FALLBACKS.AVATAR(story.username))}
                       alt={story.username}
-                      className="w-full h-full object-fill"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="w-full h-full flex items-baseline justify-center bg-secondary/5 text-secondary font-black text-lg">

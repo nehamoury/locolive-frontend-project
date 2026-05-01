@@ -1,18 +1,18 @@
 import { useState, type FC, useRef, useEffect } from 'react';
 import {
   Home, Compass, Search, User, Plus, LogOut,
-  ChevronLeft, ChevronRight, Video, MessageSquare,
+  ChevronLeft, ChevronRight, MessageSquare,
   Download, Bell, Bookmark, Settings,
-  Menu, Activity, Sun, AlertCircle, RefreshCw,
-  Flame, Moon
+  Menu, Sun,
+  Flame, Moon, Clapperboard
 } from 'lucide-react';
+import { BACKEND } from '../../utils/config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePWA } from '../../hooks/usePWA';
 import { useTheme } from '../../context/ThemeContext';
 import UserSearch from './UserSearch';
 import { gamificationService, type StreakData } from '../../services/gamificationService';
-import { toast } from 'react-hot-toast';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -103,12 +103,9 @@ const Sidebar: FC<SidebarProps> = ({
 
   const moreMenuItems = [
     { icon: <Settings className="w-4.5 h-4.5" />, label: 'Settings', onClick: () => navigate('/dashboard/settings') },
-    { icon: <Activity className="w-4.5 h-4.5" />, label: 'Your activity', onClick: () => { toast.success('Activity tracking coming soon!'); } },
-    { icon: <Bookmark className="w-4.5 h-4.5" />, label: 'Saved', onClick: () => navigate(`/dashboard/profile/${user?.id}?tab=saved`) },
+    { icon: <Bookmark className="w-4.5 h-4.5" />, label: 'Saved', onClick: () => navigate('/dashboard/saved') },
     { icon: theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />, label: theme === 'dark' ? 'Light mode' : 'Dark mode', onClick: toggleTheme },
-    { icon: <AlertCircle className="w-4.5 h-4.5" />, label: 'Report a problem', onClick: () => { toast.success('Thank you for reporting! We will look into it.'); } },
     { divider: true },
-    { icon: <RefreshCw className="w-4.5 h-4.5" />, label: 'Switch accounts', onClick: () => { toast.error('You only have one account active.'); } },
     { icon: <LogOut className="w-4.5 h-4.5" />, label: 'Log out', onClick: logout, color: 'text-red-500' },
   ];
 
@@ -170,10 +167,24 @@ const Sidebar: FC<SidebarProps> = ({
           <NavItem icon={<Home className="w-6 h-6" />} label="Home" active={activeTab === 'home' && !isSearchOpen} onClick={() => { setActiveTab('home'); setIsSearchOpen(false); }} isCollapsed={effectiveCollapsed} />
           <NavItem icon={<Search className="w-6 h-6" />} label="Search" active={isSearchOpen} onClick={() => setIsSearchOpen(!isSearchOpen)} isCollapsed={effectiveCollapsed} />
           <NavItem icon={<Compass className="w-6 h-6" />} label="Explore" active={activeTab === 'explore' && !isSearchOpen} onClick={() => { setActiveTab('explore'); setIsSearchOpen(false); }} isCollapsed={effectiveCollapsed} />
-          <NavItem icon={<Video className="w-6 h-6" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} isCollapsed={effectiveCollapsed} />
+          <NavItem icon={<Clapperboard className="w-6 h-6" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} isCollapsed={effectiveCollapsed} />
           <NavItem icon={<MessageSquare className="w-6 h-6" />} label="Messages" active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} isCollapsed={effectiveCollapsed} badge={unreadMessagesCount} />
           <NavItem icon={<Bell className="w-6 h-6" />} label="Notifications" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} isCollapsed={effectiveCollapsed} badge={unreadCount} />
-          <NavItem icon={<User className="w-6 h-6" />} label="Profile" active={activeTab === 'profile'} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} isCollapsed={effectiveCollapsed} />
+          <NavItem 
+            icon={user?.avatar_url ? (
+              <img 
+                src={`${BACKEND}${user.avatar_url}`} 
+                className="w-6 h-6 rounded-full object-cover border border-border-base" 
+                alt="" 
+              />
+            ) : (
+              <User className="w-6 h-6" />
+            )} 
+            label="Profile" 
+            active={activeTab === 'profile'} 
+            onClick={() => navigate(`/dashboard/profile/${user?.id}`)} 
+            isCollapsed={effectiveCollapsed} 
+          />
         </nav>
 
         {/* ── Bottom Actions (More, Create Post, etc.) ── */}
@@ -185,7 +196,7 @@ const Sidebar: FC<SidebarProps> = ({
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                className={`absolute bottom-full left-0 mb-4 w-64 bg-bg-card border border-border-base rounded-2xl shadow-2xl z-[150] overflow-hidden ${effectiveCollapsed ? 'left-2' : ''}`}
+                className={`absolute bottom-full left-0 mb-4 ${isSettingsPage ? 'w-16' : 'w-64'} bg-bg-card border border-border-base rounded-2xl shadow-2xl z-[150] overflow-hidden ${effectiveCollapsed ? 'left-2' : ''}`}
               >
                 <div className="p-2 py-3">
                   {moreMenuItems.map((item, idx) => (
@@ -195,10 +206,10 @@ const Sidebar: FC<SidebarProps> = ({
                       <button
                         key={item.label}
                         onClick={() => { item.onClick?.(); setIsMoreMenuOpen(false); }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-bg-base transition-colors group cursor-pointer ${item.color || 'text-text-base'}`}
+                        className={`w-full flex items-center ${isSettingsPage ? 'justify-center' : 'gap-3 px-3'} py-2.5 rounded-xl hover:bg-bg-base transition-colors group cursor-pointer ${item.color || 'text-text-base'}`}
                       >
-                        <span className="text-text-muted group-hover:text-primary transition-colors">{item.icon}</span>
-                        <span className="text-[14px] font-medium">{item.label}</span>
+                        <span className={`text-text-muted group-hover:text-primary transition-colors ${isSettingsPage ? '' : ''}`}>{item.icon}</span>
+                        {!isSettingsPage && <span className="text-[14px] font-medium">{item.label}</span>}
                       </button>
                     )
                   ))}

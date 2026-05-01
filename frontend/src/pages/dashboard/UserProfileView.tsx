@@ -94,16 +94,22 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
     }
   };
 
-  const handleBlockUser = async () => {
-    if (!window.confirm(`Are you sure you want to block ${profile.full_name || profile.username}?`)) return;
+  const handleBlockAction = async () => {
+    const action = profile.is_blocked ? 'unblock' : 'block';
+    if (!window.confirm(`Are you sure you want to ${action} ${profile.full_name || profile.username}?`)) return;
     
     setBlocking(true);
     try {
-      await api.post('/users/block', { user_id: userId });
-      import('react-hot-toast').then(({ toast }) => toast.success('User blocked successfully'));
-      onBack();
+      if (profile.is_blocked) {
+        await api.delete(`/privacy/block/${userId}`);
+        import('react-hot-toast').then(({ toast }) => toast.success('User unblocked successfully'));
+      } else {
+        await api.post('/privacy/block', { user_id: userId });
+        import('react-hot-toast').then(({ toast }) => toast.success('User blocked successfully'));
+      }
+      fetchFullProfile();
     } catch (err) {
-      import('react-hot-toast').then(({ toast }) => toast.error('Failed to block user'));
+      import('react-hot-toast').then(({ toast }) => toast.error(`Failed to ${action} user`));
     } finally {
       setBlocking(false);
       setShowMoreMenu(false);
@@ -219,12 +225,14 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                       className="absolute right-0 mt-2 w-48 bg-bg-card border border-border-base rounded-2xl shadow-2xl z-50 overflow-hidden"
                     >
                       <button 
-                        onClick={handleBlockUser}
+                        onClick={handleBlockAction}
                         disabled={blocking}
-                        className="w-full text-left px-4 py-3 text-sm font-black text-red-500 hover:bg-red-50 transition-colors flex items-center gap-3"
+                        className={`w-full text-left px-4 py-3 text-sm font-black transition-colors flex items-center gap-3 ${
+                          profile.is_blocked ? 'text-primary hover:bg-primary/5' : 'text-red-500 hover:bg-red-50'
+                        }`}
                       >
                         <Shield className="w-4 h-4" />
-                        {blocking ? 'Blocking...' : 'Block User'}
+                        {blocking ? (profile.is_blocked ? 'Unblocking...' : 'Blocking...') : (profile.is_blocked ? 'Unblock User' : 'Block User')}
                       </button>
                       <button className="w-full text-left px-4 py-3 text-sm font-black text-text-base hover:bg-bg-sidebar transition-colors flex items-center gap-3">
                         <MoreHorizontal className="w-4 h-4" />
@@ -259,7 +267,15 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
             </div>
 
             <div className="flex gap-2 pb-2">
-              {profile.connection_status === 'accepted' ? (
+              {profile.is_blocked ? (
+                <button 
+                  onClick={handleBlockAction}
+                  disabled={blocking}
+                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 transition-all active:scale-95 cursor-pointer"
+                >
+                  {blocking ? 'Unblocking...' : 'Unblock'}
+                </button>
+              ) : profile.connection_status === 'accepted' ? (
                 <button 
                   disabled
                   className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-500 border border-pink-100 cursor-default"

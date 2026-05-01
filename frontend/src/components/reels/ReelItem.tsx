@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Volume2, VolumeX, Sparkles, Play, Pause } from 'lucide-react';
 import { useSound } from '../../context/SoundContext';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import ReelOptionsBottomSheet from './ReelOptionsBottomSheet';
+import ShareModal from '../share/ShareModal';
 
 interface Reel {
   id: string;
@@ -45,17 +46,20 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
   const [isFollowing, setIsFollowing] = useState(reel.connection_status === 'pending');
   const [progress, setProgress] = useState(0);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [showPlayAnim, setShowPlayAnim] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!isActive || !video) return;
-    
+
     const updateProgress = () => {
       if (video && video.duration) {
         setProgress((video.currentTime / video.duration) * 100);
       }
     };
-    
+
     if (video.addEventListener) {
       video.addEventListener('timeupdate', updateProgress);
     }
@@ -73,28 +77,76 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
 
     let isSubscribed = true;
 
-    if (isActive) {
-      video.muted = isMuted;
-      video.currentTime = 0;
-      const playPromise = video.play();
-      
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          // Only log if it's not an AbortError (expected when pausing)
-          if (isSubscribed && error.name !== 'AbortError') {
-            console.log("Auto-play was prevented:", error);
+    const handlePlay = async () => {
+      if (isActive) {
+        try {
+          // Absolute Silence: Force pause all other videos on the page
+          document.querySelectorAll('video').forEach(v => {
+            if (v !== video) {
+              v.pause();
+              v.muted = true;
+              v.volume = 0;
+            }
+          });
+
+          // Reset to beginning for a fresh start
+          video.currentTime = 0;
+          video.muted = isMuted;
+          video.volume = 1;
+
+          // Small delay to ensure browser is ready after scroll
+          await new Promise(resolve => setTimeout(resolve, 50));
+
+          if (isSubscribed) {
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+              await playPromise;
+              setIsPlaying(true);
+            }
           }
-        });
+        } catch (error) {
+          if (isSubscribed) {
+            console.log("Autoplay prevented or interrupted:", error);
+            setIsPlaying(false);
+            // If it failed and we are not muted, try playing muted as fallback
+            if (!video.muted) {
+              video.muted = true;
+              video.play().catch(() => { });
+            }
+          }
+        }
+      } else {
+        video.pause();
+        video.currentTime = 0;
+        video.muted = true;
+        video.volume = 0;
+        setIsPlaying(false);
       }
-    } else {
-      video.pause();
+    };
+
+    handlePlay();
+
+    // Sync with MediaSession API
+    if (isActive && 'mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: `LocoLive Reel`,
+        artist: `@${reel.username}`,
+        artwork: [{ src: getMediaUrl(reel.avatar_url, FALLBACKS.AVATAR(reel.username)), sizes: '512x512', type: 'image/png' }]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => video.play());
+      navigator.mediaSession.setActionHandler('pause', () => video.pause());
     }
 
     return () => {
       isSubscribed = false;
-      video.pause();
+      if (video) {
+        video.pause();
+        video.currentTime = 0;
+        video.muted = true;
+      }
     };
-  }, [isActive, isMuted]);
+  }, [isActive, isMuted, reel.username, reel.avatar_url]);
 
   const handleLike = async () => {
     try {
@@ -126,22 +178,8 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await api.post(`/reels/${reel.id}/share`);
-      if (navigator.share) {
-        await navigator.share({
-          title: `LocoLive Reel by @${reel.username}`,
-          text: reel.caption || 'Check out this reel on LocoLive!',
-          url: `${window.location.origin}/reels/${reel.id}`
-        });
-      } else {
-        await navigator.clipboard.writeText(`${window.location.origin}/reels/${reel.id}`);
-        // Simple visual feedback could be added here if needed
-      }
-    } catch (err) {
-      console.error('Share failed:', err);
-    }
+  const handleShare = () => {
+    setIsShareModalOpen(true);
   };
 
   const handleMore = () => {
@@ -153,7 +191,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
       await api.delete(`/reels/${reel.id}`);
       window.alert('Reel deleted successfully.');
       // Refresh or navigate back
-      window.location.reload(); 
+      window.location.reload();
     } catch (err) {
       console.error('Delete failed:', err);
       window.alert('Failed to delete reel.');
@@ -181,26 +219,61 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
     navigate(`/dashboard/user/${reel.user_id}`);
   };
 
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isPlaying) {
+      video.pause();
+      setIsPlaying(false);
+    } else {
+      video.play();
+      setIsPlaying(true);
+    }
+    setShowPlayAnim(true);
+    setTimeout(() => setShowPlayAnim(false), 500);
+  };
+
   return (
     <div className="relative w-full h-[100dvh] md:h-full bg-black snap-start snap-always overflow-hidden flex items-center justify-center flex-shrink-0">
       {/* High-Impact Blurred Backdrop using CSS (No extra video for better sound/perf) */}
       <div className="absolute inset-0 bg-black overflow-hidden pointer-events-none">
-         <div 
-           className="w-full h-full bg-cover bg-center blur-[80px] scale-110 opacity-30"
-           style={{ backgroundImage: `url(${getMediaUrl(reel.video_url)})` }}
-         />
+        <div
+          className="w-full h-full bg-cover bg-center blur-[80px] scale-110 opacity-30"
+          style={{ backgroundImage: `url(${getMediaUrl(reel.video_url)})` }}
+        />
       </div>
 
       {/* Primary High-Fidelity Video Foreground */}
       <video
         ref={videoRef}
         src={getMediaUrl(reel.video_url)}
-        className="relative z-10 w-full h-full object-cover md:object-contain drop-shadow-2xl"
+        className="relative z-10 w-full h-full object-cover drop-shadow-2xl"
         loop
-        muted={isMuted}
+        muted={!isActive || isMuted}
         playsInline
-        onClick={toggleMute}
+        preload="auto"
+        autoPlay={false}
+        onClick={togglePlay}
       />
+
+      {/* Play/Pause Overlay Animation */}
+      <AnimatePresence>
+        {showPlayAnim && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.5 }}
+            className="absolute z-40 pointer-events-none bg-black/20 backdrop-blur-sm p-6 rounded-full"
+          >
+            {isPlaying ? (
+              <Play className="w-12 h-12 text-white fill-white" />
+            ) : (
+              <Pause className="w-12 h-12 text-white fill-white" />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Double Tap Heart Animation */}
       <AnimatePresence>
@@ -222,66 +295,66 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
       {/* Right Side Actions: Instagram Style Vertical Stack */}
       <div className="absolute right-3.5 bottom-24 flex flex-col items-center gap-2.5 z-20">
         <div className="flex flex-col items-center gap-3">
-            {/* Like */}
-            <div className="flex flex-col items-center gap-0.5">
+          {/* Like */}
+          <div className="flex flex-col items-center gap-0.5">
             <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleLike}
-                aria-label={liked ? "Unlike" : "Like"}
-                className="flex items-center justify-center w-10 h-10 transition-all duration-300"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleLike}
+              aria-label={liked ? "Unlike" : "Like"}
+              className="flex items-center justify-center w-10 h-10 transition-all duration-300"
             >
-                <Heart 
-                strokeWidth={2.4} 
-                className={`w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${liked ? 'fill-primary text-primary' : 'text-white'}`} 
-                />
+              <Heart
+                strokeWidth={2.4}
+                className={`w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${liked ? 'fill-primary text-primary' : 'text-white'}`}
+              />
             </motion.button>
             <span className="text-[11.5px] font-bold text-white drop-shadow-md">{likesCount}</span>
-            </div>
+          </div>
 
-            {/* Comment */}
-            <div className="flex flex-col items-center gap-0.5">
+          {/* Comment */}
+          <div className="flex flex-col items-center gap-0.5">
             <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={onToggleComments}
-                aria-label="View comments"
-                className="flex items-center justify-center w-10 h-10 text-white transition-all"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onToggleComments}
+              aria-label="View comments"
+              className="flex items-center justify-center w-10 h-10 text-white transition-all"
             >
-                <MessageCircle strokeWidth={2.4} className="w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+              <MessageCircle strokeWidth={2.4} className="w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
             </motion.button>
             <span className="text-[11.5px] font-bold text-white drop-shadow-md">{reel.comments_count}</span>
-            </div>
+          </div>
 
-            {/* Share */}
-            <div className="flex flex-col items-center gap-0.5">
+          {/* Share */}
+          <div className="flex flex-col items-center gap-0.5">
             <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleShare}
-                aria-label="Share reel"
-                className="flex items-center justify-center w-10 h-10 text-white transition-all"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleShare}
+              aria-label="Share reel"
+              className="flex items-center justify-center w-10 h-10 text-white transition-all"
             >
-                <Share2 strokeWidth={2.5} className="w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+              <Share2 strokeWidth={2.5} className="w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
             </motion.button>
             <span className="text-[11px] font-bold text-white drop-shadow-md">{reel.shares_count || 0}</span>
-            </div>
+          </div>
 
-            {/* Save */}
-            <div className="flex flex-col items-center gap-0.5">
+          {/* Save */}
+          <div className="flex flex-col items-center gap-0.5">
             <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleSave}
-                aria-label={saved ? "Unsave" : "Save"}
-                className="flex items-center justify-center w-10 h-10 transition-all duration-300"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleSave}
+              aria-label={saved ? "Unsave" : "Save"}
+              className="flex items-center justify-center w-10 h-10 transition-all duration-300"
             >
-                <Bookmark 
-                strokeWidth={2.5} 
-                className={`w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${saved ? 'fill-white text-white' : 'text-white'}`} 
-                />
+              <Bookmark
+                strokeWidth={2.5}
+                className={`w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${saved ? 'fill-white text-white' : 'text-white'}`}
+              />
             </motion.button>
-            </div>
+          </div>
         </div>
 
         <motion.button
@@ -308,18 +381,27 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
         username={reel.username}
       />
 
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shareUrl={`${window.location.origin}/reels/${reel.id}`}
+        title={`reel by @${reel.username}`}
+        contentId={reel.id}
+        contentType="reel"
+      />
+
       {/* Bottom Information: Ultra-compact & at the very edge */}
       <div className="absolute bottom-5 left-4 right-16 z-20 flex flex-col gap-1.5 py-1">
-        
+
         {/* Identity & Follow Layer */}
         <div className="flex items-center gap-3 cursor-pointer group" onClick={handleProfileClick}>
           <div className="relative">
             <div className="w-11 h-11 rounded-[16px] p-0.5 bg-gradient-to-tr from-primary via-accent to-secondary shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
               <div className="w-full h-full rounded-[14px] border border-black overflow-hidden bg-gray-900">
-                <img 
-                  src={getMediaUrl(reel.avatar_url, FALLBACKS.AVATAR(reel.username))} 
-                  alt={reel.username} 
-                  className="w-full h-full object-cover" 
+                <img
+                  src={getMediaUrl(reel.avatar_url, FALLBACKS.AVATAR(reel.username))}
+                  alt={reel.username}
+                  className="w-full h-full object-cover"
                 />
               </div>
             </div>
@@ -327,29 +409,28 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
 
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-                <h4 className="text-white font-black text-[13px] uppercase tracking-wider font-brand drop-shadow-md">@{reel.username}</h4>
-                {reel.connection_status !== 'accepted' && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleFollow();
-                    }}
-                    className={`px-2.5 py-0.5 rounded-full backdrop-blur-md border border-white/20 text-[9px] font-black uppercase tracking-widest transition-all ml-1 ${
-                        (isFollowing || reel.connection_status === 'pending')
-                        ? 'bg-white/30 text-white' 
-                        : 'bg-primary/80 text-white hover:bg-primary'
+              <h4 className="text-white font-black text-[13px]  tracking-wider font-brand drop-shadow-md">@{reel.username}</h4>
+              {reel.connection_status !== 'accepted' && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFollow();
+                  }}
+                  className={`px-2.5 py-0.5 rounded-full backdrop-blur-md border border-white/20 text-[9px] font-black uppercase tracking-widest transition-all ml-1 ${(isFollowing || reel.connection_status === 'pending')
+                    ? 'bg-white/30 text-white'
+                    : 'bg-primary/80 text-white hover:bg-primary'
                     }`}
-                  >
-                    {(isFollowing || reel.connection_status === 'pending') ? 'Following' : 'Follow'}
-                  </motion.button>
-                )}
+                >
+                  {(isFollowing || reel.connection_status === 'pending') ? 'Following' : 'Follow'}
+                </motion.button>
+              )}
             </div>
             {reel.location_name && (
-                <p className="text-[9px] font-bold text-white/50 uppercase tracking-tighter flex items-center gap-1">
-                    <Sparkles className="w-2 h-2 text-primary" /> {reel.location_name}
-                </p>
+              <p className="text-[9px] font-bold text-white/50  tracking-tighter flex items-center gap-1">
+                <Sparkles className="w-2 h-2 text-primary" /> {reel.location_name}
+              </p>
             )}
           </div>
         </div>
@@ -361,12 +442,12 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
               {reel.caption}
             </p>
             {reel.caption.length > 50 && !showFullCaption && (
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowFullCaption(true);
                 }}
-                className="text-white/60 text-[9px] font-black uppercase tracking-widest mt-1 hover:text-white transition-colors"
+                className="text-white/60 text-[9px] font-black  tracking-widest mt-1 hover:text-white transition-colors"
               >
                 + read full
               </button>
@@ -376,34 +457,34 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
 
         {/* Audio Layer - Directly below username/caption */}
         <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/5">
-                <Volume2 className="w-3 h-3 text-white/70" />
-                <div className="text-[10px] font-black uppercase tracking-widest text-white/70 whitespace-nowrap overflow-hidden max-w-[140px]">
-                    {reel.username} • Original
-                </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/5">
+            <Volume2 className="w-3 h-3 text-white/70" />
+            <div className="text-[10px] font-black  tracking-widest text-white/70 whitespace-nowrap overflow-hidden max-w-[140px]">
+              Original Audio
             </div>
-            
-            {reel.is_ai_generated && (
-                <div className="px-3 py-1.5 rounded-full bg-primary/10 backdrop-blur-md border border-primary/20 flex items-center gap-1.5">
-                    <Sparkles className="w-3 h-3 text-primary animate-pulse" />
-                    <span className="text-[10px] text-primary font-black uppercase tracking-widest">AI Generated</span>
-                </div>
-            )}
+          </div>
+
+          {reel.is_ai_generated && (
+            <div className="px-3 py-1.5 rounded-full bg-primary/10 backdrop-blur-md border border-primary/20 flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+              <span className="text-[10px] text-primary font-black uppercase tracking-widest">AI Generated</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Progress Line */}
       <div className="absolute bottom-0 inset-x-0 h-1 bg-white/10 z-30">
-        <motion.div 
-            className="h-full bg-primary shadow-[0_0_10px_rgba(255,0,110,0.8)]"
-            initial={false}
-            animate={{ width: `${progress}%` }}
-            transition={{ type: 'tween', ease: 'linear' }}
+        <motion.div
+          className="h-full bg-primary shadow-[0_0_10px_rgba(255,0,110,0.8)]"
+          initial={false}
+          animate={{ width: `${progress}%` }}
+          transition={{ type: 'tween', ease: 'linear' }}
         />
       </div>
 
       {/* Minimal Mute/Unmute Notch: Top-Right focused to avoid HUD overlap */}
-      <button 
+      <button
         onClick={(e) => {
           e.stopPropagation();
           toggleMute();

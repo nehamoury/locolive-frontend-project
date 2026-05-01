@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api, { WS_BASE_URL } from '../services/api';
 import toast from 'react-hot-toast';
 import { useSound } from '../context/SoundContext';
-import { requestNotificationPermission as requestFCMPermission } from '../services/firebase';
+import { 
+  requestNotificationPermission as requestFCMPermission,
+  onMessageListener
+} from '../services/firebase';
+
 
 const WS_RECONNECT_BASE_MS = 3000;
 const WS_RECONNECT_MAX_MS = 30000;
@@ -246,7 +250,50 @@ export const useNotifications = () => {
     return () => clearInterval(intervalId);
   }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount]);
 
+  // FCM Foreground listener
+  useEffect(() => {
+    onMessageListener((payload: any) => {
+      console.log('[useNotifications] FCM Message in foreground:', payload);
+      
+      const { title, body } = payload.notification || {};
+      const data = payload.data || {};
+
+      // If it's a message and we are already in that chat, don't show toast
+      if (data.type === 'new_message' && activeChatUserId.current === data.sender_id) {
+        return;
+      }
+
+      // Refresh relevant counts based on notification type
+      if (data.type === 'new_message') {
+        fetchUnreadMessagesCount();
+      } else if (data.type === 'connection_request' || data.type === 'connection_accepted') {
+        fetchPendingRequestsCount();
+      } else {
+        fetchUnreadCount();
+      }
+
+      // Show toast if we have a title/body and it's not a duplicate
+      if (title && body) {
+        toast(`${title}: ${body}`, {
+          icon: '🔔',
+          style: {
+            borderRadius: '20px',
+            background: '#FFF',
+            color: '#333',
+            fontWeight: 'bold',
+            border: '1px solid #E5E7EB'
+          },
+        });
+        
+        // Play sound
+        const sound = data.sound || 'soft_ping.wav';
+        playSound(sound, 'high');
+      }
+    });
+  }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount, playSound]);
+
   // WebSocket connection with exponential backoff
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;

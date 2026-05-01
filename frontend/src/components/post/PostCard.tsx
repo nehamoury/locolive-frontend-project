@@ -34,7 +34,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const isTextOnly = post.media_type === 'text' || !post.media_url || post.media_url === 'text';
+  const isTextOnly = post.media_type === 'text' || (!(post.media_url || post.video_url)) || post.media_url === 'text';
   const isOwner = currentUserID && post.user_id === currentUserID;
   const { isMuted, toggleMute } = useSound();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -52,10 +52,10 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   // Smart text display logic
   const hasBody = !!bodyTextRaw.trim();
   const hasCaption = !!cleanCaption.trim();
-  
+
   // Use bodyText if available, otherwise use cleanCaption (which has no hashtags)
   const mainDisplayContent = hasBody ? bodyTextRaw : cleanCaption;
-  
+
   // Secondary caption only if it's different from the main display content
   const secondaryCaption = (hasBody && hasCaption) ? cleanCaption : '';
   const shouldShowSecondary = !!secondaryCaption;
@@ -180,11 +180,11 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
       </div>
 
       {/* Post Content */}
-      <div className="px-4 sm:px-5 pb-3">
+      <div className="px-4 sm:px-5 pb-3 " >
         {/* Primary Text Content */}
         {mainDisplayContent && (
           <div className="mb-2">
-            <p className={`text-text-base leading-relaxed tracking-tight whitespace-pre-wrap select-text ${isTextOnly ? 'text-[20px] font-bold' : 'text-[15px] font-medium'}`}>
+            <p className={`text-text-base leading-relaxed tracking-tight whitespace-pre-wrap select-text ${isTextOnly ? 'text-[18px] font-normal' : 'text-[17px] font-medium'}`}>
               {mainDisplayContent}
             </p>
           </div>
@@ -209,16 +209,16 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
         )}
 
         {/* Media Block */}
-        {!isTextOnly && post.media_url && (
+        {!isTextOnly && (post.media_url || post.video_url) && (
           <div
             className="w-full rounded-[16px] overflow-hidden bg-bg-base border border-border-base/50 cursor-pointer relative group/media aspect-auto max-h-[70vh]"
             onClick={() => onImageClick?.(post)}
           >
-            {post.media_type === 'video' ? (
+            {(post.media_type === 'video' || post.video_url) ? (
               <div className="relative h-full w-full">
                 <video
                   ref={videoRef}
-                  src={getMediaUrl(post.media_url)}
+                  src={getMediaUrl(post.media_url || post.video_url)}
                   className="w-full h-auto object-contain"
                   muted={isMuted}
                   loop
@@ -305,6 +305,8 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
         onClose={() => setIsShareModalOpen(false)}
         shareUrl={`${window.location.origin}/posts/${post.id}`}
         title={`post by @${post.username}`}
+        contentId={post.id}
+        contentType="post"
       />
     </motion.div>
   );

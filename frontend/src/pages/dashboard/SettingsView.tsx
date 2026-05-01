@@ -1,10 +1,9 @@
 import { useState, type FC, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { 
-  ArrowLeft, User, Shield, Bell, Lock, 
-  Palette, Globe, HardDrive, 
-  HelpCircle, Info, ChevronRight, LogOut,
-  RefreshCw
+import {
+  ArrowLeft, User, Shield, Bell, Lock,
+  Palette,
+  HelpCircle, ChevronRight, LogOut, Bookmark, Search
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../utils/helpers';
@@ -15,34 +14,37 @@ import PrivacySection from '../../components/settings/PrivacySection';
 import AppearanceSection from '../../components/settings/AppearanceSection';
 import SecuritySection from '../../components/settings/SecuritySection';
 import NotificationsSection from '../../components/settings/NotificationsSection';
-import DataStorageSection from '../../components/settings/DataStorageSection';
 import SupportSection from '../../components/settings/SupportSection';
-import ComingSoonSection from '../../components/settings/ComingSoonSection';
+import SavedView from './SavedView';
 
 interface SettingsViewProps {
   onBack: () => void;
 }
 
-export type SettingsSection = 
+export type SettingsSection =
   | 'account_info' | 'privacy' | 'security' | 'notifications' | 'email_notifications' | 'push_notifications'
   | 'appearance' | 'content' | 'language' | 'data'
-  | 'help' | 'about';
+  | 'help' | 'about' | 'saved';
 
 const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
   const { logout } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState('');
   const initialSection = searchParams.get('section') as SettingsSection || 'account_info';
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+  const [showDetail, setShowDetail] = useState(!!searchParams.get('section'));
 
   useEffect(() => {
     const section = searchParams.get('section') as SettingsSection;
     if (section) {
       setActiveSection(section);
+      setShowDetail(true);
     }
   }, [searchParams]);
 
   const handleSectionChange = (section: SettingsSection) => {
     setActiveSection(section);
+    setShowDetail(true);
     setSearchParams({ section });
   };
 
@@ -54,25 +56,31 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
         { id: 'privacy', label: 'Privacy', desc: 'Manage your privacy settings', icon: <Shield className="w-4 h-4" />, color: 'bg-purple-100 text-purple-600' },
         { id: 'security', label: 'Security', desc: 'Password, 2FA and login activity', icon: <Lock className="w-4 h-4" />, color: 'bg-blue-100 text-blue-600' },
         { id: 'notifications', label: 'Notifications', desc: 'Manage email and push alerts', icon: <Bell className="w-4 h-4" />, color: 'bg-rose-100 text-rose-600' },
+        { id: 'saved', label: 'Saved Items', desc: 'Your private collection of reels', icon: <Bookmark className="w-4 h-4" />, color: 'bg-amber-100 text-amber-600' },
       ]
     },
     {
       title: 'Preferences',
       items: [
         { id: 'appearance', label: 'Appearance', desc: 'Theme, color and app appearance', icon: <Palette className="w-4 h-4" />, color: 'bg-orange-100 text-orange-600' },
-        { id: 'content', label: 'Content Preferences', desc: 'Content and media preferences', icon: <RefreshCw className="w-4 h-4" />, color: 'bg-teal-100 text-teal-600' },
-        { id: 'language', label: 'Language', desc: 'App language and region', icon: <Globe className="w-4 h-4" />, color: 'bg-cyan-100 text-cyan-600' },
-        { id: 'data', label: 'Data & Storage', desc: 'Data usage and storage settings', icon: <HardDrive className="w-4 h-4" />, color: 'bg-amber-100 text-amber-600' },
       ]
     },
     {
       title: 'Support & About',
       items: [
         { id: 'help', label: 'Help & Support', desc: 'Help center and support', icon: <HelpCircle className="w-4 h-4" />, color: 'bg-green-100 text-green-600' },
-        { id: 'about', label: 'About', desc: 'App info, terms and policies', icon: <Info className="w-4 h-4" />, color: 'bg-slate-100 text-slate-600' },
+        { id: 'logout', label: 'Log Out', desc: 'Sign out from your account', icon: <LogOut className="w-4 h-4" />, color: 'bg-pink-100 text-pink-600', isLogout: true },
       ]
     }
   ];
+
+  const filteredMenuGroups = menuGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item =>
+      item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.desc.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })).filter(group => group.items.length > 0);
 
   const renderActiveSection = () => {
     switch (activeSection) {
@@ -86,111 +94,142 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
         return <SecuritySection />;
       case 'notifications':
         return <NotificationsSection />;
-      case 'content':
-        return <ComingSoonSection title="Content Preferences" desc="Content and media preferences" />;
-      case 'language':
-        return <ComingSoonSection title="Language" desc="App language and region" />;
-      case 'data':
-        return <DataStorageSection />;
       case 'help':
         return <SupportSection />;
-      case 'about':
-        return <ComingSoonSection title="About" desc="App info, terms and policies" />;
+      case 'saved':
+        return <SavedView isSettingsView />;
       default:
         return <AccountInfoSection />;
     }
   };
 
   return (
-    <div className="h-full bg-bg-base flex flex-col md:flex-row overflow-hidden">
-      
+    <div className="h-full bg-bg-base flex flex-col md:flex-row overflow-hidden relative">
+
       {/* ── Left Sidebar: Menu ── */}
-      <div className="w-full md:w-[380px] h-full bg-bg-sidebar border-r border-border-base/50 flex flex-col shrink-0 overflow-y-auto no-scrollbar">
-        <div className="px-8 pt-10 pb-6">
-          <div className="flex items-center gap-4 mb-2">
-            <button 
+      <div className={cn(
+        "w-full md:w-[400px] h-full bg-bg-sidebar border-r border-border-base/50 flex flex-col shrink-0 overflow-y-auto no-scrollbar transition-all duration-300",
+        showDetail ? "hidden md:flex" : "flex"
+      )}>
+        {/* Header */}
+        <div className="px-6 pt-2 pb-6 sticky top-0 bg-bg-sidebar/80 backdrop-blur-xl z-20">
+          <div className="relative flex items-center justify-center mb-8">
+            <button
               onClick={onBack}
-              className="p-2 hover:bg-bg-base rounded-xl transition-colors cursor-pointer"
+              className="absolute left-0 p-2 hover:bg-bg-base rounded-xl transition-colors cursor-pointer"
             >
-              <ArrowLeft className="w-5 h-5 text-text-base" />
+              <ArrowLeft className="w-6 h-6 text-text-base" />
             </button>
-            <h1 className="text-2xl font-black text-text-base tracking-tight">Settings</h1>
+            <h1 className="text-xl font-black text-text-base tracking-tight">Settings and activity</h1>
           </div>
-          <p className="text-[13px] text-text-muted font-bold ml-11">Manage your account, privacy and preferences</p>
+
+          {/* Search Bar */}
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+              <Search className="w-4 h-4 text-text-muted transition-colors group-focus-within:text-pink-500" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-text-base placeholder:text-text-muted/60 outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500/30 transition-all shadow-sm"
+            />
+          </div>
         </div>
 
-        <div className="px-6 pb-20 space-y-8">
-          {menuGroups.map((group) => (
-            <div key={group.title} className="space-y-2">
-              <h3 className="px-4 text-[11px] font-black uppercase tracking-widest text-text-muted/60 mb-3">{group.title}</h3>
-              <div className="space-y-1">
-                {group.items.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleSectionChange(item.id as SettingsSection)}
-                    className={cn(
-                      "w-full flex items-center justify-between p-3.5 rounded-2xl transition-all group cursor-pointer",
-                      activeSection === item.id 
-                        ? "bg-pink-50/20 dark:bg-pink-500/10 shadow-sm border border-pink-100/50 dark:border-pink-500/20" 
-                        : "hover:bg-bg-base border border-transparent"
-                    )}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm", item.color)}>
-                        {item.icon}
-                      </div>
-                      <div className="text-left">
-                        <div className="flex items-center gap-2">
-                          <span className={cn("text-[14px] font-black tracking-tight transition-colors", activeSection === item.id ? "text-pink-600" : "text-text-base")}>
-                            {item.label}
-                          </span>
+        <div className="px-2 pb-5 space-y-8">
+          {filteredMenuGroups.length > 0 ? (
+            filteredMenuGroups.map((group) => (
+              <div key={group.title} className="space-y-2">
+                <h3 className="px-4 text-[11px] font-black uppercase tracking-widest text-text-muted/60 mb-3">{group.title}</h3>
+                <div className="space-y-1">
+                  {group.items.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                      if (item.isLogout) {
+                        logout();
+                      } else {
+                        handleSectionChange(item.id as SettingsSection);
+                      }
+                    }}
+                      className={cn(
+                        "w-full flex items-center justify-between p-3.5 rounded-2xl transition-all group cursor-pointer",
+                        activeSection === item.id
+                          ? "bg-pink-50/20 dark:bg-pink-500/10 shadow-sm border border-pink-100/50 dark:border-pink-500/20"
+                          : "hover:bg-bg-base border border-transparent"
+                      )}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm", item.color)}>
+                          {item.icon}
                         </div>
-                        <p className="text-[11px] text-text-muted font-bold leading-tight mt-0.5">{item.desc}</p>
+                        <div className="text-left">
+                          <div className="flex items-center gap-2">
+                            <span className={cn("text-[14px] font-black tracking-tight transition-colors", activeSection === item.id ? "text-pink-600" : "text-text-base")}>
+                              {item.label}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-text-muted font-bold leading-tight mt-0.5">{item.desc}</p>
+                        </div>
                       </div>
-                    </div>
-                    <ChevronRight className={cn("w-4 h-4 transition-all", activeSection === item.id ? "text-pink-500 translate-x-1" : "text-text-muted/40 group-hover:translate-x-1")} />
-                  </button>
-                ))}
+                      <ChevronRight className={cn("w-4 h-4 transition-all", activeSection === item.id ? "text-pink-500 translate-x-1" : "text-text-muted/40 group-hover:translate-x-1")} />
+                    </button>
+                  ))}
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+              <div className="w-16 h-16 bg-bg-base rounded-full flex items-center justify-center mb-4">
+                <Search className="w-8 h-8 text-text-muted/20" />
+              </div>
+              <h3 className="text-sm font-black text-text-base">No results found</h3>
+              <p className="text-xs text-text-muted font-bold mt-1">Try searching for something else</p>
             </div>
-          ))}
-        </div>
-
-        {/* Logout Button in Sidebar */}
-        <div className="mt-auto px-6 pb-8">
-          <button 
-            onClick={() => logout()}
-            className="w-full flex items-center gap-4 p-4 bg-pink-50/10 hover:bg-pink-100/20 rounded-2xl border border-pink-100/20 transition-all group cursor-pointer"
-          >
-            <div className="w-8 h-8 bg-bg-card rounded-lg flex items-center justify-center text-pink-500 shadow-sm border border-pink-100/20">
-              <LogOut className="w-4 h-4" />
-            </div>
-            <div className="text-left">
-              <span className="text-sm font-black text-pink-600 block">Log Out</span>
-            </div>
-          </button>
+          )}
         </div>
       </div>
 
       {/* ── Right Content Area ── */}
-      <div className="flex-1 h-full overflow-y-auto no-scrollbar p-8 md:p-12 lg:p-16">
-        <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className={cn(
+        "flex-1 h-full overflow-y-auto no-scrollbar transition-all duration-300 bg-bg-base",
+        showDetail ? "flex flex-col" : "hidden md:flex flex-col"
+      )}>
+        {/* Mobile Sub-page Header */}
+        <div className="md:hidden flex items-center justify-center px-6 pt-8 pb-4 sticky top-0 bg-bg-base/80 backdrop-blur-xl z-20 border-b border-border-base/30 shrink-0">
+          <button
+            onClick={() => {
+              setShowDetail(false);
+              setSearchParams({});
+            }}
+            className="absolute left-6 p-2 -ml-2 hover:bg-bg-sidebar rounded-xl transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-6 h-6 text-text-base" />
+          </button>
+          <h2 className="text-lg font-black text-text-base uppercase tracking-tight">
+            {menuGroups.flatMap(g => g.items).find(i => i.id === activeSection)?.label || 'Settings'}
+          </h2>
+        </div>
+
+        <div className="p-6 md:p-12 lg:p-16 max-w-4xl mx-auto w-full animate-in fade-in slide-in-from-right-4 duration-500">
           {renderActiveSection()}
-          
+
           {/* Global Logout at bottom of Account Info */}
           {activeSection === 'account_info' && (
-             <button 
-                onClick={() => logout()}
-                className="w-full flex items-center gap-4 p-6 bg-pink-50/10 hover:bg-pink-100/20 rounded-[32px] border border-pink-100/20 transition-all group cursor-pointer mt-10"
-              >
-                <div className="w-10 h-10 bg-bg-card rounded-xl flex items-center justify-center text-pink-500 shadow-sm border border-pink-100/20">
-                  <LogOut className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <span className="text-[15px] font-black text-pink-600 block">Log Out</span>
-                  <p className="text-[12px] text-pink-600/60 font-bold">Log out from your account on this device</p>
-                </div>
-              </button>
+            <button
+              onClick={() => logout()}
+              className="w-full flex items-center gap-4 p-6 bg-pink-50/10 hover:bg-pink-100/20 rounded-[32px] border border-pink-100/20 transition-all group cursor-pointer mt-10"
+            >
+              <div className="w-10 h-10 bg-bg-card rounded-xl flex items-center justify-center text-pink-500 shadow-sm border border-pink-100/20">
+                <LogOut className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <span className="text-[15px] font-black text-pink-600 block">Log Out</span>
+                <p className="text-[12px] text-pink-600/60 font-bold">Log out from your account on this device</p>
+              </div>
+            </button>
           )}
         </div>
       </div>

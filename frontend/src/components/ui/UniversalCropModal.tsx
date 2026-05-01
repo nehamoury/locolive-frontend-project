@@ -95,7 +95,15 @@ const UniversalCropModal: React.FC<UniversalCropModalProps> = ({ file, isOpen, o
                             {isImage ? (
                                 <img src={mediaUrl} className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-20 scale-150" alt="" />
                             ) : (
-                                <video src={mediaUrl} className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-20 scale-150" muted playsInline autoPlay loop />
+                                <video 
+                                    ref={(el) => { if (el) el.play().catch(e => console.log(e)); }}
+                                    src={mediaUrl} 
+                                    className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-20 scale-150" 
+                                    muted 
+                                    playsInline 
+                                    autoPlay 
+                                    loop 
+                                />
                             )}
 
                             {/* Grid Overlay */}
@@ -137,6 +145,7 @@ const UniversalCropModal: React.FC<UniversalCropModalProps> = ({ file, isOpen, o
                                     />
                                 ) : (
                                     <video 
+                                        ref={(el) => { if (el) el.play().catch(e => console.log(e)); }}
                                         src={mediaUrl} 
                                         className="w-full h-full object-contain pointer-events-none" 
                                         muted 

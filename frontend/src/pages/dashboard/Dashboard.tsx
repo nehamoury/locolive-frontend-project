@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation, Navigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, Home, User, MessageSquare, Plus, Search, Video, Bell, MapPin } from 'lucide-react';
+import { ShieldAlert, Home, User, MessageSquare, Plus, Search, Bell, MapPin, Clapperboard } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
 import { useNotifications } from '../../hooks/useNotifications';
+import { toast } from 'react-hot-toast';
 
 // Views and Components
 import Sidebar from '../../components/layout/Sidebar';
@@ -20,7 +21,9 @@ import { ManageHighlights } from './ManageHighlights';
 import ExplorePage from './ExplorePage';
 import ReelsView from '../../components/reels/ReelsView';
 import MapPage from './MapPage';
+import SavedView from './SavedView';
 import { useGeolocation } from '../../hooks/useGeolocation';
+import { BACKEND } from '../../utils/config';
 
 // Modals
 import CreatePostModal from '../../components/post/CreatePostModal';
@@ -134,6 +137,20 @@ const Dashboard = () => {
   const crossingsCount = 0;
   const [refreshKey, setRefreshKey] = useState(0);
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
+
+  const handleActivatePanicMode = async () => {
+    try {
+      await api.post('/users/panic');
+      toast.success('Panic Mode Activated! Disappearing...');
+      // The backend will force logout via WebSocket, but let's be safe
+      setTimeout(() => logout(), 1000);
+    } catch (err) {
+      toast.error('Failed to activate panic mode');
+    } finally {
+      setShowPanicConfirm(false);
+    }
+  };
+
   const [showChatProfile, setShowChatProfile] = useState(false);
 
   // Stats fetching logic (no dependencies to avoid recreating on every render)
@@ -214,7 +231,7 @@ const Dashboard = () => {
           />
         } />
         <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} onStoryClick={handleStoryClick} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
-        <Route path="reels" element={<ReelsView />} />
+        <Route path="reels" element={<ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />} />
         <Route path="map" element={<MapPage />} />
         <Route path="connections" element={
           <ConnectionsView
@@ -228,6 +245,7 @@ const Dashboard = () => {
         <Route path="search" element={<SearchView />} />
         <Route path="user/:id" element={<Profile onLogout={logout} onCreatePost={() => setIsCreateModalOpen(true)} />} />
         <Route path="profile/:id" element={<Profile onLogout={logout} onCreatePost={() => setIsCreateModalOpen(true)} />} />
+        <Route path="saved" element={<SavedView />} />
         <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
 
         <Route path="messages/*" element={
@@ -339,22 +357,23 @@ const Dashboard = () => {
         <div className={`flex-1 overflow-y-auto no-scrollbar ${pathname.includes('reels') ? 'pb-0' : 'pb-20'}`}>
           {/* Mobile Header - Only visible on Home page */}
           {pathname.endsWith('/home') && !isCreateModalOpen && (
-            <div className="w-full pt-5 pb-3 px-6 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl relative z-[100] border-b border-border-base/10 shrink-0">
-              <div className="flex items-center gap-2.5 active:scale-95 transition-all cursor-pointer" onClick={() => navigate('/dashboard/map')}>
-                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm border border-primary/5">
-                  <MapPin className="w-5.5 h-5.5 text-primary" />
+            <div className="w-full pt-6 pb-4 px-6 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl relative z-[100] shrink-0">
+              <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard/explore')}>
+                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-[0_4px_20px_rgba(255,59,142,0.15)] border border-primary/5">
+                  <MapPin className="w-5.5 h-5.5 text-primary fill-primary/5" />
                 </div>
-                <span className="text-[22px] font-black tracking-tighter text-primary">Locolive</span>
+                <span className="text-[24px] font-black tracking-tight text-primary font-brand">Locolive</span>
               </div>
-              <div className="flex items-center gap-2.5">
+
+              <div className="flex items-center gap-4">
                 {/* Messages Button */}
                 <button
                   onClick={() => navigate('/dashboard/messages')}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary/10 text-primary active:scale-95 transition-all relative border border-primary/5 shadow-sm"
+                  className="relative p-2 text-slate-400 hover:text-primary active:scale-90 transition-all"
                 >
-                  <MessageSquare className="w-5.5 h-5.5" />
+                  <MessageSquare className="w-6 h-6 stroke-[2.2]" />
                   {unreadMessagesCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-bg-base shadow-sm">
+                    <span className="absolute top-0 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-lg">
                       {unreadMessagesCount}
                     </span>
                   )}
@@ -363,11 +382,11 @@ const Dashboard = () => {
                 {/* Notifications Button */}
                 <button
                   onClick={() => navigate('/dashboard/notifications')}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary/10 text-primary active:scale-95 transition-all relative border border-primary/5 shadow-sm"
+                  className="relative p-2 text-slate-400 hover:text-primary active:scale-90 transition-all"
                 >
-                  <Bell className="w-5.5 h-5.5" />
+                  <Bell className="w-6 h-6 stroke-[2.2]" />
                   {totalUnreadCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-bg-base shadow-sm">
+                    <span className="absolute top-0 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white shadow-lg">
                       {totalUnreadCount}
                     </span>
                   )}
@@ -386,7 +405,7 @@ const Dashboard = () => {
               />
             } />
             <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} onStoryClick={handleStoryClick} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
-            <Route path="reels" element={<ReelsView />} />
+            <Route path="reels" element={<ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />} />
             <Route path="map" element={<MapPage />} />
             <Route path="connections" element={
               <ConnectionsView
@@ -429,8 +448,20 @@ const Dashboard = () => {
             >
               <Plus className="w-7 h-7 stroke-[3]" />
             </motion.button>
-            <MobileNavItem icon={<Video className="w-[22px] h-[22px]" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
-            <MobileNavItem icon={<User className="w-[22px] h-[22px]" />} active={pathname.includes('profile')} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} />
+            <MobileNavItem icon={<Clapperboard className="w-[22px] h-[22px]" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
+            <MobileNavItem
+              icon={user?.avatar_url ? (
+                <img
+                  src={`${BACKEND}${user.avatar_url}`}
+                  className="w-[22px] h-[22px] rounded-full object-cover border border-border-base"
+                  alt=""
+                />
+              ) : (
+                <User className="w-[22px] h-[22px]" />
+              )}
+              active={pathname.includes('profile')}
+              onClick={() => navigate(`/dashboard/profile/${user?.id}`)}
+            />
           </nav>
         )}
       </main>
@@ -467,7 +498,12 @@ const Dashboard = () => {
             <h2 className="text-2xl font-black text-text-base mb-2">Are you sure?</h2>
             <p className="text-text-muted mb-8 font-medium">This will immediately hide your location and profile from everyone nearby.</p>
             <div className="flex flex-col gap-3">
-              <button className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 active:scale-95 transition-all">YES, DISAPPEAR NOW</button>
+              <button
+                onClick={handleActivatePanicMode}
+                className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 active:scale-95 transition-all"
+              >
+                YES, DISAPPEAR NOW
+              </button>
               <button onClick={() => setShowPanicConfirm(false)} className="w-full py-4 bg-bg-base text-text-base rounded-2xl font-bold border border-border-base">CANCEL</button>
             </div>
           </div>

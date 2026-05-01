@@ -48,7 +48,7 @@ export const useGeolocation = (enabled: boolean = true) => {
     let errorMsg = 'Unknown geolocation error';
 
     if (err.code === err.PERMISSION_DENIED) {
-      errorMsg = 'Geolocation permission denied. Enable location access in browser settings.';
+      errorMsg = 'Geolocation permission denied. (Mobile browsers require HTTPS for location access)';
       setPermissionState('denied');
       // Only log permission error once to avoid console spam
       if (!hasLoggedPermissionError.current) {
@@ -116,7 +116,24 @@ export const useGeolocation = (enabled: boolean = true) => {
         console.warn('[Geolocation] Permission denied. Location features will be limited.');
         hasLoggedPermissionError.current = true;
       }
-      setError('Geolocation permission denied. Enable location access in browser settings.');
+      
+      // ── DEV FALLBACK ──
+      // On mobile, Geolocation often fails on local IP (non-HTTPS). 
+      // In DEV, we provide a mock location so the user isn't blocked from testing nearby features.
+      if (import.meta.env.DEV) {
+        const mockLat = 21.2120;
+        const mockLng = 81.3164;
+        setPosition({ lat: mockLat, lng: mockLng });
+        latestCoordsRef.current = { lat: mockLat, lng: mockLng };
+        console.info(`[Geolocation] DEV MODE: Using mock location ${mockLat}, ${mockLng} because permission was denied.`);
+        if (!initialPingSentRef.current) {
+          sendPing(mockLat, mockLng, 'dev_mock_sync');
+          initialPingSentRef.current = true;
+        }
+        setError(null); // Clear error since we have a fallback
+      } else {
+        setError('Geolocation permission denied. (Note: Mobile browsers require HTTPS for location access)');
+      }
       return;
     }
 

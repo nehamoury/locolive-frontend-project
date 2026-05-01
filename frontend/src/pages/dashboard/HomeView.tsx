@@ -43,9 +43,9 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
 
   return (
     <div className="flex flex-col w-full bg-transparent">
-
+      
       {/* ── Feed Content ───────────────────── */}
-      <div className="w-full px-0 sm:px-4 md:px-6 pt-0 pb-24 md:pb-8 flex flex-col items-center">
+      <div className="w-full px-0 sm:px-4 md:px-6 pt-0 pb-6 md:pb-8 flex flex-col items-center">
         <div className="w-full max-w-3xl flex flex-col gap-4 sm:gap-6 pt-2">
 
           {/* Stories Section - Mobile: Transparent | Web: Glassmorphism */}

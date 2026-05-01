@@ -41,36 +41,38 @@ const NotificationsSection: FC = () => {
         <p className="text-[14px] text-text-muted font-bold">Choose how you want to be notified</p>
       </div>
 
-      <div className="bg-white rounded-[32px] border border-border-base/50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
-        <div className="p-8 space-y-8">
+      <div className="bg-bg-card rounded-[32px] border border-border-base/50 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.03)] overflow-hidden">
+        <div className="p-5 md:p-8 space-y-8">
           {toggleItems.map((item, idx) => (
             <div key={item.key} className={cn(
-              "flex items-center justify-between",
+              "flex flex-col sm:flex-row sm:items-center justify-between gap-6",
               idx !== 0 && "pt-8 border-t border-border-base/30"
             )}>
               <div className="flex items-center gap-5">
-                <div className="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-500">
+                <div className="w-12 h-12 bg-pink-500/10 rounded-2xl flex items-center justify-center text-pink-500 shrink-0 shadow-sm">
                   <item.icon className="w-6 h-6" />
                 </div>
                 <div className="text-left">
-                  <h4 className="text-[16px] font-black text-text-base tracking-tight">{item.title}</h4>
-                  <p className="text-[13px] text-text-muted font-bold mt-0.5">{item.desc}</p>
+                  <h4 className="text-[16px] font-black text-text-base tracking-tight leading-none mb-1">{item.title}</h4>
+                  <p className="text-[13px] text-text-muted font-bold leading-tight">{item.desc}</p>
                 </div>
               </div>
               
-              <button 
-                onClick={() => handleToggle(item.key)}
-                disabled={mutations.updateNotifications.isPending}
-                className={cn(
-                  "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
-                  settings?.[item.key] ? "bg-pink-500" : "bg-gray-200"
-                )}
-              >
-                <span className={cn(
-                  "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                  settings?.[item.key] ? "translate-x-5" : "translate-x-0"
-                )} />
-              </button>
+              <div className="flex justify-end sm:justify-start">
+                <button 
+                  onClick={() => handleToggle(item.key)}
+                  disabled={mutations.updateNotifications.isPending}
+                  className={cn(
+                    "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
+                    settings?.[item.key] ? "bg-pink-500" : "bg-bg-base border-border-base shadow-inner"
+                  )}
+                >
+                  <span className={cn(
+                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white dark:bg-bg-card shadow ring-0 transition duration-200 ease-in-out",
+                    settings?.[item.key] ? "translate-x-5" : "translate-x-0"
+                  )} />
+                </button>
+              </div>
             </div>
           ))}
         </div>

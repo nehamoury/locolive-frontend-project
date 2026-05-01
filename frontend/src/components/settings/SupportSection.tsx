@@ -7,6 +7,7 @@ import {
   BookOpen, FileText, PlayCircle, Users, Mail
 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
+import api from '../../services/api';
 import { cn } from '../../utils/helpers';
 
 interface Category {
@@ -76,36 +77,72 @@ const SupportSection: FC = () => {
   const handleCategorySelect = (cat: Category) => {
     setSelectedCategory(cat);
     setTicket(t => ({ ...t, subject: cat.label }));
-    setStep(2);
+    setStep(3); // Jump straight to form for better UX
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    mutations.submitSupportTicket.mutate(ticket, {
-      onSuccess: () => {
-        setStep(1);
-        setTicket({ subject: '', description: '', priority: 'medium' });
-        setScreenshot(null);
+    
+    if (ticket.subject.length < 5) {
+      import('react-hot-toast').then(({ toast }) => toast.error('Subject must be at least 5 characters'));
+      return;
+    }
+    if (ticket.description.length < 20) {
+      import('react-hot-toast').then(({ toast }) => toast.error('Description must be at least 20 characters'));
+      return;
+    }
+
+    setUploading(true);
+    try {
+      let finalDescription = ticket.description;
+      
+      // If there's a screenshot, upload it first
+      if (screenshot) {
+        const formData = new FormData();
+        formData.append('file', screenshot);
+        const { data } = await api.post('/upload', formData);
+        finalDescription += `\n\n[Attachment: ${data.url}]`;
       }
-    });
+
+      mutations.submitSupportTicket.mutate({ ...ticket, description: finalDescription }, {
+        onSuccess: () => {
+          setStep(1);
+          setTicket({ subject: '', description: '', priority: 'medium' });
+          setScreenshot(null);
+          import('react-hot-toast').then(({ toast }) => toast.success('Ticket submitted! We will get back to you soon.'));
+        }
+      });
+    } catch (err) {
+      import('react-hot-toast').then(({ toast }) => toast.error('Failed to upload image. Please try again.'));
+    } finally {
+      setUploading(false);
+    }
   };
+
+  const filteredCategories = CATEGORIES.filter(cat => 
+    cat.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    cat.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cat.faqs.some(faq => faq.q.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <div className="space-y-8 pb-20 max-w-5xl mx-auto">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 px-2">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             {step > 1 && (
-              <button onClick={() => setStep(step - 1)} className="p-2 hover:bg-bg-base rounded-xl transition-colors cursor-pointer">
+              <button onClick={() => setStep(step - 1)} className="p-2 hover:bg-bg-base rounded-xl transition-colors cursor-pointer -ml-2">
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <h1 className="text-[32px] font-black text-text-base tracking-tight flex items-center gap-2">
-              Help Center <Sparkles className="w-6 h-6 text-pink-500" />
+            <h1 className="text-[28px] sm:text-[32px] font-black text-text-base tracking-tight flex items-center gap-2 leading-none">
+              Help Center <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-pink-500 shrink-0" />
             </h1>
           </div>
-          <p className="text-[14px] text-text-muted font-bold opacity-70">We're here to help you. Choose a topic to get started.</p>
+          <p className="text-[13px] sm:text-[14px] text-text-muted font-bold opacity-70 leading-tight">Choose a topic to get started.</p>
         </div>
 
         {step === 1 && (
@@ -133,42 +170,50 @@ const SupportSection: FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat)}
-                  className="flex items-center gap-6 p-4 bg-bg-card rounded-[32px] border border-border-base/50 hover:border-pink-500/20 hover:shadow-xl transition-all group cursor-pointer text-left"
-                >
-                  <div className={cn("w-16 h-16 rounded-[24px] flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", cat.color)}>
-                    {cat.icon}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-[17px] font-black text-text-base tracking-tight mb-1">{cat.label}</h4>
-                    <p className="text-[13px] text-text-muted font-bold leading-relaxed">{cat.desc}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-bg-base flex items-center justify-center border border-border-base/30 group-hover:bg-pink-500 group-hover:text-white group-hover:border-pink-500 transition-all">
-                    <ChevronRight className="w-5 h-5" />
-                  </div>
-                </button>
-              ))}
-            </div>
+            {filteredCategories.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 px-1 sm:px-0">
+                {filteredCategories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat)}
+                    className="flex items-center gap-4 sm:gap-6 p-4 bg-bg-card rounded-[28px] sm:rounded-[32px] border border-border-base/50 hover:border-pink-500/20 hover:shadow-xl transition-all group cursor-pointer text-left"
+                  >
+                    <div className={cn("w-12 h-12 sm:w-16 sm:h-16 rounded-[18px] sm:rounded-[24px] flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", cat.color)}>
+                      {cat.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-[15px] sm:text-[17px] font-black text-text-base tracking-tight mb-0.5 sm:mb-1 leading-none">{cat.label}</h4>
+                      <p className="text-[12px] sm:text-[13px] text-text-muted font-bold leading-tight opacity-70">{cat.desc}</p>
+                    </div>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-bg-base flex items-center justify-center border border-border-base/30 group-hover:bg-pink-500 group-hover:text-white group-hover:border-pink-500 transition-all shrink-0">
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center bg-bg-card rounded-[32px] border border-border-base/50 border-dashed">
+                <Search className="w-12 h-12 text-text-muted/20 mb-4" />
+                <h4 className="text-[17px] font-black text-text-base">No results for "{searchQuery}"</h4>
+                <p className="text-[13px] text-text-muted font-bold opacity-70">Try searching for different keywords or browse topics.</p>
+              </div>
+            )}
           </div>
 
           {/* Need More Help Banner */}
-          <div className="bg-bg-card rounded-[32px] border border-border-base/50 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-pink-500/10 rounded-2xl flex items-center justify-center text-pink-500 shrink-0">
+          <div className="bg-bg-card rounded-[32px] border border-border-base/50 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 mx-1 sm:mx-0">
+            <div className="flex items-center gap-5 sm:gap-6">
+              <div className="w-12 h-12 sm:w-14 h-14 bg-pink-500/10 rounded-2xl flex items-center justify-center text-pink-500 shrink-0">
                 <Mail className="w-6 h-6" />
               </div>
               <div className="text-left">
-                <h4 className="text-[18px] font-black text-text-base tracking-tight">Need more help?</h4>
-                <p className="text-[14px] text-text-muted font-bold opacity-70">Can't find the answer you're looking for? Contact our support team.</p>
+                <h4 className="text-[17px] sm:text-[18px] font-black text-text-base tracking-tight leading-none mb-1">Need more help?</h4>
+                <p className="text-[13px] sm:text-[14px] text-text-muted font-bold opacity-70 leading-tight">Contact our support team anytime.</p>
               </div>
             </div>
             <button
               onClick={() => setStep(3)}
-              className="px-8 py-4 bg-[#ff3399] text-white text-[13px] font-black uppercase rounded-2xl hover:bg-[#ff1a8c] transition-all flex items-center gap-2 shadow-lg shadow-pink-500/20"
+              className="w-full sm:w-auto px-8 py-4 bg-[#ff3399] text-white text-[13px] font-black uppercase rounded-2xl hover:bg-[#ff1a8c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 active:scale-95"
             >
               <Send className="w-4 h-4" /> Contact Support
             </button>
@@ -221,7 +266,7 @@ const SupportSection: FC = () => {
 
       {/* Step 3: Form */}
       {step === 3 && (
-        <div className="max-w-2xl mx-auto bg-bg-card rounded-[40px] border border-border-base/50 shadow-2xl p-10 animate-in zoom-in-95 duration-500">
+        <div className="max-w-2xl mx-auto bg-bg-card rounded-[40px] border border-border-base/50 shadow-2xl p-6 sm:p-10 animate-in zoom-in-95 duration-500">
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-3">
               <label className="text-[12px] font-black uppercase tracking-widest text-text-muted/50 ml-1">Subject</label>
@@ -240,9 +285,17 @@ const SupportSection: FC = () => {
                 rows={5}
                 value={ticket.description}
                 onChange={e => setTicket(t => ({ ...t, description: e.target.value }))}
-                className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-6 py-4 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all resize-none"
+                className={`w-full bg-bg-base/50 border rounded-2xl px-6 py-4 text-sm font-bold text-text-base outline-none transition-all resize-none ${
+                  ticket.description.length > 0 && ticket.description.length < 20 ? 'border-red-500/30' : 'border-border-base/50 focus:border-pink-500/50'
+                }`}
                 placeholder="How can we help you today?"
               />
+              <div className="flex justify-between px-1">
+                <p className={`text-[10px] font-bold ${ticket.description.length < 20 ? 'text-red-500' : 'text-green-500'}`}>
+                  {ticket.description.length < 20 ? `Min 20 characters required (${20 - ticket.description.length} more)` : 'Length requirement met'}
+                </p>
+                <span className="text-[10px] font-black text-text-muted/50">{ticket.description.length} chars</span>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -265,10 +318,14 @@ const SupportSection: FC = () => {
 
             <button
               type="submit"
-              disabled={mutations.submitSupportTicket.isPending || !ticket.description}
-              className="w-full py-5 bg-[#ff3399] text-white text-[15px] font-black uppercase rounded-3xl hover:bg-[#ff1a8c] transition-all shadow-xl shadow-pink-500/20 flex items-center justify-center gap-3 disabled:opacity-50"
+              disabled={mutations.submitSupportTicket.isPending || uploading || ticket.description.length < 20}
+              className={`w-full py-5 text-white text-[15px] font-black uppercase rounded-3xl transition-all shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] ${
+                (mutations.submitSupportTicket.isPending || uploading || ticket.description.length < 20) 
+                  ? 'bg-gray-300 cursor-not-allowed shadow-none' 
+                  : 'bg-[#ff3399] hover:bg-[#ff1a8c] shadow-pink-500/20'
+              }`}
             >
-              {mutations.submitSupportTicket.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+              {(mutations.submitSupportTicket.isPending || uploading) ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                 <>
                   <Send className="w-5 h-5" />
                   Send Support Ticket

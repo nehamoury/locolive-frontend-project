@@ -126,8 +126,8 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
       setMediaFile(null);
       setMediaPreview(null);
       onSuccess?.();
-      window.dispatchEvent(new CustomEvent('postCreated'));
-      onClose();
+      // Reload page to show new post immediately as requested by user
+      window.location.reload();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Something went wrong. Please try again.');
     } finally {
@@ -162,7 +162,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[200] flex items-stretch md:items-center justify-center bg-black/60 backdrop-blur-sm p-0 md:p-4"
           onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
           <motion.div
@@ -170,7 +170,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 60, opacity: 0, scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="bg-white rounded-[32px] w-full max-w-lg overflow-hidden shadow-2xl"
+            className="bg-white rounded-none md:rounded-[32px] w-full md:max-w-lg h-full md:h-auto md:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-50">
@@ -183,7 +183,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
               </button>
             </div>
 
-            <div className="px-6 py-5 space-y-5 max-h-[85vh] overflow-y-auto no-scrollbar">
+            <div className="px-6 py-5 space-y-5 flex-1 overflow-y-auto no-scrollbar pb-32 md:pb-10">
               {/* Type Switcher: Story vs Post vs Reel */}
               <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl">
                 {([

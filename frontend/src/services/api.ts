@@ -6,22 +6,23 @@ import axios from 'axios';
 
 const RAW_URL = import.meta.env.VITE_API_URL as string | undefined;
 
+// If the URL is a local IP, and we are not on localhost, it's likely a leftover from dev
+const isLocalIP = (url: string) => /192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\./.test(url) || url.includes('localhost') || url.includes('127.0.0.1');
+
 // Fallback logic: 
 // 1. If VITE_API_URL is set (during build) and NOT a local IP (for prod safety), use it.
-// 2. If running on localhost, use the local backend port.
+// 2. If running on localhost or a local dev port, use the local backend port (8080).
 // 3. Otherwise (Production), use the current browser origin.
 const FALLBACK_URL = typeof window !== 'undefined' && 
   (window.location.hostname === 'localhost' || 
    window.location.hostname === '127.0.0.1' || 
    window.location.port === '5173' || 
-   window.location.port === '5174')
+   window.location.port === '5174' ||
+   isLocalIP(window.location.hostname))
   ? `${window.location.protocol}//${window.location.hostname}:8080`
   : (typeof window !== 'undefined' ? window.location.origin : '');
 
-// If the URL is a local IP, and we are not on localhost, it's likely a leftover from dev
-const isLocalIP = (url: string) => /192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\./.test(url) || url.includes('localhost') || url.includes('127.0.0.1');
-
-const FINAL_URL = (RAW_URL && (typeof window !== 'undefined' && window.location.hostname === 'localhost' || !isLocalIP(RAW_URL))) 
+const FINAL_URL = (RAW_URL && !isLocalIP(RAW_URL)) 
   ? RAW_URL 
   : FALLBACK_URL;
 

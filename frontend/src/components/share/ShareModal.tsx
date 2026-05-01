@@ -18,9 +18,11 @@ interface ShareModalProps {
     onClose: () => void;
     shareUrl: string;
     title: string;
+    contentId?: string;
+    contentType?: 'post' | 'reel' | 'profile';
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, title }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, title, contentId, contentType }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -86,9 +88,15 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, shareUrl, titl
         setSendingId(receiverId);
         try {
             const fullUrl = shareUrl.startsWith('http') ? shareUrl : `${window.location.origin}${shareUrl}`;
+            
+            // If we have contentId and contentType, send a structured message for rich preview
+            const messageContent = (contentId && contentType) 
+                ? `[SHARE:${contentType.toUpperCase()}:${contentId}]`
+                : `Shared ${title}: ${fullUrl}`;
+
             await api.post('/messages', {
                 receiver_id: receiverId,
-                content: `Shared ${title}: ${fullUrl}`
+                content: messageContent
             });
             setSentIds(prev => new Set(prev).add(receiverId));
             toast.success('Shared successfully!');

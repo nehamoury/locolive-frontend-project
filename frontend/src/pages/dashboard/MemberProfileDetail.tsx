@@ -28,12 +28,68 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
     const [profile, setProfile] = useState<any>(null);
     const [posts, setPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [errorStatus, setErrorStatus] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'timeline' | 'moments' | 'connections'>('moments');
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [blocking, setBlocking] = useState(false);
+
+    const fetchFullProfile = async () => {
+        try {
+            setLoading(true);
+            setErrorStatus(null);
+            const [userRes, , postsRes] = await Promise.all([
+                api.get(`/users/${userId}`),
+                api.get(`/stories/user/${userId}`).catch(() => ({ data: [] })),
+                api.get(`/users/${userId}/posts`).catch(() => ({ data: [] }))
+            ]);
+            setProfile(userRes.data);
+            setPosts(postsRes.data || []);
+        } catch (err: any) {
+            console.error('Failed to fetch member details:', err);
+            if (err.response?.status) {
+                setErrorStatus(err.response.status);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleBlockAction = async () => {
+        const action = profile.is_blocked ? 'unblock' : 'block';
+        if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+        
+        setBlocking(true);
+        try {
+            if (profile.is_blocked) {
+                await api.delete(`/users/block/${userId}`);
+                import('react-hot-toast').then(({ toast }) => toast.success('User unblocked!'));
+            } else {
+                await api.post('/users/block', { user_id: userId });
+                import('react-hot-toast').then(({ toast }) => toast.success('User blocked!'));
+            }
+            fetchFullProfile();
+        } catch (err) {
+            import('react-hot-toast').then(({ toast }) => toast.error(`Failed to ${action} user`));
+        } finally {
+            setBlocking(false);
+            setShowMoreMenu(false);
+        }
+    };
+
+    const handleFollow = async () => {
+        try {
+            await api.post('/connections/request', { target_user_id: userId });
+            setProfile((prev: any) => ({ ...prev, requested: true }));
+        } catch (err) {
+            console.error('Follow request failed:', err);
+        }
+    };
 
     useEffect(() => {
         const fetchFullProfile = async () => {
             try {
                 setLoading(true);
+                setErrorStatus(null);
                 const [userRes, , postsRes] = await Promise.all([
                     api.get(`/users/${userId}`),
                     api.get(`/stories/user/${userId}`).catch(() => ({ data: [] })),
@@ -41,8 +97,11 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                 ]);
                 setProfile(userRes.data);
                 setPosts(postsRes.data || []);
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Failed to fetch member details:', err);
+                if (err.response?.status) {
+                    setErrorStatus(err.response.status);
+                }
             } finally {
                 setLoading(false);
             }
@@ -58,7 +117,38 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
         );
     }
 
-    if (!profile) return null;
+    if (!profile || errorStatus === 404) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center p-8 bg-white text-center">
+                <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mb-6 border border-gray-100">
+                    <Users className="w-8 h-8 text-gray-300" />
+                </div>
+                <h3 className="text-xl font-black text-gray-900 uppercase italic">User Not Found</h3>
+                <p className="text-xs font-bold text-gray-400 max-w-[240px] mt-2 leading-relaxed">This profile is no longer available or you may have been blocked.</p>
+                <button onClick={onBack} className="mt-8 px-10 py-3.5 bg-gray-900 text-white text-[11px] font-black uppercase rounded-[20px] shadow-xl">Go Back</button>
+            </div>
+        );
+    }
+
+    if (errorStatus === 403) {
+        return (
+            <div className="h-full bg-white flex flex-col">
+                <div className="p-8">
+                    <button onClick={onBack} className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-2xl border border-gray-100">
+                        <ArrowLeft className="w-5 h-5 text-gray-900" />
+                    </button>
+                </div>
+                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                    <div className="w-24 h-24 bg-pink-50 rounded-[40px] flex items-center justify-center mb-8 border border-pink-100">
+                        <Lock className="w-10 h-10 text-pink-500" />
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 mb-3 uppercase italic tracking-tight">Private Account</h3>
+                    <p className="text-sm text-gray-400 font-bold max-w-[300px] leading-relaxed mb-10">Follow this account to see their photos, videos and moments on Locolive.</p>
+                    <button className="px-10 py-4 bg-gray-900 text-white rounded-[24px] font-black uppercase tracking-[2px] text-xs shadow-2xl">Send Connection Request</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="h-full flex flex-col bg-white overflow-hidden font-poppins">
@@ -76,13 +166,43 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                     <button onClick={onBack} className="w-12 h-12 flex items-center justify-center bg-white/60 backdrop-blur-xl rounded-2xl border border-white/40 hover:bg-white transition-all shadow-xl shadow-black/10">
                         <ArrowLeft className="w-5 h-5 text-gray-900" />
                     </button>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 relative">
                         <button className="w-12 h-12 flex items-center justify-center bg-white/60 backdrop-blur-xl rounded-2xl border border-white/40 hover:bg-white transition-all shadow-xl shadow-black/10">
                             <Share2 className="w-5 h-5 text-gray-900" />
                         </button>
-                        <button className="w-12 h-12 flex items-center justify-center bg-white/60 backdrop-blur-xl rounded-2xl border border-white/40 hover:bg-white transition-all shadow-xl shadow-black/10">
-                            <MoreHorizontal className="w-5 h-5 text-gray-900" />
-                        </button>
+                        <div className="relative">
+                            <button 
+                                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                                className="w-12 h-12 flex items-center justify-center bg-white/60 backdrop-blur-xl rounded-2xl border border-white/40 hover:bg-white transition-all shadow-xl shadow-black/10"
+                            >
+                                <MoreHorizontal className="w-5 h-5 text-gray-900" />
+                            </button>
+                            <AnimatePresence>
+                                {showMoreMenu && (
+                                    <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setShowMoreMenu(false)} />
+                                        <motion.div 
+                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            className="absolute right-0 mt-3 w-48 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                        >
+                                            <button 
+                                                onClick={handleBlockAction}
+                                                className={`w-full text-left px-5 py-4 text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-3 ${
+                                                    profile.is_blocked ? 'text-gray-900 hover:bg-gray-50' : 'text-red-500 hover:bg-red-50'
+                                                }`}
+                                            >
+                                                {profile.is_blocked ? 'Unblock User' : 'Block User'}
+                                            </button>
+                                            <button className="w-full text-left px-5 py-4 text-xs font-black text-gray-400 uppercase tracking-widest hover:bg-gray-50 transition-colors flex items-center gap-3">
+                                                Report
+                                            </button>
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -109,9 +229,30 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                         </div>
 
                         <div className="flex gap-4 pb-2">
-                            <button className="px-8 py-3.5 bg-gray-900 text-white rounded-[24px] text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-black/20 hover:scale-105 transition-all active:scale-95">
-                                Follow Friend
-                            </button>
+                            {profile.is_blocked ? (
+                                <button 
+                                    onClick={handleBlockAction}
+                                    disabled={blocking}
+                                    className="px-8 py-3.5 bg-red-50 text-red-600 border border-red-100 rounded-[24px] text-[12px] font-black uppercase tracking-[0.2em] shadow-xl shadow-red-500/10 hover:bg-red-100 transition-all active:scale-95 disabled:opacity-50"
+                                >
+                                    {blocking ? 'Unblocking...' : 'Unblock User'}
+                                </button>
+                            ) : profile.connection_status === 'accepted' ? (
+                                <button className="px-8 py-3.5 bg-gray-50 text-gray-400 border border-gray-100 rounded-[24px] text-[12px] font-black uppercase tracking-[0.2em] cursor-default">
+                                    Connected
+                                </button>
+                            ) : (
+                                <button 
+                                    onClick={handleFollow}
+                                    disabled={profile.connection_status === 'pending' || profile.requested || blocking}
+                                    className={`px-8 py-3.5 rounded-[24px] text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95
+                                        ${(profile.connection_status === 'pending' || profile.requested || blocking) 
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                            : 'bg-gray-900 text-white shadow-black/20 hover:scale-105'}`}
+                                >
+                                    {profile.connection_status === 'pending' || profile.requested ? 'Requested' : 'Follow Friend'}
+                                </button>
+                            )}
                             <button 
                                 onClick={() => onMessage(userId)}
                                 className="w-14 h-14 bg-pink-50 text-pink-500 rounded-[24px] flex items-center justify-center border border-pink-100 hover:bg-pink-100 transition-all shadow-xl shadow-pink-500/10"
@@ -127,6 +268,11 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                             <h1 className="text-[34px] font-black tracking-tighter text-gray-900 uppercase italic">
                                 {profile.full_name || profile.username}
                             </h1>
+                            {profile.is_blocked && (
+                                <span className="px-3 py-1 bg-red-100 text-red-600 text-[10px] font-black uppercase rounded-full tracking-widest border border-red-200 shadow-sm">
+                                    Blocked
+                                </span>
+                            )}
                             <ShieldCheck className="w-6 h-6 text-blue-500 shrink-0" />
                         </div>
                         <div className="flex items-center gap-3 text-pink-500 font-black text-[11px] uppercase tracking-[0.2em] italic mb-6">

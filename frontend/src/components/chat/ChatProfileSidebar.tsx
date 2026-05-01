@@ -59,15 +59,21 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
     );
   };
 
-  const handleBlock = async () => {
-    if (!window.confirm('Are you sure you want to block this user? They will no longer be able to message you.')) return;
+  const handleBlockAction = async () => {
+    const action = profile.is_blocked ? 'unblock' : 'block';
+    if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
     
     try {
-      await api.post('/privacy/block', { user_id: userId });
-      toast.success('User blocked successfully');
-      // Potential redirect or parent notification logic here
+      if (profile.is_blocked) {
+        await api.delete(`/users/block/${userId}`);
+        toast.success('User unblocked successfully');
+      } else {
+        await api.post('/users/block', { user_id: userId });
+        toast.success('User blocked successfully');
+      }
+      fetchData(); // Refresh profile state
     } catch (err) {
-      toast.error('Failed to block user');
+      toast.error(`Failed to ${action} user`);
       console.error(err);
     }
   };
@@ -103,13 +109,22 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
               />
             </div>
           </div>
-          <div className="absolute bottom-1 right-1 p-1 bg-emerald-500 border-4 border-white rounded-full shadow-lg w-6 h-6" />
+          {profile.is_online && !profile.is_blocked && (
+            <div className="absolute bottom-1 right-1 p-1 bg-emerald-500 border-4 border-white rounded-full shadow-lg w-6 h-6" />
+          )}
         </div>
 
         <div className="space-y-1">
-          <h3 className="text-[18px] font-black text-text-base leading-tight tracking-tight uppercase italic px-2 w-full truncate mb-1">
-            {profile.full_name || 'Locolive User'}
-          </h3>
+          <div className="flex items-center justify-center gap-2">
+            <h3 className="text-[18px] font-black text-text-base leading-tight tracking-tight uppercase italic truncate max-w-[200px]">
+              {profile.full_name || 'Locolive User'}
+            </h3>
+            {profile.is_blocked && (
+              <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-black uppercase rounded-full tracking-wider border border-red-200">
+                Blocked
+              </span>
+            )}
+          </div>
           <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
             @{profile.username}
           </p>
@@ -123,28 +138,41 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
       </div>
 
       {/* Action shortcuts */}
-      <div className="flex items-center justify-center gap-4">
-         <button 
-           onClick={() => onViewFullProfile?.(userId)}
-           className="p-3.5 bg-white border border-border-base rounded-2xl text-text-muted hover:text-primary hover:border-primary/40 shadow-sm transition-all active:scale-95"
-           title="View Profile"
-         >
-            <User className="w-5 h-5" />
-         </button>
-         <button 
-           onClick={handleMute}
-           className={`p-3.5 bg-white border border-border-base rounded-2xl shadow-sm transition-all active:scale-95 ${isMuted ? 'text-secondary border-secondary/40' : 'text-text-muted hover:text-primary hover:border-primary/40'}`}
-           title={isMuted ? "Unmute" : "Mute Notifications"}
-         >
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
-         </button>
-         <button 
-           onClick={handleBlock}
-           className="p-3.5 bg-white border border-border-base rounded-2xl text-text-muted hover:text-red-500 hover:border-red-200 shadow-sm transition-all active:scale-95" 
-           title="Block User"
-         >
-            <Slash className="w-5 h-5" />
-         </button>
+      <div className="flex flex-col gap-4">
+        {profile.is_blocked && (
+          <div className="w-full py-2 bg-red-50 border border-red-100 rounded-xl flex items-center justify-center gap-2 mb-2">
+            <Slash className="w-3 h-3 text-red-500" />
+            <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">This user is Blocked</span>
+          </div>
+        )}
+        <div className="flex items-center justify-center gap-4">
+          <button 
+            onClick={() => onViewFullProfile?.(userId)}
+            className="p-3.5 bg-white border border-border-base rounded-2xl text-text-muted hover:text-primary hover:border-primary/40 shadow-sm transition-all active:scale-95"
+            title="View Profile"
+          >
+              <User className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={handleMute}
+            className={`p-3.5 bg-white border border-border-base rounded-2xl shadow-sm transition-all active:scale-95 ${isMuted ? 'text-secondary border-secondary/40' : 'text-text-muted hover:text-primary hover:border-primary/40'}`}
+            title={isMuted ? "Unmute" : "Mute Notifications"}
+          >
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+          </button>
+          <button 
+            onClick={handleBlockAction}
+            className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl shadow-sm transition-all active:scale-95 border ${
+              profile.is_blocked 
+                ? 'bg-red-500 text-white border-red-600 font-black text-[10px] uppercase tracking-widest' 
+                : 'bg-white text-text-muted border-border-base hover:text-red-500 hover:border-red-200'
+            }`} 
+            title={profile.is_blocked ? "Unblock User" : "Block User"}
+          >
+              <Slash className="w-4 h-4" />
+              {profile.is_blocked && <span>Unblock</span>}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-6 pt-2 overflow-y-auto no-scrollbar">

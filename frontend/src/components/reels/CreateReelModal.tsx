@@ -20,8 +20,7 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [maxDuration, setMaxDuration] = useState(60); // Default 60s
-
+  
   useEffect(() => {
     if (!file) {
       setPreviewUrl(null);
@@ -38,27 +37,9 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
   }, [file]);
 
   const handleFileSelect = (selectedFile: File) => {
-    // Check duration if it's a video
-    if (selectedFile.type.startsWith('video/')) {
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-        video.onloadedmetadata = () => {
-            window.URL.revokeObjectURL(video.src);
-            if (video.duration > maxDuration) {
-                setError(`Video is too long! Selected limit is ${maxDuration}s, but video is ${Math.round(video.duration)}s.`);
-                setFile(null);
-                setPreviewUrl(null);
-            } else {
-                setFile(selectedFile);
-                setIsEditing(true);
-                setError('');
-            }
-        };
-        video.src = URL.createObjectURL(selectedFile);
-    } else {
-        setFile(selectedFile);
-        setIsEditing(true);
-    }
+    setFile(selectedFile);
+    setIsEditing(true);
+    setError('');
   };
 
 
@@ -106,8 +87,8 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
       setFile(null);
       setCaption('');
       onSuccess();
-      window.dispatchEvent(new CustomEvent('postCreated'));
-      onClose();
+      // Reload page to show new reel immediately as requested by user
+      window.location.reload();
     } catch (err: any) {
       console.error('Reel upload error:', err);
       setError(err.response?.data?.error || 'Failed to share reel. Please try again.');
@@ -125,151 +106,144 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[7500] flex items-center justify-center bg-black/60 backdrop-blur-xl px-4 py-8"
+        className="fixed inset-0 z-[8000] flex items-stretch md:items-center justify-center bg-black/70 backdrop-blur-xl p-0 md:px-4 md:py-8"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 30 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 30 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="relative w-full max-w-4xl bg-bg-card border border-border-base rounded-[3rem] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col md:flex-row transition-all duration-500"
-        >
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute top-6 right-6 z-50 p-2.5 rounded-2xl bg-black/5 hover:bg-black/10 text-text-muted hover:text-text-base border border-border-base transition-all cursor-pointer"
+          <motion.div
+            initial={{ y: 60, opacity: 0, scale: 0.97 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 60, opacity: 0, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="bg-white rounded-none md:rounded-[32px] w-full md:max-w-lg h-full md:h-auto md:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
           >
-            <X className="w-5 h-5" />
-          </button>
-
-          {/* LEFT: Media Section */}
-          <div className="relative w-full md:w-[380px] h-[360px] md:h-auto bg-zinc-950 flex flex-col items-center justify-center border-r border-border-base overflow-hidden">
-            {file && previewUrl ? (
-              <div className="w-full h-full relative group">
-                {file.type.startsWith('image/') ? (
-                    <img src={previewUrl} className="w-full h-full object-cover" alt="" />
-                ) : (
-                    <video src={previewUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
-                )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                    <button 
-                        onClick={() => { setFile(null); setIsEditing(false); }}
-                        className="px-6 py-2.5 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-full hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                    >
-                        Change Media
-                    </button>
-                </div>
-              </div>
-            ) : (
-                <UploadComponent onFileSelect={handleFileSelect} />
-            )}
-          </div>
-
-          {/* RIGHT: Content Section */}
-          <div className="flex-1 flex flex-col p-10 gap-8">
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/20">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-50">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/20">
                   <Video className="w-4 h-4 text-white" />
                 </div>
-                <h2 className="text-2xl font-black italic text-text-base tracking-tight uppercase">LocoReel Pro</h2>
+                <h2 className="text-lg font-black text-gray-900 tracking-tight uppercase">Share Reel</h2>
               </div>
-              <p className="text-[11px] font-bold text-text-muted uppercase tracking-[0.3em] pl-11">Advanced Creator Studio</p>
+              <button
+                onClick={onClose}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-600" />
+              </button>
             </div>
 
-            <div className="space-y-4">
-              <label className="text-[11px] font-black uppercase tracking-widest text-text-muted mb-2 block">Upload Limit</label>
-              <div className="flex gap-2 p-1 bg-bg-sidebar/50 rounded-2xl border border-border-base">
-                {[15, 30, 60].map((dur) => (
+            <div className="px-6 py-5 space-y-5 flex-1 overflow-y-auto no-scrollbar pb-32 md:pb-10">
+              {/* Media Section */}
+              <div className="relative w-full aspect-[4/3] rounded-[24px] bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden shrink-0">
+                {file && previewUrl ? (
+                  <div className="w-full h-full relative group">
+                    {file.type.startsWith('image/') ? (
+                        <img src={previewUrl} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                        <video
+                          ref={(el) => {
+                            if (el) {
+                              el.play().catch(e => console.error("Autoplay failed", e));
+                            }
+                          }}
+                          src={previewUrl}
+                          className="w-full h-full object-cover"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                        />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3">
+                        <button 
+                            onClick={() => { setFile(null); setIsEditing(false); }}
+                            className="px-6 py-2.5 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-full hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                        >
+                            Change Media
+                        </button>
+                    </div>
+                  </div>
+                ) : (
+                    <UploadComponent onFileSelect={handleFileSelect} />
+                )}
+              </div>
+
+              {/* Caption Section */}
+              <div className="space-y-3">
+                <textarea
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  placeholder="What's the vibe today? #social #live"
+                  className="w-full px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-700 placeholder:text-gray-300 resize-none outline-none focus:ring-2 focus:ring-pink-200 transition-all"
+                  rows={4}
+                  maxLength={500}
+                />
+              </div>
+
+              {/* Settings Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
-                    key={dur}
-                    onClick={() => setMaxDuration(dur)}
-                    className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-tighter transition-all ${maxDuration === dur ? 'bg-primary text-white shadow-lg' : 'text-text-muted hover:text-text-base'}`}
-                  >
-                    {dur}s Limit
+                    onClick={() => setIsAiGenerated(!isAiGenerated)}
+                    className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer ${isAiGenerated ? 'bg-primary/5 border-primary/30 text-primary' : 'bg-gray-50 border-gray-100 text-gray-500 hover:border-primary/20 hover:bg-primary/5'}`}
+                 >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isAiGenerated ? 'bg-primary text-white shadow-lg' : 'bg-white border border-gray-100'}`}>
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[10px] font-black uppercase tracking-widest">AI Generated</p>
+                      <p className="text-[8px] font-bold opacity-60">Transparency tag</p>
+                    </div>
+                 </button>
+
+                 <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-100 text-gray-400">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[10px] font-black uppercase tracking-widest">Location</p>
+                      <p className="text-[8px] font-bold opacity-60">Smart geotagging</p>
+                    </div>
+                 </div>
+              </div>
+
+              {/* Publishing Progress */}
+              <AnimatePresence>
+                  {isUploading && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                          <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-primary">
+                              <span>Publishing Magic...</span>
+                              <span>{uploadProgress}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                              <motion.div initial={{ width: 0 }} animate={{ width: `${uploadProgress}%` }} className="h-full bg-brand-gradient" />
+                          </div>
+                      </motion.div>
+                  )}
+              </AnimatePresence>
+
+              {error && (
+                  <p className="text-xs text-red-500 font-bold bg-red-50 p-4 rounded-2xl border border-red-100">
+                      {error}
+                  </p>
+              )}
+
+              {/* Submit Buttons */}
+              <div className="pt-2 flex gap-3">
+                  <button onClick={onClose} className="px-6 py-4 bg-gray-100 text-gray-600 text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-gray-200 transition-all cursor-pointer">
+                      Discard
                   </button>
-                ))}
+                  <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSubmit}
+                      disabled={isUploading || !file}
+                      className="flex-1 py-4 bg-brand-gradient text-white text-[11px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-primary/20 flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer"
+                  >
+                      {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Share Reel <ArrowRight className="w-4 h-4" /></>}
+                  </motion.button>
               </div>
             </div>
-
-            <div className="space-y-3">
-              <label className="text-[11px] font-black uppercase tracking-widest text-text-muted">Caption & Insights</label>
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                placeholder="What's the vibe today? #social #live"
-                className="w-full h-32 bg-bg-sidebar/50 border border-border-base rounded-2xl p-5 text-[14px] font-medium resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              />
-              <div className="flex justify-end pr-2">
-                <span className="text-[10px] font-bold text-text-muted">{caption.length}/500</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-               <button
-                  onClick={() => setIsAiGenerated(!isAiGenerated)}
-                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${isAiGenerated ? 'bg-primary/5 border-primary/30 text-primary' : 'bg-bg-sidebar/30 border-border-base text-text-muted hover:border-primary/20 hover:bg-primary/5'}`}
-               >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isAiGenerated ? 'bg-primary text-white shadow-lg' : 'bg-zinc-100'}`}>
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-[11px] font-black uppercase tracking-widest">AI Generated</p>
-                    <p className="text-[9px] font-bold opacity-60">Transparency tag</p>
-                  </div>
-               </button>
-
-               <div className="flex items-center gap-4 p-4 rounded-2xl bg-bg-sidebar/30 border border-border-base text-text-muted">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center">
-                    <MapPin className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-[11px] font-black uppercase tracking-widest">Location</p>
-                    <p className="text-[9px] font-bold opacity-60">Smart geotagging</p>
-                  </div>
-               </div>
-            </div>
-
-            {/* Publishing Progress */}
-            <AnimatePresence>
-                {isUploading && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
-                        <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-primary">
-                            <span>Publishing Magic...</span>
-                            <span>{uploadProgress}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-                            <motion.div initial={{ width: 0 }} animate={{ width: `${uploadProgress}%` }} className="h-full bg-brand-gradient" />
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {error && (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-500 text-xs font-bold bg-red-50 p-4 rounded-2xl border border-red-100">
-                        {error}
-                    </motion.p>
-                )}
-            </AnimatePresence>
-
-            <div className="mt-auto pt-4 flex gap-4">
-                <button onClick={onClose} className="px-8 py-4 bg-bg-sidebar border border-border-base text-text-base text-[11px] font-black uppercase tracking-widest rounded-2xl hover:bg-zinc-100 transition-all cursor-pointer">
-                    Discard
-                </button>
-                <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSubmit}
-                    disabled={isUploading || !file}
-                    className="flex-1 py-4 bg-brand-gradient text-white text-[11px] font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/30 flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all cursor-pointer"
-                >
-                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Share Moment <ArrowRight className="w-4 h-4" /></>}
-                </motion.button>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
       </motion.div>
 
       {/* Advanced Crop Tool Overay */}

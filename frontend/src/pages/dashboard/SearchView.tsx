@@ -172,19 +172,41 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
 
                   {/* Action Button */}
                   <div className="shrink-0 ml-4">
-                    {!user.requested ? (
+                    {user.connection_status === 'blocked' ? (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleConnect(user.id); }}
-                        className="px-6 py-2 rounded-full border border-primary text-primary text-sm font-bold hover:bg-primary/5 hover:scale-105 active:scale-95 transition-all w-[100px] cursor-pointer"
+                        onClick={async (e) => { 
+                          e.stopPropagation(); 
+                          try {
+                            await api.delete(`/privacy/block/${user.id}`);
+                            setResults(prev => prev.map(u => u.id === user.id ? { ...u, connection_status: 'none', is_blocked: false } : u));
+                          } catch (err) {
+                            console.error('Failed to unblock:', err);
+                          }
+                        }}
+                        className="px-6 py-2 rounded-full border border-red-200 bg-red-50 text-red-600 text-sm font-bold hover:bg-red-100 transition-all w-[100px] cursor-pointer"
                       >
-                        Connect
+                        Unblock
                       </button>
-                    ) : (
+                    ) : user.connection_status === 'accepted' ? (
+                      <button
+                        disabled
+                        className="px-6 py-2 rounded-full border border-border-base bg-emerald-50 text-emerald-600 text-sm font-bold w-[100px] cursor-default"
+                      >
+                        Friend
+                      </button>
+                    ) : user.connection_status === 'pending' || user.requested ? (
                       <button
                         disabled
                         className="px-6 py-2 rounded-full border border-border-base bg-bg-sidebar text-text-muted/40 text-sm font-bold w-[100px] cursor-not-allowed"
                       >
                         Pending
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleConnect(user.id); }}
+                        className="px-6 py-2 rounded-full border border-primary text-primary text-sm font-bold hover:bg-primary/5 hover:scale-105 active:scale-95 transition-all w-[100px] cursor-pointer"
+                      >
+                        Connect
                       </button>
                     )}
                   </div>

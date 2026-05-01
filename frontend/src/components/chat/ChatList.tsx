@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { BACKEND } from '../../utils/config';
 import CreateGroupModal from './CreateGroupModal';
 
@@ -13,6 +14,7 @@ interface Conversation {
   last_message_at: string;
   unread_count: number;
   isGroup: boolean;
+  is_blocked?: boolean;
 }
 
 interface ChatListProps {
@@ -40,6 +42,27 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
       setGroups(groupsRes.data || []);
     } catch (err) {
       console.error('Failed to fetch chat data:', err);
+    }
+  };
+  
+  const handleDeleteConversation = async (e: React.MouseEvent, id: string, isGroup: boolean) => {
+    e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to delete this ${isGroup ? 'group chat' : 'conversation'}? This will clear all messages for you.`)) return;
+    
+    try {
+      const endpoint = isGroup ? `/groups/${id}` : `/conversations/${id}`;
+      await api.delete(endpoint);
+      setConversations(prev => prev.filter(c => c.id !== id));
+      if (isGroup) setGroups(prev => prev.filter(g => g.id !== id));
+      toast.success('Conversation deleted');
+      
+      // If we were viewing this chat, go back to home or deselect
+      if (selectedId === id) {
+        onSelect('');
+      }
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+      toast.error('Failed to delete');
     }
   };
 
@@ -163,6 +186,7 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
               conv={conv} 
               isSelected={selectedId === conv.id} 
               onClick={() => onSelect(conv.id, conv.isGroup)} 
+              onDelete={activeTab !== 'Following' ? (e: any) => handleDeleteConversation(e, conv.id, conv.isGroup) : undefined}
             />
           ))
         ) : (
@@ -186,14 +210,14 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   );
 };
 
-const ChatItem = ({ conv, isSelected, onClick }: any) => {
+const ChatItem = ({ conv, isSelected, onClick, onDelete }: any) => {
   const timeStr = new Date(conv.last_message_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const initial = conv.full_name?.charAt(0) || conv.username?.charAt(0) || '?';
 
   return (
-    <button
+    <div
       onClick={onClick}
-      className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group relative ${isSelected ? 'bg-white shadow-xl shadow-gray-200/50 border border-gray-100' : 'hover:bg-white/40'
+      className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group relative cursor-pointer ${isSelected ? 'bg-white shadow-xl shadow-gray-200/50 border border-gray-100' : 'hover:bg-white/40'
         }`}
     >
       <div className="shrink-0 relative">
@@ -210,7 +234,7 @@ const ChatItem = ({ conv, isSelected, onClick }: any) => {
           <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-pink-500 border-2 border-white rounded-full flex items-center justify-center shadow-sm">
             <span className="text-[10px] font-black text-white leading-none">{conv.unread_count}</span>
           </div>
-        ) : !conv.isGroup && (
+        ) : !conv.isGroup && !conv.is_blocked && (
           <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
         )}
       </div>
@@ -221,10 +245,27 @@ const ChatItem = ({ conv, isSelected, onClick }: any) => {
           <span className="text-[10px] font-medium text-gray-400 uppercase">{timeStr}</span>
         </div>
         <p className={`text-[12px] ${isSelected ? (conv.isGroup ? 'text-sky-500' : 'text-pink-500') + ' font-medium' : 'text-gray-400 font-normal'} truncate leading-relaxed`}>
-          {conv.id === 'typing-id' ? 'Typing...' : conv.last_message}
+          {conv.is_blocked ? (
+            <span className="text-red-500 font-black italic uppercase text-[10px]">Blocked</span>
+          ) : conv.id === 'typing-id' ? (
+            'Typing...'
+          ) : (
+            conv.last_message
+          )}
         </p>
       </div>
-    </button>
+
+      {/* Delete Button - Visible on Hover */}
+      {onDelete && (
+        <button 
+          onClick={onDelete}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 bg-red-50 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all shadow-sm hover:shadow-lg hover:shadow-red-500/20 active:scale-90 z-20"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+
   );
 };
 

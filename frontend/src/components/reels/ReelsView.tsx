@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft, Camera, Compass, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -33,6 +33,7 @@ interface ReelsViewProps {
 const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -67,6 +68,24 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
   useEffect(() => {
     fetchReels();
   }, [fetchReels]);
+
+  // Handle deep linking to a specific reel
+  useEffect(() => {
+    const reelId = searchParams.get('id');
+    if (reels.length > 0 && reelId) {
+      const index = reels.findIndex(r => r.id === reelId);
+      if (index !== -1) {
+        setActiveIndex(index);
+        // Delay scroll to ensure DOM is ready
+        setTimeout(() => {
+            if (containerRef.current) {
+                const height = containerRef.current.clientHeight;
+                containerRef.current.scrollTop = index * height;
+            }
+        }, 100);
+      }
+    }
+  }, [reels, searchParams]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollPos = e.currentTarget.scrollTop;
@@ -124,7 +143,7 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={onCreateReel}
+                onClick={() => onCreateReel?.()}
                 className="text-white hover:text-primary transition-colors"
               >
                 <Camera className="w-6 h-6 drop-shadow-md" />
