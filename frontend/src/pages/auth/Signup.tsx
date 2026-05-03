@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import { ArrowRight, ArrowLeft, Mail, Lock, AtSign, User, Eye, EyeOff, Check, Zap, Phone, Footprints } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -283,6 +284,9 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden font-sans px-4 py-12 transition-colors duration-300">
+      <Helmet>
+        <title>Create Account</title>
+      </Helmet>
       {/* Background glow */}
       <div className="absolute top-[-300px] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[130px] pointer-events-none" />
       <div className="absolute bottom-[-300px] right-0 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[100px] pointer-events-none" />

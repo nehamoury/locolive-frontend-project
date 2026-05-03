@@ -17,6 +17,29 @@ interface Conversation {
   is_blocked?: boolean;
 }
 
+interface FollowingUser {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar_url: string;
+}
+
+interface Group {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+}
+
+type DisplayConversation = Conversation;
+
+interface ChatItemProps {
+  conv: DisplayConversation;
+  isSelected: boolean;
+  onClick: () => void;
+  onDelete?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
 interface ChatListProps {
   onSelect: (id: string, isGroup?: boolean) => void;
   selectedId?: string;
@@ -24,8 +47,8 @@ interface ChatListProps {
 
 const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [following, setFollowing] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
+  const [following, setFollowing] = useState<FollowingUser[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'All' | 'Unread' | 'Following' | 'Groups'>('All');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -67,18 +90,11 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   };
 
   useEffect(() => {
-    fetchData();
+    const timer = setTimeout(() => {
+      void fetchData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    if (selectedId) {
-      setConversations(prev => {
-        const hasUnread = prev.find(c => c.id === selectedId && c.unread_count > 0);
-        if (!hasUnread) return prev;
-        return prev.map(c => c.id === selectedId ? { ...c, unread_count: 0 } : c);
-      });
-    }
-  }, [selectedId]);
 
   const getFilteredItems = () => {
     if (activeTab === 'Following') {
@@ -123,7 +139,11 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
         if (activeTab === 'Unread') return c.unread_count > 0;
         return true;
       })
-      .map(c => ({ ...c, isGroup: false }));
+      .map(c => ({
+        ...c,
+        unread_count: c.id === selectedId ? 0 : c.unread_count,
+        isGroup: false
+      }));
   };
 
   const displayItems = getFilteredItems();
@@ -186,7 +206,7 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
               conv={conv} 
               isSelected={selectedId === conv.id} 
               onClick={() => onSelect(conv.id, conv.isGroup)} 
-              onDelete={activeTab !== 'Following' ? (e: any) => handleDeleteConversation(e, conv.id, conv.isGroup) : undefined}
+              onDelete={activeTab !== 'Following' ? (e) => handleDeleteConversation(e, conv.id, conv.isGroup) : undefined}
             />
           ))
         ) : (
@@ -210,7 +230,7 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   );
 };
 
-const ChatItem = ({ conv, isSelected, onClick, onDelete }: any) => {
+const ChatItem = ({ conv, isSelected, onClick, onDelete }: ChatItemProps) => {
   const timeStr = new Date(conv.last_message_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const initial = conv.full_name?.charAt(0) || conv.username?.charAt(0) || '?';
 

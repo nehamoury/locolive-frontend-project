@@ -5,6 +5,13 @@ import { useAuth } from '../../context/AuthContext';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import { cn } from '../../utils/helpers';
 
+interface BlockedUser {
+  id: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+}
+
 const PrivacySection: FC = () => {
   const { user, updateUser } = useAuth();
   const [isPrivate, setIsPrivate] = useState(user?.is_private || false);
@@ -13,7 +20,7 @@ const PrivacySection: FC = () => {
   const [updatingPrivacy, setUpdatingPrivacy] = useState(false);
   const [whoCanMessage, setWhoCanMessage] = useState('connections');
   const [whoCanSeeStories, setWhoCanSeeStories] = useState('connections');
-  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [loadingPrivacy, setLoadingPrivacy] = useState(false);
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
 
@@ -31,8 +38,8 @@ const PrivacySection: FC = () => {
       setWhoCanMessage(privacyRes.data.who_can_message || 'connections');
       setWhoCanSeeStories(privacyRes.data.who_can_see_stories || 'connections');
       setBlockedUsers(blockedRes.data || []);
-    } catch (err) {
-      console.error('Failed to fetch privacy data', err);
+    } catch {
+      console.error('Failed to fetch privacy data');
     } finally {
       setLoadingPrivacy(false);
     }
@@ -49,7 +56,7 @@ const PrivacySection: FC = () => {
       if (key === 'who_can_message') setWhoCanMessage(value);
       if (key === 'who_can_see_stories') setWhoCanSeeStories(value);
       import('react-hot-toast').then(({ toast }) => toast.success('Privacy updated!'));
-    } catch (err) {
+    } catch {
       import('react-hot-toast').then(({ toast }) => toast.error('Failed to update privacy'));
     }
   };
@@ -59,7 +66,7 @@ const PrivacySection: FC = () => {
       await api.delete(`/users/block/${blockedId}`);
       setBlockedUsers(prev => prev.filter(u => u.id !== blockedId));
       import('react-hot-toast').then(({ toast }) => toast.success('User unblocked!'));
-    } catch (err) {
+    } catch {
       import('react-hot-toast').then(({ toast }) => toast.error('Failed to unblock'));
     }
   };
@@ -72,8 +79,8 @@ const PrivacySection: FC = () => {
       setIsPrivate(data.is_private);
       updateUser({ is_private: data.is_private });
       import('react-hot-toast').then(({ toast }) => toast.success(data.message || 'Privacy settings updated!'));
-    } catch (err: any) {
-      import('react-hot-toast').then(({ toast }) => toast.error(err.response?.data?.error || 'Failed to update privacy settings'));
+    } catch {
+      import('react-hot-toast').then(({ toast }) => toast.error('Failed to update privacy settings'));
     } finally {
       setUpdatingPrivacy(false);
     }
@@ -87,7 +94,7 @@ const PrivacySection: FC = () => {
       setIsGhostMode(newGhost);
       updateUser({ is_ghost_mode: newGhost });
       import('react-hot-toast').then(({ toast }) => toast.success(newGhost ? 'Ghost Mode enabled! 👻' : 'Ghost Mode disabled'));
-    } catch (err: any) {
+    } catch {
       import('react-hot-toast').then(({ toast }) => toast.error('Failed to update ghost mode'));
     } finally {
       setUpdatingPrivacy(false);
@@ -101,8 +108,7 @@ const PrivacySection: FC = () => {
       setPanicMode(true);
       updateUser({ panic_mode: true });
       import('react-hot-toast').then(({ toast }) => toast.success('Panic Mode Activated! Emergency protocols initiated.'));
-      // The backend will force logout via WebSocket, so we don't need to do much else here.
-    } catch (err: any) {
+    } catch {
       import('react-hot-toast').then(({ toast }) => toast.error('Failed to activate panic mode'));
     } finally {
       setUpdatingPrivacy(false);

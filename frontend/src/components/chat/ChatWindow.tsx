@@ -25,12 +25,27 @@ interface ChatWindowProps {
   onToggleProfile?: () => void;
 }
 
+interface Recipient {
+  full_name?: string;
+  username?: string;
+  avatar_url?: string;
+  is_group?: boolean;
+  is_online?: boolean;
+  is_blocked?: boolean;
+}
+
+interface ApiError {
+  response?: {
+    status?: number;
+  };
+}
+
 const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: ChatWindowProps) => {
   const { user } = useAuth();
   const { messages, sendMessage, sendTyping, isTyping } = useChat(receiverId, isGroup);
   const { playSendSound } = useNotifications();
   const [content, setContent] = useState('');
-  const [recipient, setRecipient] = useState<any>(null);
+  const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [loadingRecipient, setLoadingRecipient] = useState(true);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [icebreakers, setIcebreakers] = useState<string[]>([]);
@@ -67,10 +82,11 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
         } else {
           setRecipient(res.data);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch recipient profile:', err);
-        if (err.response?.status) {
-          setErrorStatus(err.response.status);
+        const status = (err as ApiError).response?.status;
+        if (status) {
+          setErrorStatus(status);
         }
       } finally {
         setLoadingRecipient(false);
@@ -96,17 +112,22 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
     }
   }, [receiverId, messages.length, isGroup]);
 
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitMessage = () => {
     if (!content.trim()) return;
     sendMessage(content);
     playSendSound();
     setContent('');
   };
 
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitMessage();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      handleSend(e as any);
+      e.preventDefault();
+      submitMessage();
     } else {
       sendTyping();
     }

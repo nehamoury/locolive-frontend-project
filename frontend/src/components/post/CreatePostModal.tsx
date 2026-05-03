@@ -14,10 +14,18 @@ interface CreatePostModalProps {
 type PostType = 'story' | 'post' | 'reel';
 
 const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess, onRequestReelModal }) => {
-  const [postType, setPostType] = useState<PostType>('post');
+  const [postType, setPostType] = useState<PostType>(() => {
+    return (localStorage.getItem('draft_postType') as PostType) || 'post';
+  });
   const [mediaType, setMediaType] = useState<'image' | 'video' | 'text'>('image');
-  const [caption, setCaption] = useState('');
-  const [bodyText, setBodyText] = useState('');
+  const [caption, setCaption] = useState(() => localStorage.getItem('draft_caption') || '');
+  const [bodyText, setBodyText] = useState(() => localStorage.getItem('draft_bodyText') || '');
+
+  useEffect(() => {
+    localStorage.setItem('draft_postType', postType);
+    localStorage.setItem('draft_caption', caption);
+    localStorage.setItem('draft_bodyText', bodyText);
+  }, [postType, caption, bodyText]);
   const [locationName, setLocationName] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -118,6 +126,11 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
           crop_settings: cropSettings,
         });
       }
+
+      // Clear draft
+      localStorage.removeItem('draft_postType');
+      localStorage.removeItem('draft_caption');
+      localStorage.removeItem('draft_bodyText');
 
       // Reset state
       setCaption('');

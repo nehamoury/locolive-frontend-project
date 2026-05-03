@@ -2,11 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import adminApi from '../services/adminApi';
 
 
-export const useAdminStats = () => {
+export const useAdminDashboard = () => {
   return useQuery({
-    queryKey: ['admin', 'stats'],
-    queryFn: () => adminApi.getStats(),
-    refetchInterval: 30000, // Refetch every 30s
+    queryKey: ['admin', 'dashboard'],
+    queryFn: () => adminApi.getDashboard(),
+    refetchInterval: 30000,
   });
 };
 
@@ -17,27 +17,37 @@ export const useAdminUsers = (page: number = 1, pageSize: number = 20) => {
   });
 };
 
-export const useAdminSearchUsers = (query: string, page: number = 1, pageSize: number = 20) => {
+export const useAdminUserDetail = (userId: string) => {
   return useQuery({
-    queryKey: ['admin', 'users', 'search', query, page, pageSize],
-    queryFn: () => adminApi.searchUsers(query, page, pageSize),
-    enabled: query.length > 0,
+    queryKey: ['admin', 'users', userId],
+    queryFn: () => adminApi.getUserDetail(userId),
+    enabled: !!userId,
   });
 };
 
-export const useAdminMapUsers = () => {
+export const useAdminStories = (page: number = 1, pageSize: number = 20) => {
   return useQuery({
-    queryKey: ['admin', 'map', 'active'],
-    queryFn: () => adminApi.getMapActiveUsers(),
-    refetchInterval: 15000, // Refresh map every 15s
+    queryKey: ['admin', 'stories', page, pageSize],
+    queryFn: () => adminApi.getContent(page, pageSize, 'story'),
   });
 };
 
-export const useAdminCrossings = (page: number = 1, pageSize: number = 20) => {
+export const useAdminUserAction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, action }: { userId: string; action: string }) => 
+      adminApi.handleUserAction(userId, action),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users', userId] });
+    },
+  });
+};
+
+export const useAdminContent = (page: number = 1, pageSize: number = 20, type: string = 'all') => {
   return useQuery({
-    queryKey: ['admin', 'crossings', page, pageSize],
-    queryFn: () => adminApi.getCrossings(page, pageSize),
-    refetchInterval: 15000, // Live updates
+    queryKey: ['admin', 'content', page, pageSize, type],
+    queryFn: () => adminApi.getContent(page, pageSize, type),
   });
 };
 
@@ -48,24 +58,18 @@ export const useAdminReports = (resolved?: boolean, page: number = 1, pageSize: 
   });
 };
 
-export const useBanUser = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ userId, ban }: { userId: string; ban: boolean }) => 
-      adminApi.banUser(userId, ban),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-    },
+export const useAdminLogs = (page: number = 1, pageSize: number = 50, level: string = 'all') => {
+  return useQuery({
+    queryKey: ['admin', 'logs', page, pageSize, level],
+    queryFn: () => adminApi.getLogs(page, pageSize, level),
   });
 };
 
-export const useResolveReport = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (reportId: string) => adminApi.resolveReport(reportId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
-    },
+export const useAdminSystemMonitor = () => {
+  return useQuery({
+    queryKey: ['admin', 'system'],
+    queryFn: () => adminApi.getSystemMonitor(),
+    refetchInterval: 10000,
   });
 };
 
@@ -75,19 +79,32 @@ export const useAdminLogout = () => {
   });
 };
 
-export const useAdminStories = (page: number = 1, pageSize: number = 20) => {
-  return useQuery({
-    queryKey: ['admin', 'stories', page, pageSize],
-    queryFn: () => adminApi.getStories(page, pageSize),
+export const useAdminDeletePost = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.deleteContent('post', id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'content'] });
+    },
+  });
+};
+
+export const useAdminDeleteReel = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.deleteContent('reel', id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'content'] });
+    },
   });
 };
 
 export const useAdminDeleteStory = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (storyId: string) => adminApi.deleteStory(storyId),
+    mutationFn: (id: string) => adminApi.deleteContent('story', id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'stories'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'content'] });
     },
   });
 };

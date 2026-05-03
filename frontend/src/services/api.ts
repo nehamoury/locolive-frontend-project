@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 // ─── Single Source of Truth ───────────────────────────────────────────────────
 // VITE_API_URL must be the base host WITHOUT /api, e.g. http://localhost:8081
@@ -48,6 +49,33 @@ const api = axios.create({
   },
 });
 
+let isRefreshing = false;
+let refreshPromise: Promise<void> | null = null;
+
+type RetryableRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+};
+
+const shouldSkipRefresh = (url?: string): boolean => {
+  if (!url) return false;
+  return url.includes('/users/login') || url.includes('/users/renew-access') || url.includes('/logout');
+};
+
+const clearLocalSession = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('auth-storage');
+};
+
+const redirectToLoginIfNeeded = () => {
+  const isAuthPage = window.location.pathname.includes('/login') ||
+    window.location.pathname.includes('/signup') ||
+    window.location.pathname.includes('/forgot-password');
+
+  if (!isAuthPage) {
+    window.location.replace('/login');
+  }
+};
+
 // Request interceptor — attach JWT fallback from localStorage (if any)
 api.interceptors.request.use(
   (config) => {
@@ -81,22 +109,45 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
-    if (error.response?.status === 401) {
-      console.warn('Global 401 caught. Clearing session...');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('auth-storage');
-      
-      // If we're not already on the login page, redirect to it
-      const isAuthPage = window.location.pathname.includes('/login') || 
-                        window.location.pathname.includes('/signup') ||
-                        window.location.pathname.includes('/forgot-password');
-                        
-      if (!isAuthPage) {
-        window.location.replace('/login');
+  async (error: AxiosError) => {
+    const originalRequest = error.config as RetryableRequestConfig | undefined;
+    const isUnauthorized = error.response?.status === 401;
+
+    if (isUnauthorized && originalRequest && !originalRequest._retry && !shouldSkipRefresh(originalRequest.url)) {
+      originalRequest._retry = true;
+
+      try {
+        if (!isRefreshing) {
+          isRefreshing = true;
+          refreshPromise = api.post('/users/renew-access').then((res) => {
+            if (res.data?.access_token) {
+              localStorage.setItem('token', res.data.access_token);
+            }
+          }).finally(() => {
+            isRefreshing = false;
+            refreshPromise = null;
+          });
+        }
+
+        if (refreshPromise) {
+          await refreshPromise;
+        }
+
+        return api(originalRequest);
+      } catch (refreshError) {
+        console.warn('Token refresh failed. Clearing session...', refreshError);
+        clearLocalSession();
+        redirectToLoginIfNeeded();
+        return Promise.reject(refreshError);
       }
     }
+
+    if (isUnauthorized) {
+      console.warn('Global 401 caught. Clearing session...');
+      clearLocalSession();
+      redirectToLoginIfNeeded();
+    }
+
     return Promise.reject(error);
   }
 );

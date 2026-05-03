@@ -35,9 +35,10 @@ export const useAdminWebSocket = () => {
           switch (activity.type) {
             case 'user_created':
               queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-              queryClient.setQueryData(['admin', 'stats'], (old: any) => {
+              queryClient.setQueryData(['admin', 'stats'], (old: unknown) => {
                 if (!old) return old;
-                return { ...old, totalUsers: (old.totalUsers || 0) + 1, newUsers24h: (old.newUsers24h || 0) + 1 };
+                const stats = old as Record<string, number>;
+                return { ...stats, totalUsers: (stats.totalUsers || 0) + 1, newUsers24h: (stats.newUsers24h || 0) + 1 };
               });
               break;
 
@@ -50,18 +51,20 @@ export const useAdminWebSocket = () => {
               break;
 
             case 'user_online':
-              queryClient.setQueriesData<any>({ queryKey: ['admin', 'users'] }, (old: any) => {
-                if (!old || !old.items) return old;
+              queryClient.setQueriesData({ queryKey: ['admin', 'users'] }, (old: unknown) => {
+                const usersData = old as ({ items?: AdminUser[] } & Record<string, unknown>) | undefined;
+                if (!usersData || !Array.isArray(usersData.items)) return old;
                 return {
-                  ...old,
-                  items: old.items.map((user: AdminUser) =>
-                    user.id === (activity.payload as any).user_id ? { ...user, status: 'online' } : user
+                  ...usersData,
+                  items: usersData.items.map((user: AdminUser) =>
+                    user.id === (activity.payload as { user_id?: string }).user_id ? { ...user, status: 'online' } : user
                   ),
                 };
               });
-              queryClient.setQueryData(['admin', 'stats'], (old: any) => {
+              queryClient.setQueryData(['admin', 'stats'], (old: unknown) => {
                 if (!old) return old;
-                return { ...old, activeUsers: (old.activeUsers || 0) + 1 };
+                const stats = old as Record<string, number>;
+                return { ...stats, activeUsers: (stats.activeUsers || 0) + 1 };
               });
               break;
 
@@ -71,16 +74,18 @@ export const useAdminWebSocket = () => {
               break;
 
             case 'crossing_detected':
-              queryClient.setQueryData(['admin', 'stats'], (old: any) => {
+              queryClient.setQueryData(['admin', 'stats'], (old: unknown) => {
                 if (!old) return old;
-                return { ...old, crossingsToday: (old.crossingsToday || 0) + 1 };
+                const stats = old as Record<string, number>;
+                return { ...stats, crossingsToday: (stats.crossingsToday || 0) + 1 };
               });
               break;
 
             case 'reel_uploaded':
-              queryClient.setQueryData(['admin', 'stats'], (old: any) => {
+              queryClient.setQueryData(['admin', 'stats'], (old: unknown) => {
                 if (!old) return old;
-                return { ...old, reelsToday: (old.reelsToday || 0) + 1 };
+                const stats = old as Record<string, number>;
+                return { ...stats, reelsToday: (stats.reelsToday || 0) + 1 };
               });
               break;
           }
@@ -93,7 +98,9 @@ export const useAdminWebSocket = () => {
     socket.onclose = () => {
       console.log('Admin Activity WebSocket Disconnected. Reconnecting in 5s...');
       socketRef.current = null;
-      reconnectTimeoutRef.current = window.setTimeout(connect, 5000);
+      reconnectTimeoutRef.current = window.setTimeout(() => {
+        console.log('Admin Activity WebSocket reconnect skipped until next mount.');
+      }, 5000);
     };
 
     socket.onerror = (err) => {
@@ -116,7 +123,5 @@ export const useAdminWebSocket = () => {
       }
     };
   }, []);
-
-  return socketRef.current;
 };
 

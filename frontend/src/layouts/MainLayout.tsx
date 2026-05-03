@@ -6,7 +6,7 @@ interface LayoutProps {
 
 const MainLayout: FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="flex h-screen bg-black overflow-hidden">
+    <div className="flex h-[100dvh] bg-black overflow-hidden">
       {/* Sidebar could go here */}
       <main className="flex-1 relative overflow-hidden">
         {children}

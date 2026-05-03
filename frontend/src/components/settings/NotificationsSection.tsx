@@ -3,17 +3,26 @@ import { Bell, Mail, Smartphone, Zap, Loader2 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 import { cn } from '../../utils/helpers';
 
+interface NotificationSettings {
+  email_notifications?: boolean;
+  push_notifications?: boolean;
+  activity_notifications?: boolean;
+  marketing_emails?: boolean;
+  [key: string]: unknown;
+}
+
 const NotificationsSection: FC = () => {
   const { queries, mutations } = useSettings();
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<NotificationSettings | null>(null);
 
   useEffect(() => {
     if (queries.notifications.data) {
-      setSettings(queries.notifications.data);
+      setSettings(queries.notifications.data as NotificationSettings);
     }
   }, [queries.notifications.data]);
 
   const handleToggle = (key: string) => {
+    if (!settings) return;
     const newSettings = { ...settings, [key]: !settings[key] };
     setSettings(newSettings);
     mutations.updateNotifications.mutate(newSettings);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/button';
@@ -25,7 +26,7 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ identity: '', password: '' });
   const { login, setRequiresProfileCompletion } = useAuth();
   const navigate = useNavigate();
 
@@ -136,6 +137,9 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden font-sans py-12 px-4 select-none transition-colors duration-300">
+      <Helmet>
+        <title>Login</title>
+      </Helmet>
 
       {/* Decorative Gradients */}
       <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[60%] h-[40%] bg-primary/20 blur-[130px] rounded-full" />
@@ -177,14 +181,14 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Email</label>
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Identity</label>
             <Input
-              placeholder="you@example.com"
-              type="email"
+              placeholder="Email, username or phone"
+              type="text"
               required
-              autoComplete="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              autoComplete="username"
+              value={formData.identity}
+              onChange={(e) => setFormData({ ...formData, identity: e.target.value })}
             />
           </div>
 

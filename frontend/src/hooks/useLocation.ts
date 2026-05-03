@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 
 export const useLocation = () => {
   const [location, setLocation] = useState<{ lat: number, lng: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    navigator.geolocation ? null : 'Geolocation is not supported by your browser'
+  );
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser');
       return;
     }
 

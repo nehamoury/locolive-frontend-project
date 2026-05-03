@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, BrowserRouter as Router, useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { SoundProvider } from './context/SoundContext'
@@ -28,20 +29,15 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
 const Users = lazy(() => import('./pages/admin/Users'))
-const LiveMap = lazy(() => import('./pages/admin/LiveMap'))
-const Crossings = lazy(() => import('./pages/admin/Crossings'))
 const Reels = lazy(() => import('./pages/admin/Reels'))
 const Reports = lazy(() => import('./pages/admin/Reports'))
-const Notifications = lazy(() => import('./pages/admin/Notifications'))
 const Settings = lazy(() => import('./pages/admin/Settings'))
-const Admins = lazy(() => import('./pages/admin/Admins'))
 const ActivityPage = lazy(() => import('./pages/admin/Activity'))
-const Comments = lazy(() => import('./pages/admin/Comments'))
 
 // ─── Page Loading Fallback ────────────────────────────────────────────────────
 function PageLoader() {
   return (
-    <div className="min-h-screen bg-bg-base flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-bg-base flex items-center justify-center relative overflow-hidden">
       {/* Soft background glows */}
       <div className="absolute w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] animate-pulse" />
       
@@ -87,6 +83,7 @@ function AppContent() {
 
   return (
     <>
+      <Helmet titleTemplate="%s | Locolive" defaultTitle="Locolive" />
       <OfflineBanner />
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -167,18 +164,12 @@ function AppContent() {
               </ProtectedRoute>
             } 
           >
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route index element={<AdminDashboard />} />
             <Route path="users" element={<Users />} />
-            <Route path="map" element={<LiveMap />} />
-            <Route path="crossings" element={<Crossings />} />
-            <Route path="reels" element={<Reels />} />
+            <Route path="content" element={<Reels />} /> {/* Will rename component or use a combined one */}
             <Route path="reports" element={<Reports />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="admins" element={<Admins />} />
-            <Route path="activity" element={<ActivityPage />} />
-            <Route path="comments" element={<Comments />} />
+            <Route path="logs" element={<ActivityPage />} />
+            <Route path="system" element={<Settings />} />
           </Route>
 
           {/* Root Redirect */}

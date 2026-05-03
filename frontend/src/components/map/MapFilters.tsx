@@ -2,15 +2,22 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, Zap, ChevronUp, ChevronDown } from 'lucide-react';
 
+interface MapFilterState {
+  distance: number | null;
+  isOnline: boolean;
+  hasStories: boolean;
+  [key: string]: unknown;
+}
+
 interface MapFiltersProps {
-  onFilterChange: (filters: any) => void;
-  activeFilters: any;
+  onFilterChange: (filters: MapFilterState) => void;
+  activeFilters: MapFilterState;
 }
 
 export const MapFilters: React.FC<MapFiltersProps> = ({ onFilterChange, activeFilters }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const toggleFilter = (key: string, value: any) => {
+  const toggleFilter = (key: string, value: unknown) => {
     onFilterChange({
       ...activeFilters,
       [key]: activeFilters[key] === value ? null : value

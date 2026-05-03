@@ -146,9 +146,47 @@ const FlyToUser = ({ position }: { position: [number, number] | null }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+interface MapClusterItem {
+  id?: string;
+  user_id?: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  latitude?: number;
+  longitude?: number;
+  stories?: MapStory[];
+  coords?: [number, number] | null;
+  count?: number;
+  geohash?: string;
+  distance?: number;
+  online?: boolean;
+  isUserOnly?: boolean;
+}
+
+interface MapStory {
+  id?: string;
+  user_id?: string;
+  username?: string;
+  avatar_url?: string;
+  media_url?: string;
+  created_at?: string;
+}
+
+interface NearbyUser {
+  id: string;
+  username: string;
+  full_name?: string;
+  avatar_url?: string;
+  latitude?: number;
+  longitude?: number;
+  is_online?: boolean;
+  online?: boolean;
+  distance?: number;
+}
+
 interface MapPageProps {
   onUserSelect?: (userId: string) => void;
-  onStorySelect?: (stories: any[], index: number) => void;
+  onStorySelect?: (stories: MapStory[], index: number) => void;
   onConnect?: (userId: string) => void;
   userPosition?: [number, number] | null;
 }
@@ -157,17 +195,17 @@ const NEARBY_POLL_INTERVAL = 30000; // Fallback polling every 30s
 
 const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externalPosition }: MapPageProps) => {
     const { user, updateUser } = useAuth();
-    const [clusters, setClusters] = useState<any[]>([]);
+    const [clusters, setClusters] = useState<MapClusterItem[]>([]);
     const [userPosition, setUserPosition] = useState<[number, number] | null>(externalPosition || null);
-    const [nearbyUsers, setNearbyUsers] = useState<any[]>([]);
+    const [nearbyUsers, setNearbyUsers] = useState<NearbyUser[]>([]);
     const [flyTo, setFlyTo] = useState<[number, number] | null>(null);
     const [connectionIds, setConnectionIds] = useState<Set<string>>(new Set());
-    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [selectedUser, setSelectedUser] = useState<MapClusterItem | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [heatmap, setHeatmap] = useState<any[]>([]);
+    const [heatmap, setHeatmap] = useState<{latitude?: number; longitude?: number; lat?: number; lng?: number; intensity?: number; count?: number}[]>([]);
     const [locationName, setLocationName] = useState('India');
     const [toast, setToast] = useState<{ message: string; type: 'like' | 'superlike' } | null>(null);
-    const [activeFilters, setActiveFilters] = useState({ distance: null, isOnline: false, hasStories: false });
+    const [activeFilters, setActiveFilters] = useState<{distance: number | null; isOnline: boolean; hasStories: boolean}>({ distance: null, isOnline: false, hasStories: false });
 
     // Sync local state with AuthContext
     const isGhostMode = user?.is_ghost_mode || false;
@@ -200,9 +238,8 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
 
     const handleConnect = async (userId: string) => {
         if (!userId) return;
-        const userInSelected = selectedUser?.stories?.find((s: any) => (s.user_id || s.id || s.userId) === userId);
-        const user = userInSelected;
-        const name = user?.full_name || user?.username || 'User';
+        const userInSelected = selectedUser?.stories?.find((s: MapStory) => (s.user_id || s.id || (s as Record<string, unknown>).userId) === userId);
+        const name = userInSelected?.username || selectedUser?.username || 'User';
 
         try {
             showDiscoveryToast(`Liked ${name}!`, 'like');
@@ -382,22 +419,32 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
             const params = { north, south, east: finalEast, west: finalWest };
             const res = await api.get('/stories/map', { params });
             setClusters(res.data.clusters || []);
+            
+            // Also fetch heatmap for the same area
+            fetchHeatmap(bounds);
         } catch (err) {
             console.error('Failed to fetch map stories:', err);
         }
     };
 
-    const fetchHeatmap = async () => {
+    const fetchHeatmap = async (bounds: L.LatLngBounds) => {
         try {
-            const res = await api.get('/location/heatmap');
-            setHeatmap(res.data || []);
+            const params = {
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest()
+            };
+            const res = await api.get('/location/heatmap', { params });
+            // The backend successResponse wraps data in a "data" field
+            setHeatmap(res.data.data || []);
         } catch (err) {
-            console.error('Failed to fetch heatmap:', err);
+            console.error('[Map] Failed to fetch heatmap:', err);
         }
     };
 
     useEffect(() => {
-        fetchHeatmap();
+        // fetchHeatmap is now called within fetchStories based on map movement
         
         api.get('/connections').then(res => {
             const ids = new Set((res.data || []).map((c: any) => c.status === 'accepted' ? c.id : c.id).filter(Boolean));
@@ -497,7 +544,7 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
                             ? (cluster.stories[0].avatar_url.startsWith('http') ? cluster.stories[0].avatar_url : `${BACKEND}${cluster.stories[0].avatar_url}`)
                             : '';
                         const username = cluster.stories?.[0]?.username || 'User';
-                        const icon = createStoryMarkerIcon(avatar, username, cluster.count);
+                        const icon = createStoryMarkerIcon(avatar, username, cluster.count ?? 0);
                         return (
                             <Marker
                                 key={`story-${cluster.geohash}`}
@@ -531,7 +578,7 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
                     .map((pt, idx) => (
                         <Marker 
                             key={`heat-${idx}`}
-                            position={[pt.lat || pt.latitude, pt.lng || pt.longitude]}
+                            position={[pt.lat ?? pt.latitude ?? 0, pt.lng ?? pt.longitude ?? 0]}
                             icon={createHeatIcon(pt.intensity || pt.count || 5)}
                             interactive={false}
                         />
@@ -583,11 +630,11 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
                     <UserPreviewCard 
                         key={selectedUser.id || selectedUser.geohash || 'user-preview'}
                         user={selectedUser} 
-                        isConnection={connectionIds.has(selectedUser?.stories?.[0]?.user_id || selectedUser?.stories?.[0]?.id || selectedUser?.id)}
+                        isConnection={connectionIds.has(selectedUser?.stories?.[0]?.user_id || selectedUser?.stories?.[0]?.id || selectedUser?.id || '')}
                         onClose={() => setSelectedUser(null)}
                         onConnect={handleConnect}
                         onProfileOpen={onUserSelect!}
-                        onStoryOpen={(stories) => onStorySelect?.(stories, 0)}
+                        onStoryOpen={(stories) => onStorySelect?.(stories as MapStory[], 0)}
                     />
                 )}
             </AnimatePresence>

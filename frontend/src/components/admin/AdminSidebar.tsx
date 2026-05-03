@@ -2,33 +2,23 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
-  Map,
-  Route,
   Film,
   Flag,
-  Bell,
   Settings,
-  Shield,
   Activity,
   Zap,
-  MessageSquare,
 } from 'lucide-react';
 
 const navItems = [
-  { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/admin/users', icon: Users, label: 'Users' },
-  { to: '/admin/map', icon: Map, label: 'Live Map' },
-  { to: '/admin/crossings', icon: Route, label: 'Crossings' },
-  { to: '/admin/reels', icon: Film, label: 'Reels & Content' },
+  { to: '/admin/content', icon: Film, label: 'Content' },
   { to: '/admin/reports', icon: Flag, label: 'Reports' },
-  { to: '/admin/comments', icon: MessageSquare, label: 'Comments & Moderation' },
-  { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
-  { to: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
 const bottomItems = [
-  { to: '/admin/admins', icon: Shield, label: 'Admin Users' },
-  { to: '/admin/activity', icon: Activity, label: 'Logs & Activity' },
+  { to: '/admin/logs', icon: Activity, label: 'Logs' },
+  { to: '/admin/system', icon: Settings, label: 'System' },
 ];
 
 export function AdminSidebar() {

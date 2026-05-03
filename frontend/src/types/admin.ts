@@ -6,6 +6,9 @@ export interface AdminStats {
   reelsToday: number;
   crossingsToday: number;
   totalUsersGrowth: number;
+  totalPosts?: number;
+  activeWebsockets?: number;
+  errorRate?: string;
 }
 
 

@@ -49,6 +49,27 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
   const [isPlaying, setIsPlaying] = useState(true);
   const [showPlayAnim, setShowPlayAnim] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(isActive);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isActive) setShouldLoad(true);
+  }, [isActive]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+        } else if (!isActive) {
+          setShouldLoad(false);
+        }
+      },
+      { threshold: 0.1, rootMargin: '100% 0px' } // Preload when adjacent
+    );
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [isActive]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -148,20 +169,39 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
     };
   }, [isActive, isMuted, reel.username, reel.avatar_url]);
 
+  const isLiking = useRef(false);
   const handleLike = async () => {
+    if (isLiking.current) return;
+    isLiking.current = true;
+
     try {
       if (liked) {
-        await api.delete(`/reels/${reel.id}/like`);
-        setLikesCount(prev => prev - 1);
+        const res = await api.delete(`/reels/${reel.id}/like`);
+        if (res.data.success) {
+          setLikesCount(res.data.data.likes_count);
+        } else {
+          setLikesCount(prev => prev - 1);
+        }
       } else {
-        await api.post(`/reels/${reel.id}/like`);
-        setLikesCount(prev => prev + 1);
+        const res = await api.post(`/reels/${reel.id}/like`);
+        if (res.data.success) {
+          setLikesCount(res.data.data.likes_count);
+        } else {
+          setLikesCount(prev => prev + 1);
+        }
         setShowHeartAnim(true);
         setTimeout(() => setShowHeartAnim(false), 1000);
+        
+        // Premium Haptic Feedback
+        if ('vibrate' in navigator) {
+          navigator.vibrate(50);
+        }
       }
       setLiked(!liked);
     } catch (err) {
       console.error('Like failed:', err);
+    } finally {
+      isLiking.current = false;
     }
   };
 
@@ -235,7 +275,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
   };
 
   return (
-    <div className="relative w-full h-[100dvh] md:h-full bg-black snap-start snap-always overflow-hidden flex items-center justify-center flex-shrink-0">
+    <div ref={containerRef} className="relative w-full h-[100dvh] md:h-full bg-black snap-start snap-always overflow-hidden flex items-center justify-center flex-shrink-0">
       {/* High-Impact Blurred Backdrop using CSS (No extra video for better sound/perf) */}
       <div className="absolute inset-0 bg-black overflow-hidden pointer-events-none">
         <div
@@ -247,7 +287,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
       {/* Primary High-Fidelity Video Foreground */}
       <video
         ref={videoRef}
-        src={getMediaUrl(reel.video_url)}
+        src={shouldLoad ? getMediaUrl(reel.video_url) : ''}
         className="relative z-10 w-full h-full object-cover drop-shadow-2xl"
         loop
         muted={!isActive || isMuted}

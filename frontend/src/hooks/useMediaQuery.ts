@@ -1,34 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
+
+type LegacyMediaQueryList = MediaQueryList & {
+  addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+  removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+};
 
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
+  const subscribe = (onStoreChange: () => void) => {
+    const media = window.matchMedia(query) as LegacyMediaQueryList;
+    const listener = () => onStoreChange();
 
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    if (!media) return;
-
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
-    
-    const listener = () => setMatches(media.matches);
-    
-    if (media.addEventListener) {
+    if (typeof media.addEventListener === 'function') {
       media.addEventListener('change', listener);
-    } else if ((media as any).addListener) {
-      (media as any).addListener(listener);
+      return () => media.removeEventListener('change', listener);
     }
 
-    return () => {
-      if (media.removeEventListener) {
-        media.removeEventListener('change', listener);
-      } else if ((media as any).removeListener) {
-        (media as any).removeListener(listener);
-      }
-    };
-  }, [matches, query]);
+    if (typeof media.addListener === 'function') {
+      media.addListener(listener);
+      return () => media.removeListener?.(listener);
+    }
 
-  return matches;
+    return () => {};
+  };
+
+  const getSnapshot = () => window.matchMedia(query).matches;
+  const getServerSnapshot = () => false;
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 export function useIsMobile() {

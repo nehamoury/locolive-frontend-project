@@ -11,10 +11,18 @@ interface CreateGroupModalProps {
   onSuccess: (groupId: string) => void;
 }
 
+interface FriendConnection {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar_url?: string;
+  status?: string;
+}
+
 const CreateGroupModal = ({ isOpen, onClose, onSuccess }: CreateGroupModalProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [friends, setFriends] = useState<any[]>([]);
+  const [friends, setFriends] = useState<FriendConnection[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +33,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess }: CreateGroupModalProps)
         try {
           const res = await api.get('/connections');
           // Only friends (accepted connections) can be added to groups
-          setFriends(res.data.filter((c: any) => c.status === 'accepted') || []);
+          setFriends(((res.data || []) as FriendConnection[]).filter((c) => c.status === 'accepted'));
         } catch (err) {
           console.error('Failed to fetch friends:', err);
         }
@@ -55,7 +63,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess }: CreateGroupModalProps)
       toast.success('Group created successfully! 🎉');
       onSuccess(res.data.id);
       onClose();
-    } catch (err) {
+    } catch {
       toast.error('Failed to create group');
     } finally {
       setLoading(false);

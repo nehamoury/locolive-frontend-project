@@ -4,7 +4,7 @@ import { MapPin } from 'lucide-react';
 
 const SplashScreen: React.FC = () => {
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-bg-base relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-bg-base relative overflow-hidden transition-colors duration-300">
       {/* Soft background glows */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] bg-primary/10 blur-[120px] rounded-full animate-pulse" />
       

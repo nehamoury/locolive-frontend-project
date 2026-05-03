@@ -20,11 +20,42 @@ interface ChatProfileSidebarProps {
   onViewFullProfile?: (userId: string) => void;
 }
 
+interface ChatProfile {
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  is_online?: boolean;
+  is_blocked?: boolean;
+  bio?: string;
+  is_verified?: boolean;
+  email?: string;
+  phone?: string;
+  created_at?: string;
+}
+
+interface SharedMediaItem {
+  id?: string;
+  media_url?: string;
+}
+
+interface SidebarSectionProps {
+  title: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+interface InfoItemProps {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}
+
 const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullProfile }) => {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<ChatProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedSections, setExpandedSections] = useState<string[]>(['general', 'media']);
-  const [sharedMedia, setSharedMedia] = useState<any[]>([]);
+  const [sharedMedia, setSharedMedia] = useState<SharedMediaItem[]>([]);
   const [isMuted, setIsMuted] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -36,8 +67,8 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
 
       // Fetch Chat History to extract media
       const historyRes = await api.get('/messages', { params: { user_id: userId } });
-      const media = (historyRes.data || [])
-        .filter((msg: any) => msg.media_url)
+      const media = ((historyRes.data || []) as SharedMediaItem[])
+        .filter((msg) => msg.media_url)
         .slice(-9) // Get last 9 media items
         .reverse();
       setSharedMedia(media);
@@ -60,6 +91,7 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
   };
 
   const handleBlockAction = async () => {
+    if (!profile) return;
     const action = profile.is_blocked ? 'unblock' : 'block';
     if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
     
@@ -193,11 +225,13 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
               label="Phone" 
               value={profile.phone || 'Not shared'} 
             />
-            <InfoItem 
-              icon={<Calendar className="w-3 h-3" />} 
-              label="Joined" 
-              value={new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} 
-            />
+              <InfoItem 
+                icon={<Calendar className="w-3 h-3" />} 
+                label="Joined" 
+                value={profile.created_at
+                  ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : 'Unknown'} 
+              />
           </div>
         </SidebarSection>
 
@@ -236,7 +270,7 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
   );
 };
 
-const SidebarSection = ({ title, isOpen, onToggle, children }: any) => (
+const SidebarSection = ({ title, isOpen, onToggle, children }: SidebarSectionProps) => (
   <div className="pb-4">
     <button 
       onClick={onToggle}
@@ -249,7 +283,7 @@ const SidebarSection = ({ title, isOpen, onToggle, children }: any) => (
   </div>
 );
 
-const InfoItem = ({ label, value, icon }: any) => (
+const InfoItem = ({ label, value, icon }: InfoItemProps) => (
   <div className="flex flex-col space-y-1">
     <div className="flex items-center gap-1.5 opacity-50">
        {icon}

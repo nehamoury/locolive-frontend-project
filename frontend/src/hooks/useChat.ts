@@ -12,12 +12,18 @@ interface Message {
   media_type?: string;
 }
 
+interface ApiError {
+  response?: {
+    status?: number;
+  };
+}
+
 export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [online, setOnline] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
-  const typingTimeoutRef = useRef<any>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Notify system about active chat to suppress redundant notifications
   useEffect(() => {
@@ -42,18 +48,23 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
         // Mark messages as read since we just opened the chat
         await api.put(`/messages/read/${targetUserId}`);
       }
-    } catch (err: any) {
-      if (err.response?.status === 403) {
+    } catch (err: unknown) {
+      const status = (err as ApiError).response?.status;
+      if (status === 403) {
         console.warn('Chat history forbidden: Not connected to user');
         setMessages([]);
       } else {
         console.error('Failed to fetch chat history or mark read:', err);
       }
     }
-  }, [targetUserId]);
+  }, [targetUserId, isGroup]);
 
   useEffect(() => {
-    fetchHistory();
+    const timer = setTimeout(() => {
+      void fetchHistory();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [fetchHistory]);
 
   useEffect(() => {
@@ -62,7 +73,7 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
 
     let isSubscribed = true;
     const wsUrl = `${WS_BASE_URL}/api/ws/chat?token=${encodeURIComponent(token)}`;
-    let initialConnectTimeout: any = null;
+    let initialConnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
       if (!isSubscribed) return;
@@ -94,7 +105,9 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
                 const jwtPayload = JSON.parse(payloadStr);
                 if (jwtPayload.user_id === data.sender_id) isMe = true;
               }
-            } catch(e) {}
+            } catch {
+              // ignore invalid local token payload
+            }
 
             if (!isMe) {
               const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
@@ -104,18 +117,20 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
           }
           
           switch (data.type) {
-            case 'new_message':
+            case 'new_message': {
               const msg = data.payload;
               if (msg.sender_id === targetUserId || msg.receiver_id === targetUserId) {
                  setMessages(prev => [...prev, msg]);
               }
               break;
-            case 'new_group_message':
+            }
+            case 'new_group_message': {
               const groupMsg = data.payload;
               if (groupMsg.group_id === targetUserId) {
                  setMessages(prev => [...prev, groupMsg]);
               }
               break;
+            }
             case 'typing':
               if (data.payload.user_id === targetUserId) {
                 setIsTyping(true);
@@ -149,7 +164,7 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
         socketRef.current.close();
       }
     };
-  }, [targetUserId]);
+  }, [targetUserId, isGroup]);
 
   const sendMessage = async (content: string) => {
     if (!targetUserId) return;

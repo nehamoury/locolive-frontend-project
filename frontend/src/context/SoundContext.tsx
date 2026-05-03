@@ -16,11 +16,11 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const storedMuted = localStorage.getItem('soundMuted');
     if (storedMuted !== null) {
-      setIsMuted(storedMuted === 'true');
+      setTimeout(() => setIsMuted(storedMuted === 'true'), 0);
     }
     const storedAlerts = localStorage.getItem('audio_enabled');
     if (storedAlerts !== null) {
-      setAlertsEnabled(storedAlerts === 'true');
+      setTimeout(() => setAlertsEnabled(storedAlerts === 'true'), 0);
     }
   }, []);
 

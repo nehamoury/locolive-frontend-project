@@ -9,12 +9,13 @@ import {
     Play,
     AlertCircle,
     RefreshCw,
-    Film,
-    MessageSquare,
+    Clapperboard,
+    MessageSquareText,
     Settings,
     MoreHorizontal,
     Bookmark,
-    Heart
+    Heart,
+    Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -26,6 +27,7 @@ import ShareModal from '../../components/share/ShareModal';
 import EditProfileModal from '../../components/profile/EditProfileModal';
 import PostCard from '../../components/post/PostCard';
 import { X as CloseIcon } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 // --- Types ---
 interface ProfileData {
@@ -49,7 +51,7 @@ interface ProfileProps {
 // --- Sub-components ---
 
 const ProfileSkeleton = () => (
-    <div className="animate-pulse bg-white min-h-screen">
+    <div className="animate-pulse bg-white min-h-[100dvh]">
         <div className="h-14 bg-pink-50/50 mb-4" />
         <div className="flex flex-col items-center mb-6">
             <div className="w-24 h-24 rounded-full bg-pink-50/50 mb-4" />
@@ -184,7 +186,7 @@ export const Profile: FC<ProfileProps> = () => {
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-8 text-center bg-white">
+            <div className="flex flex-col items-center justify-center min-h-[100dvh] p-8 text-center bg-white">
                 <AlertCircle className="w-12 h-12 text-pink-200 mb-4" />
                 <h2 className="text-xl font-bold text-slate-800 mb-2">Something went wrong</h2>
                 <p className="text-slate-500 mb-6">{error}</p>
@@ -200,39 +202,44 @@ export const Profile: FC<ProfileProps> = () => {
     }
 
     return (
-        <div className="min-h-screen bg-white text-slate-900 pb-20 select-none transition-colors duration-300">
+        <div className="min-h-[100dvh] bg-white text-slate-900 pb-20 select-none transition-colors duration-300">
+            <Helmet>
+                <title>{profile ? `${profile.username} (@${profile.username})` : 'User Profile'}</title>
+            </Helmet>
             {/* Background Layer */}
             <div className="fixed inset-0 bg-linear-to-b from-pink-50/30 to-white -z-10" />
 
             {/* ── Mobile Header Sticky (md:hidden) ── */}
-            <div className="sticky top-1 z-50 md:hidden flex items-center justify-between px-3 py-2 pt-[calc(0.25rem+env(safe-area-inset-top))] bg-white/80 backdrop-blur-md border-b border-pink-100/50">
+            <div className="sticky top-0 z-50 md:hidden flex items-center justify-between px-4 py-2 pt-[calc(0.25rem+env(safe-area-inset-top))] bg-white/80 backdrop-blur-md border-b border-pink-100/50">
                 <button onClick={() => navigate(-1)} className="p-1 -ml-1 active:opacity-50">
                     <ChevronLeft className="w-6 h-6 text-slate-900" />
                 </button>
                 <h1 className="text-[19px] font-bold text-slate-900 truncate">
                     {profile?.username || 'User'}
                 </h1>
-                <div className="relative">
-                    <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="active:opacity-50">
-                        <Settings className="w-6 h-6 text-slate-900" />
-                    </button>
-                    {isDropdownOpen && (
-                        <>
-                            <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
-                            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg shadow-pink-500/10 border border-slate-100 py-1 z-50">
-                                <button
-                                    onClick={() => {
-                                        navigate('/dashboard/settings');
-                                        setIsDropdownOpen(false);
-                                    }}
-                                    className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
-                                >
-                                    <Settings className="w-4 h-4" /> Account Settings
-                                </button>
-                            </div>
-                        </>
-                    )}
-                </div>
+                {isOwnProfile && (
+                    <>
+                        <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="active:opacity-50">
+                            <Settings className="w-6 h-6 text-slate-900" />
+                        </button>
+                        {isDropdownOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg shadow-pink-500/10 border border-slate-100 py-1 z-50">
+                                    <button
+                                        onClick={() => {
+                                            navigate('/dashboard/settings?section=account_info');
+                                            setIsDropdownOpen(false);
+                                        }}
+                                        className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                                    >
+                                        <Settings className="w-4 h-4" /> Account Settings
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </>
+                )}
             </div>
 
             <div className="max-w-[935px] mx-auto px-4 md:px-5">
@@ -263,15 +270,25 @@ export const Profile: FC<ProfileProps> = () => {
                     {/* Stats Row */}
                     <div className="flex items-center justify-around w-full max-w-[290px] mb-4">
                         <div className="flex flex-col items-center">
-                            <span className="text-[17px] font-bold text-slate-900">{posts.length}</span>
+                            <span className="text-[17px] font-bold text-slate-900">{posts.length + reels.length}</span>
                             <span className="text-[13px] text-slate-500 font-medium">Posts</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                            <span className="text-[17px] font-bold text-slate-900">{profile?.followers_count || 0}</span>
+                        <div
+                            className="flex flex-col items-center cursor-pointer"
+                            onClick={() => navigate('/dashboard/connections?tab=followers')}
+                        >
+                            <span className="text-[17px] font-bold text-slate-900">
+                                {profile?.followers_count ?? 0}
+                            </span>
                             <span className="text-[13px] text-slate-500 font-medium">Followers</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                            <span className="text-[17px] font-bold text-slate-900">{profile?.following_count || 0}</span>
+                        <div
+                            className="flex flex-col items-center cursor-pointer"
+                            onClick={() => navigate('/dashboard/connections?tab=following')}
+                        >
+                            <span className="text-[17px] font-bold text-slate-900">
+                                {profile?.following_count ?? 0}
+                            </span>
                             <span className="text-[13px] text-slate-500 font-medium">Following</span>
                         </div>
                     </div>
@@ -281,7 +298,7 @@ export const Profile: FC<ProfileProps> = () => {
                         {isOwnProfile ? (
                             <>
                                 <button
-                                    onClick={() => setIsEditModalOpen(true)}
+                                    onClick={() => navigate('/dashboard/settings?section=account_info')}
                                     className="flex-1 h-11 bg-pink-50/50 border border-pink-100 rounded-xl text-[15px] font-bold text-[#2F2F2F] active:scale-95 transition-all shadow-sm"
                                 >
                                     Edit profile
@@ -356,7 +373,7 @@ export const Profile: FC<ProfileProps> = () => {
                                 {isOwnProfile ? (
                                     <>
                                         <button
-                                            onClick={() => setIsEditModalOpen(true)}
+                                            onClick={() => navigate('/dashboard/settings?section=account_info')}
                                             className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg text-sm font-bold transition-all"
                                         >
                                             Edit profile
@@ -387,38 +404,52 @@ export const Profile: FC<ProfileProps> = () => {
                                         </button>
                                     </div>
                                 )}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                        className="p-2 text-slate-900 hover:scale-105 transition-transform"
-                                    >
-                                        <Settings className="w-6 h-6" />
-                                    </button>
-                                    {isDropdownOpen && (
-                                        <>
-                                            <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
-                                            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg shadow-pink-500/10 border border-slate-100 py-2 z-50">
-                                                <button
-                                                    onClick={() => {
-                                                        navigate('/dashboard/settings');
-                                                        setIsDropdownOpen(false);
-                                                    }}
-                                                    className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
-                                                >
-                                                    <Settings className="w-4 h-4" /> Account Settings
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
+                                {isOwnProfile && (
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                            className="p-2 text-slate-900 hover:scale-105 transition-transform"
+                                        >
+                                            <Settings className="w-6 h-6" />
+                                        </button>
+                                        {isDropdownOpen && (
+                                            <>
+                                                <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
+                                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg shadow-pink-500/10 border border-slate-100 py-2 z-50">
+                                                    <button
+                                                        onClick={() => {
+                                                            navigate('/dashboard/settings?section=account_info');
+                                                            setIsDropdownOpen(false);
+                                                        }}
+                                                        className="w-full px-4 py-2.5 text-left text-sm font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                                                    >
+                                                        <Settings className="w-4 h-4" /> Account Settings
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Row 2: Stats */}
+                        {/* Row 2: Stats - Show counts even for private accounts */}
                         <div className="flex items-center gap-10 text-[16px]">
-                            <div className="flex items-center gap-1.5"><span className="font-bold text-slate-900">{posts.length}</span> <span className="text-slate-700">posts</span></div>
-                            <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-70"><span className="font-bold text-slate-900">{profile?.followers_count || 0}</span> <span className="text-slate-700">followers</span></div>
-                            <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-70"><span className="font-bold text-slate-900">{profile?.following_count || 0}</span> <span className="text-slate-700">following</span></div>
+                            <div className="flex items-center gap-1.5"><span className="font-bold text-slate-900">{posts.length + reels.length}</span> <span className="text-slate-700">posts</span></div>
+                            <div
+                                className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
+                                onClick={() => navigate(`/dashboard/connections?tab=followers${isOwnProfile ? '' : `&u=${profile?.username}`}`)}
+                            >
+                                <span className="font-bold text-slate-900">{(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? '—' : (profile?.followers_count ?? 0)}</span>
+                                <span className="text-slate-700">followers</span>
+                            </div>
+                            <div
+                                className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
+                                onClick={() => navigate(`/dashboard/connections?tab=following${isOwnProfile ? '' : `&u=${profile?.username}`}`)}
+                            >
+                                <span className="font-bold text-slate-900">{(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? '—' : (profile?.following_count ?? 0)}</span>
+                                <span className="text-slate-700">following</span>
+                            </div>
                         </div>
 
                         {/* Row 3: Bio */}
@@ -450,8 +481,8 @@ export const Profile: FC<ProfileProps> = () => {
                 <div className="border-b border-slate-100 md:border-slate-200 flex justify-center gap-20 md:gap-16">
                     {([
                         { id: 'posts', icon: <Grid className="w-4 h-4 md:w-3.5 md:h-3.5" />, label: 'POSTS' },
-                        { id: 'reels', icon: <Film className="w-4 h-4 md:w-3.5 md:h-3.5" />, label: 'REELS' },
-                        { id: 'thoughts', icon: <MessageSquare className="w-4 h-4 md:w-3.5 md:h-3.5" />, label: 'THOUGHTS' }
+                        { id: 'reels', icon: <Clapperboard className="w-4 h-4 md:w-3.5 md:h-3.5" />, label: 'REELS' },
+                        { id: 'thoughts', icon: <MessageSquareText className="w-4 h-4 md:w-3.5 md:h-3.5" />, label: 'THOUGHTS' }
                     ] as const).map(tab => (
                         <button
                             key={tab.id}
@@ -475,134 +506,146 @@ export const Profile: FC<ProfileProps> = () => {
 
                 {/* Content Area */}
                 <div className="pt-2 md:pt-8 min-h-[400px]">
-                    {activeTab === 'posts' && (
-                        posts.filter(p => p.media_url).length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2 md:gap-7 pb-10">
-                                {posts.filter(p => p.media_url).map((item) => (
-                                    <div
-                                        key={item.id}
-                                        onClick={() => setSelectedPost(item)}
-                                        className="aspect-square bg-slate-100 relative group cursor-pointer overflow-hidden md:rounded-xs shadow-sm hover:opacity-90 transition-all"
-                                    >
-                                        <img
-                                            src={getMediaUrl(item.media_url, FALLBACKS.POST)}
-                                            className="w-full h-full object-cover"
-                                            alt=""
-                                            loading="lazy"
-                                        />
-                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white font-bold text-sm">
-                                            <div className="flex items-center gap-1.5"><Heart className="w-5 h-5 fill-white" /> {item.likes_count || 0}</div>
-                                            <div className="flex items-center gap-1.5"><MessageCircle className="w-5 h-5 fill-white" /> {item.comments_count || 0}</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState tab="posts" />
-                        )
-                    )}
-                    {activeTab === 'reels' && (
-                        reelsLoading ? (
-                            <div className="flex items-center justify-center py-20">
-                                <RefreshCw className="w-8 h-8 text-[#FF006E] animate-spin" />
-                            </div>
-                        ) : reels.length > 0 ? (
-                            <div className="grid grid-cols-3 gap-1 md:gap-7 pb-10">
-                                {reels.map((reel) => (
-                                    <div
-                                        key={reel.id}
-                                        onClick={() => setSelectedPost({ ...reel, media_url: reel.video_url, media_type: 'video' })}
-                                        className="aspect-[9/16] bg-black relative group cursor-pointer overflow-hidden shadow-sm hover:opacity-90 transition-all"
-                                    >
-                                        <video
-                                            src={getMediaUrl(reel.video_url, '')}
-                                            className="w-full h-full object-cover"
-                                            muted
-                                            playsInline
-                                        />
-                                        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold">
-                                            <div className="flex items-center gap-1.5"><Play className="w-6 h-6 fill-white" /> {reel.likes_count || 0}</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState tab="reels" />
-                        )
-                    )}
-                    {activeTab === 'thoughts' && (
-                        posts.filter(p => !p.media_url).length > 0 ? (
-                            <div className="flex flex-col gap-4 pb-10 max-w-2xl mx-auto">
-                                {posts.filter(p => !p.media_url).map((item) => (
-                                    <div
-                                        key={item.id}
-                                        onClick={() => setSelectedPost(item)}
-                                        className="bg-white border border-pink-100/50 rounded-[24px] p-6 shadow-sm hover:shadow-md transition-all group cursor-pointer"
-                                    >
-                                        {/* Header */}
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full overflow-hidden border border-pink-100">
-                                                    <img
-                                                        src={getMediaUrl(profile?.avatar_url, FALLBACKS.AVATAR(profile?.username))}
-                                                        className="w-full h-full object-cover"
-                                                        alt=""
-                                                    />
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-slate-900">{profile?.username}</span>
-                                                    {profile?.is_verified && (
-                                                        <CheckCircle2 className="w-4 h-4 text-[#FF006E] fill-[#FF006E]/10" />
-                                                    )}
-                                                    <span className="text-slate-300">•</span>
-                                                    <span className="text-slate-400 text-sm font-medium">1d</span>
+                    {(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? (
+                        <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-white/50 rounded-[32px] border border-slate-100">
+                            <Lock className="w-16 h-16 text-slate-200 mb-4" />
+                            <h3 className="text-[18px] font-bold text-slate-900 mb-2">This Account is Private</h3>
+                            <p className="text-[14px] text-slate-500 max-w-[280px]">
+                                Follow this account to see their posts and reels.
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            {activeTab === 'posts' && (
+                                posts.filter(p => p.media_url).length > 0 ? (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2 md:gap-7 pb-10">
+                                        {posts.filter(p => p.media_url).map((item) => (
+                                            <div
+                                                key={item.id}
+                                                onClick={() => setSelectedPost(item)}
+                                                className="aspect-square bg-slate-100 relative group cursor-pointer overflow-hidden md:rounded-xs shadow-sm hover:opacity-90 transition-all"
+                                            >
+                                                <img
+                                                    src={getMediaUrl(item.media_url, FALLBACKS.POST)}
+                                                    className="w-full h-full object-cover"
+                                                    alt=""
+                                                    loading="lazy"
+                                                />
+                                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white font-bold text-sm">
+                                                    <div className="flex items-center gap-1.5"><Heart className="w-5 h-5 fill-white" /> {item.likes_count || 0}</div>
+                                                    <div className="flex items-center gap-1.5"><MessageCircle className="w-5 h-5 fill-white" /> {item.comments_count || 0}</div>
                                                 </div>
                                             </div>
-                                            <button className="text-slate-300 group-hover:text-slate-400 transition-colors">
-                                                <MoreHorizontal className="w-5 h-5" />
-                                            </button>
-                                        </div>
-
-                                        {/* Content */}
-                                        <div className="mb-6">
-                                            <p className="text-[17px] md:text-xl text-slate-800 font-medium leading-relaxed">
-                                                {item.body_text || item.content}
-                                            </p>
-                                        </div>
-
-                                        {/* Interactions */}
-                                        <div className="flex items-center gap-6 text-slate-400">
-                                            <button className="flex items-center gap-2 hover:text-[#FF006E] transition-colors group/icon">
-                                                <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover/icon:bg-pink-50 transition-colors">
-                                                    <Heart className="w-5 h-5" />
-                                                </div>
-                                                <span className="text-sm font-bold">{item.likes_count || '0'}</span>
-                                            </button>
-                                            <button className="flex items-center gap-2 hover:text-blue-500 transition-colors group/icon">
-                                                <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover/icon:bg-blue-50 transition-colors">
-                                                    <MessageCircle className="w-5 h-5" />
-                                                </div>
-                                                <span className="text-sm font-bold">{item.comments_count || '0'}</span>
-                                            </button>
-                                            <button className="flex items-center gap-2 hover:text-green-500 transition-colors group/icon">
-                                                <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover/icon:bg-green-50 transition-colors">
-                                                    <Share2 className="w-5 h-5" />
-                                                </div>
-                                            </button>
-                                            <div className="flex-1" />
-                                            <button className="hover:text-slate-600 transition-colors group/icon">
-                                                <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover/icon:bg-slate-50 transition-colors">
-                                                    <Bookmark className="w-5 h-5" />
-                                                </div>
-                                            </button>
-                                        </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState tab="thoughts" />
-                        )
+                                ) : (
+                                    <EmptyState tab="posts" />
+                                )
+                            )}
+                            {activeTab === 'reels' && (
+                                reelsLoading ? (
+                                    <div className="flex items-center justify-center py-20">
+                                        <RefreshCw className="w-8 h-8 text-[#FF006E] animate-spin" />
+                                    </div>
+                                ) : reels.length > 0 ? (
+                                    <div className="grid grid-cols-3 gap-1 md:gap-7 pb-10">
+                                        {reels.map((reel) => (
+                                            <div
+                                                key={reel.id}
+                                                onClick={() => setSelectedPost({ ...reel, media_url: reel.video_url, media_type: 'video' })}
+                                                className="aspect-[9/16] bg-black relative group cursor-pointer overflow-hidden shadow-sm hover:opacity-90 transition-all"
+                                            >
+                                                <video
+                                                    src={getMediaUrl(reel.video_url, '')}
+                                                    className="w-full h-full object-cover"
+                                                    muted
+                                                    playsInline
+                                                />
+                                                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold">
+                                                    <div className="flex items-center gap-1.5"><Play className="w-6 h-6 fill-white" /> {reel.likes_count || 0}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <EmptyState tab="reels" />
+                                )
+                            )}
+                            {activeTab === 'thoughts' && (
+                                posts.filter(p => !p.media_url).length > 0 ? (
+                                    <div className="flex flex-col gap-4 pb-10 max-w-2xl mx-auto">
+                                        {posts.filter(p => !p.media_url).map((item) => (
+                                            <div
+                                                key={item.id}
+                                                onClick={() => setSelectedPost(item)}
+                                                className="bg-white border border-pink-100/50 rounded-[24px] p-6 shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                                            >
+                                                {/* Header */}
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full overflow-hidden border border-pink-100">
+                                                            <img
+                                                                src={getMediaUrl(profile?.avatar_url, FALLBACKS.AVATAR(profile?.username))}
+                                                                className="w-full h-full object-cover"
+                                                                alt=""
+                                                            />
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-slate-900">{profile?.username}</span>
+                                                            {profile?.is_verified && (
+                                                                <CheckCircle2 className="w-4 h-4 text-[#FF006E] fill-[#FF006E]/10" />
+                                                            )}
+                                                            <span className="text-slate-300">•</span>
+                                                            <span className="text-slate-400 text-sm font-medium">1d</span>
+                                                        </div>
+                                                    </div>
+                                                    <button className="text-slate-300 group-hover:text-slate-400 transition-colors">
+                                                        <MoreHorizontal className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+
+                                                {/* Content */}
+                                                <div className="mb-6">
+                                                    <p className="text-[17px] md:text-xl text-slate-800 font-medium leading-relaxed">
+                                                        {item.body_text || item.content}
+                                                    </p>
+                                                </div>
+
+                                                {/* Interactions */}
+                                                <div className="flex items-center gap-6 text-slate-400">
+                                                    <button className="flex items-center gap-2 hover:text-[#FF006E] transition-colors group/icon">
+                                                        <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover/icon:bg-pink-50 transition-colors">
+                                                            <Heart className="w-5 h-5" />
+                                                        </div>
+                                                        <span className="text-sm font-bold">{item.likes_count || '0'}</span>
+                                                    </button>
+                                                    <button className="flex items-center gap-2 hover:text-blue-500 transition-colors group/icon">
+                                                        <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover/icon:bg-blue-50 transition-colors">
+                                                            <MessageCircle className="w-5 h-5" />
+                                                        </div>
+                                                        <span className="text-sm font-bold">{item.comments_count || '0'}</span>
+                                                    </button>
+                                                    <button className="flex items-center gap-2 hover:text-green-500 transition-colors group/icon">
+                                                        <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover/icon:bg-green-50 transition-colors">
+                                                            <Share2 className="w-5 h-5" />
+                                                        </div>
+                                                    </button>
+                                                    <div className="flex-1" />
+                                                    <button className="hover:text-slate-600 transition-colors group/icon">
+                                                        <div className="w-9 h-9 rounded-full flex items-center justify-center group-hover/icon:bg-slate-50 transition-colors">
+                                                            <Bookmark className="w-5 h-5" />
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <EmptyState tab="thoughts" />
+                                )
+                            )}
+                        </>
                     )}
                 </div>
             </div>

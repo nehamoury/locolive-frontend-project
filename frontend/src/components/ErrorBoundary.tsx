@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { logger } from '../utils/logger';
 
 interface Props {
   children?: ReactNode;
@@ -22,6 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    logger.error(`React Error Boundary caught: ${error.message}`, { errorInfo }, error.stack, 'ErrorBoundary');
     console.error('Uncaught error:', error, errorInfo);
     
     // Check if the error is a dynamic import failure (chunk loading error)

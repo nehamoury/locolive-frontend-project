@@ -40,10 +40,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const verifyToken = async () => {
       const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
       
       // If no token, we're definitely not logged in
-      if (!storedToken || !storedUser) {
+      if (!storedToken) {
         setLoading(false);
         return;
       }
@@ -62,10 +61,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         const user = response.data;
         authStore.login(storedToken, user, !user.is_profile_complete);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Token verification failed:', err);
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          handleLogout();
+        const status = (err as { response?: { status?: number } }).response?.status;
+        if (status === 401 || status === 403) {
+          authStore.logout();
+          localStorage.removeItem('token');
+          localStorage.removeItem('auth-storage');
         }
       } finally {
         setLoading(false);
@@ -73,28 +75,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     verifyToken();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only run on mount
 
   const handleLogin = (newToken: string, newUser: User, requiresProfileCompletion = false) => {
     authStore.login(newToken, newUser, requiresProfileCompletion);
     localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
   };
 
   const handleLogout = () => {
     authStore.logout();
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
     localStorage.removeItem('auth-storage');
   };
 
   const handleUpdateUser = (userData: Partial<User>) => {
     authStore.updateUser(userData);
-    const currentUser = authStore.user;
-    if (currentUser) {
-      localStorage.setItem('user', JSON.stringify({ ...currentUser, ...userData }));
-      // Also update Zustand persist (done automatically by Zustand)
-    }
+    // Zustand persist handles storage automatically
   };
 
   return (

@@ -60,20 +60,55 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const secondaryCaption = (hasBody && hasCaption) ? cleanCaption : '';
   const shouldShowSecondary = !!secondaryCaption;
 
+  // Intersection Observer for performance
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (videoRef.current) {
+            if (entry.isIntersecting) {
+              if (!videoRef.current.src) {
+                videoRef.current.src = getMediaUrl(post.media_url || post.video_url);
+              }
+              if (!isMuted) videoRef.current.play().catch(() => {});
+            } else {
+              videoRef.current.pause();
+              videoRef.current.removeAttribute('src'); // Unload to free memory
+              videoRef.current.load();
+            }
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    if (videoRef.current) observer.observe(videoRef.current);
+    return () => observer.disconnect();
+  }, [post.media_url, post.video_url, isMuted]);
+
   // Sync muted state with DOM element to bypass React reconciliation lag on media tags
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.muted = isMuted;
-      if (!isMuted) {
+      if (!isMuted && videoRef.current.src) {
         videoRef.current.play().catch(() => { });
       }
     }
   }, [isMuted]);
 
+  const isLiking = useRef(false);
   const handleLike = async () => {
+    if (isLiking.current) return;
+    isLiking.current = true;
+
     const wasLiked = liked;
     setLiked(!wasLiked);
     setLikeCount((c: number) => wasLiked ? c - 1 : c + 1);
+    
+    // Premium Haptic Feedback
+    if (!wasLiked && 'vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
     try {
       if (wasLiked) {
         await api.delete(`/posts/${post.id}/like`);
@@ -84,6 +119,8 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
       // Revert on failure
       setLiked(wasLiked);
       setLikeCount((c: number) => wasLiked ? c + 1 : c - 1);
+    } finally {
+      isLiking.current = false;
     }
   };
 

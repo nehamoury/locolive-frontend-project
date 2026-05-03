@@ -14,7 +14,7 @@ const AdminLogin: React.FC = () => {
 
   // ✅ Removed hardcoded credentials
   const [formData, setFormData] = useState({
-    email: '',
+    identity: '',
     password: ''
   });
 
@@ -116,13 +116,13 @@ const AdminLogin: React.FC = () => {
               Admin Identity
             </label>
             <Input
-              placeholder="admin@locolive.app"
-              type="email"
+              placeholder="Username or Email"
+              type="text"
               required
               className="h-14 bg-white/[0.03] border-white/5 text-white placeholder:text-gray-600 focus:border-primary/50 rounded-2xl"
-              value={formData.email}
+              value={formData.identity}
               onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
+                setFormData({ ...formData, identity: e.target.value })
               }
             />
           </div>

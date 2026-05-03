@@ -3,13 +3,32 @@ import { motion } from 'framer-motion';
 import { X, Heart, ExternalLink, Zap, PlayCircle } from 'lucide-react';
 import { BACKEND } from '../../utils/config';
 
+interface MapUserStory {
+  user_id?: string;
+  id?: string;
+  userId?: string;
+  username?: string;
+  avatar_url?: string;
+  media_url?: string;
+}
+
+interface MapUserPreview {
+  stories?: MapUserStory[];
+  username?: string;
+  avatar_url?: string;
+  user_id?: string;
+  id?: string;
+  isUserOnly?: boolean;
+  count?: number;
+}
+
 interface UserPreviewCardProps {
-  user: any;
+  user: MapUserPreview;
   isConnection?: boolean;
   onClose: () => void;
   onConnect: (userId: string) => void;
   onProfileOpen: (userId: string) => void;
-  onStoryOpen?: (stories: any[]) => void;
+  onStoryOpen?: (stories: MapUserStory[]) => void;
 }
 
 export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnection, onClose, onConnect, onProfileOpen, onStoryOpen }) => {
@@ -44,7 +63,11 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
         <div className="flex flex-col items-center text-center relative z-10">
           <div 
             className="relative group px-1 pt-1 pb-1 cursor-pointer"
-            onClick={() => user.stories?.length > 0 && onStoryOpen?.(user.stories)}
+            onClick={() => {
+              if (user.stories && user.stories.length > 0) {
+                onStoryOpen?.(user.stories);
+              }
+            }}
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-primary to-accent rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity" />
             <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-primary to-accent mb-5 relative">
@@ -60,7 +83,7 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
               <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 border-4 border-bg-card rounded-full shadow-lg" />
               
               {/* Story Pulse Effect */}
-              {user.stories?.length > 0 && (
+              {user.stories && user.stories.length > 0 && (
                 <div className="absolute -inset-1 border-2 border-primary rounded-full animate-ping opacity-40" />
               )}
             </div>
@@ -72,7 +95,11 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
           </div>
 
           <div 
-            onClick={() => user.stories?.length > 0 && onStoryOpen?.(user.stories)}
+            onClick={() => {
+              if (user.stories && user.stories.length > 0) {
+                onStoryOpen?.(user.stories);
+              }
+            }}
             className="flex items-center gap-1.5 text-[10px] font-black text-white px-3 py-1 bg-primary rounded-full uppercase tracking-widest mb-8 cursor-pointer hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
           >
             <PlayCircle className="w-3.5 h-3.5" />
@@ -91,7 +118,7 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
               <motion.button 
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => onConnect(userData.user_id || userData.id)}
+                onClick={() => onConnect(userData.user_id || userData.id || '')}
                 className="flex-1 py-4 bg-primary text-white font-black italic rounded-[24px] shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2 group cursor-pointer"
               >
                 <Heart className="w-4 h-4 transition-transform group-hover:scale-125" /> 
@@ -101,7 +128,7 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
             <motion.button 
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => onProfileOpen(userData.user_id || userData.id)}
+              onClick={() => onProfileOpen(userData.user_id || userData.id || '')}
               className="flex-1 py-4 bg-bg-card/50 border border-border-base text-text-base font-black italic rounded-[24px] active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm hover:bg-bg-sidebar cursor-pointer"
             >
               <ExternalLink className="w-4 h-4" />

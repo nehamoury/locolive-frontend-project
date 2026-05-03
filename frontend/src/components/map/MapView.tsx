@@ -93,7 +93,44 @@ const createHeatIcon = (intensity: number) => {
 
 // ─── Map Event Handler ────────────────────────────────────────────────────────
 
-function MapEvents({ onBoundsChange }: { onBoundsChange: (b: any) => void }) {
+interface MapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
+interface MapStoryItem {
+  id?: string;
+  username?: string;
+  avatar_url?: string;
+  media_url?: string;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
+}
+
+interface MapCluster {
+  geohash?: string;
+  latitude?: number;
+  longitude?: number;
+  count?: number;
+  isCluster?: boolean;
+  username?: string;
+  stories?: MapStoryItem[];
+}
+
+interface HeatmapPoint {
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
+  intensity?: number;
+  count?: number;
+}
+
+function MapEvents({ onBoundsChange }: { onBoundsChange: (b: MapBounds) => void }) {
   const map = useMap();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -131,12 +168,12 @@ const TABS: { id: FilterMode; label: string; emoji: string }[] = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface MapViewProps {
-  onStorySelect?: (story: any, allStories: any[]) => void;
+  onStorySelect?: (story: MapStoryItem, allStories: MapStoryItem[]) => void;
 }
 
 const MapView = ({ onStorySelect }: MapViewProps) => {
-  const [stories, setStories]   = useState<any[]>([]);
-  const [heatmap, setHeatmap]   = useState<any[]>([]);
+  const [stories, setStories]   = useState<MapCluster[]>([]);
+  const [heatmap, setHeatmap]   = useState<HeatmapPoint[]>([]);
   const [center, setCenter]     = useState<[number, number]>([28.6139, 77.209]);
   const [loading, setLoading]   = useState(true);
   const [filter, setFilter]     = useState<FilterMode>('both');
@@ -162,19 +199,19 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
     }
   }, []);
 
-  const fetchMapData = useCallback(async (bounds: any) => {
+  const fetchMapData = useCallback(async (bounds: MapBounds) => {
     try {
       const [storiesRes, heatmapRes] = await Promise.all([
         api.get('/stories/map', { params: bounds }),
         api.get('/location/heatmap'),
       ]);
       const clusters = storiesRes.data.clusters || [];
-      const processedClusters = clusters.map((c: any) => ({
+      const processedClusters = clusters.map((c: MapCluster) => ({
         ...c,
         latitude: c.latitude,
         longitude: c.longitude,
         // Ensure stories list is consistent
-        stories: (c.stories || []).map((s: any) => ({
+        stories: (c.stories || []).map((s: MapStoryItem) => ({
           ...s,
           latitude: s.lat ?? s.latitude,
           longitude: s.lng ?? s.longitude,
@@ -182,9 +219,9 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
       }));
       setStories(processedClusters);
       setHeatmap(heatmapRes.data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Map data fetch failed:', err);
-      if (err.response?.status === 401) window.location.reload();
+      if ((err as { response?: { status?: number } }).response?.status === 401) window.location.reload();
     } finally {
       setLoading(false);
     }
@@ -209,7 +246,7 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
   const showHeatmap = filter === 'heatmap' || filter === 'both';
 
   return (
-    <div className="h-[calc(100vh-80px)] w-full relative" style={{ background: '#050510' }}>
+    <div className="h-[calc(100dvh-80px)] w-full relative" style={{ background: '#050510' }}>
 
       {/* ── Filter Tabs (top center) ── */}
       <div style={{
@@ -303,7 +340,7 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
         {showStories &&
           stories
             .filter(s => s.latitude !== undefined && s.longitude !== undefined)
-            .map((cluster: any) => {
+            .map((cluster: MapCluster) => {
               const count = cluster.count ?? 0;
               const firstStory = cluster.stories?.[0];
               if (!firstStory && !cluster.isCluster) return null;
@@ -319,7 +356,7 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
               return (
                 <Marker
                   key={cluster.geohash}
-                  position={[cluster.latitude, cluster.longitude]}
+                  position={[cluster.latitude ?? 0, cluster.longitude ?? 0]}
                   icon={createAvatarIcon(displayUsername, count, avatarUrl, color)}
                 >
                   <Popup className="neon-popup">
@@ -378,10 +415,10 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
         {showHeatmap &&
           heatmap
             .filter(p => (p.latitude ?? p.lat) !== undefined && (p.longitude ?? p.lng) !== undefined)
-            .map((pt: any, idx: number) => (
+            .map((pt: HeatmapPoint, idx: number) => (
               <Marker
                 key={`heat-${idx}`}
-                position={[pt.latitude ?? pt.lat, pt.longitude ?? pt.lng]}
+                position={[pt.latitude ?? pt.lat ?? 0, pt.longitude ?? pt.lng ?? 0]}
                 icon={createHeatIcon(pt.intensity ?? pt.count ?? 5)}
                 interactive={false}
               />

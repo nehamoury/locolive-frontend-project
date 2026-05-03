@@ -10,7 +10,7 @@ import {
 
 const WS_RECONNECT_BASE_MS = 3000;
 const WS_RECONNECT_MAX_MS = 30000;
-const UNREAD_POLL_INTERVAL = 30000; // Poll unread counts every 30s as fallback
+const UNREAD_POLL_INTERVAL = 180000; // Poll unread counts every 3 minutes as fallback
 
 interface Notification {
   id: string;
@@ -19,6 +19,24 @@ interface Notification {
   is_read: boolean;
   created_at: string;
 }
+
+interface ChatActiveEventDetail {
+  userId?: string;
+}
+
+interface NotificationPayload {
+  notification?: {
+    title?: string;
+    body?: string;
+  };
+  data?: Record<string, string>;
+}
+
+type BrowserNotificationOptions = NotificationOptions & {
+  vibrate?: number[];
+};
+
+type NotificationMap = Map<string, Notification>;
 
 export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -36,7 +54,9 @@ export const useNotifications = () => {
   const activeChatUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    const handleActive = (e: any) => { activeChatUserId.current = e.detail?.userId || null; };
+    const handleActive = (e: Event) => {
+      activeChatUserId.current = ((e as CustomEvent<ChatActiveEventDetail>).detail?.userId) || null;
+    };
     const handleInactive = () => { activeChatUserId.current = null; };
     window.addEventListener('locolive_chat_active', handleActive);
     window.addEventListener('locolive_chat_inactive', handleInactive);
@@ -63,7 +83,7 @@ export const useNotifications = () => {
 
     // Only show system notification if the page is hidden
     if (document.visibilityState === 'hidden') {
-      const defaultOptions: any = {
+      const defaultOptions: BrowserNotificationOptions = {
         icon: '/pwa-192x192.png',
         badge: '/favicon.svg',
         vibrate: [200, 100, 200],
@@ -72,7 +92,7 @@ export const useNotifications = () => {
       
       try {
         new Notification(title, defaultOptions);
-      } catch (err) {
+      } catch {
         // Fallback for devices that require service worker registration for notifications
         if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && navigator.serviceWorker && navigator.serviceWorker.ready) {
           navigator.serviceWorker.ready.then(registration => {
@@ -91,15 +111,15 @@ export const useNotifications = () => {
       const data = res.data || [];
 
       // Deduplicate notifications exactly like in NotificationsView
-      const seenMessages = new Map<string, any>();
-      for (const notif of data) {
+      const seenMessages: NotificationMap = new Map();
+      for (const notif of data as Notification[]) {
         const key = `${notif.type}_${notif.message}`;
         if (!seenMessages.has(key)) {
           seenMessages.set(key, notif);
         }
       }
       const uniqueNotifications = Array.from(seenMessages.values());
-      const uniqueUnreadCount = uniqueNotifications.filter((n: any) => !n.is_read).length;
+      const uniqueUnreadCount = uniqueNotifications.filter((n) => !n.is_read).length;
 
       setUnreadCount(uniqueUnreadCount);
       setNotifications(uniqueNotifications);
@@ -154,7 +174,7 @@ export const useNotifications = () => {
   const { alertsEnabled, toggleAlerts } = useSound();
   const soundCooldowns = useRef<Record<string, number>>({});
   const soundCounts = useRef<Record<string, number>>({});
-  const soundHourStart = useRef<number>(Date.now());
+  const soundHourStart = useRef<number>(0);
 
   // Sound preloader/manager
   const audioCache = useRef<Record<string, HTMLAudioElement>>({});
@@ -231,28 +251,31 @@ export const useNotifications = () => {
 
   // Initial fetch
   useEffect(() => {
-    fetchUnreadMessagesCount();
-    fetchPendingRequestsCount();
+    const timer = setTimeout(() => {
+      void fetchUnreadMessagesCount();
+      void fetchPendingRequestsCount();
+    }, 0);
 
     // Automatically request/refresh FCM token if permission was previously granted
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      requestFCMPermission();
+      void requestFCMPermission();
     }
-  }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount]);
+    return () => clearTimeout(timer);
+  }, [fetchUnreadMessagesCount, fetchPendingRequestsCount]);
 
   // Periodic polling fallback
   useEffect(() => {
     const intervalId = setInterval(() => {
-      fetchUnreadCount();
-      fetchUnreadMessagesCount();
-      fetchPendingRequestsCount();
-    }, UNREAD_POLL_INTERVAL);
+      if (wsStatus !== 'connected') fetchUnreadCount();
+      if (wsStatus !== 'connected') fetchUnreadMessagesCount();
+      if (wsStatus !== 'connected') fetchPendingRequestsCount();
+    }, UNREAD_POLL_INTERVAL); // 3 minutes fallback when disconnected
     return () => clearInterval(intervalId);
-  }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount]);
+  }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount, wsStatus]);
 
   // FCM Foreground listener
   useEffect(() => {
-    onMessageListener((payload: any) => {
+    onMessageListener((payload: NotificationPayload) => {
       console.log('[useNotifications] FCM Message in foreground:', payload);
       
       const { title, body } = payload.notification || {};
@@ -301,8 +324,8 @@ export const useNotifications = () => {
     const wsUrl = `${WS_BASE_URL}/api/ws/chat?token=${encodeURIComponent(token)}`;
 
     let isSubscribed = true;
-    let reconnectTimeout: any = null;
-    let initialConnectTimeout: any = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let initialConnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
       if (!isSubscribed) return;
@@ -313,12 +336,22 @@ export const useNotifications = () => {
 
       ws.onopen = () => {
         setWsStatus('connected');
+        if (reconnectAttemptRef.current > 0) {
+          fetchUnreadCount();
+          fetchUnreadMessagesCount();
+          fetchPendingRequestsCount();
+        }
         reconnectAttemptRef.current = 0;
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          
+          // Universal Event Deduplication
+          const eventId = data.msg_id || data.id || data.payload?.id || `${data.type}_${data.created_at}`;
+          if (seenNotifIds.current.has(eventId)) return;
+          seenNotifIds.current.add(eventId);
 
           if (data.type === 'new_message') {
             fetchUnreadMessagesCount();
@@ -330,7 +363,9 @@ export const useNotifications = () => {
                 const jwtPayload = JSON.parse(payloadStr);
                 if (jwtPayload.user_id === data.sender_id) isMe = true;
               }
-            } catch (e) { }
+            } catch {
+              // ignore invalid local token payload
+            }
 
             if (isMe) return;
 

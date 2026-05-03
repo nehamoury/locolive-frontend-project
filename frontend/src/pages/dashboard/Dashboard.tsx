@@ -209,8 +209,13 @@ const Dashboard = () => {
     setViewingStoryIndex(index);
   };
 
-  const handleUserSelect = (userId: string) => {
-    navigate(`/dashboard/user/${userId}`);
+  const handleUserSelect = (userData: string | { id: string, username?: string }) => {
+    if (typeof userData === 'string') {
+      navigate(`/dashboard/user/${userData}`);
+    } else {
+      const path = userData.username ? `/dashboard/u/${userData.username}` : `/dashboard/user/${userData.id}`;
+      navigate(path);
+    }
   };
 
   const showRightSidebar = !pathname.includes('profile') && !pathname.includes('settings') && !pathname.includes('notifications') && !pathname.includes('explore') && !pathname.includes('connections') && !pathname.includes('manage-highlights');
@@ -235,7 +240,7 @@ const Dashboard = () => {
         <Route path="map" element={<MapPage />} />
         <Route path="connections" element={
           <ConnectionsView
-            initialTab={(searchParams.get('tab') as any) || 'requests'}
+            initialTab={(searchParams.get('tab') as any) || 'followers'}
             onUserSelect={handleUserSelect}
             onMessage={(id) => navigate(`/dashboard/messages/${id}`)}
           />
@@ -243,8 +248,9 @@ const Dashboard = () => {
         <Route path="notifications" element={<NotificationsView />} />
         <Route path="settings/*" element={<SettingsView onBack={() => navigate('/dashboard/home')} />} />
         <Route path="search" element={<SearchView />} />
-        <Route path="user/:id" element={<Profile onLogout={logout} onCreatePost={() => setIsCreateModalOpen(true)} />} />
-        <Route path="profile/:id" element={<Profile onLogout={logout} onCreatePost={() => setIsCreateModalOpen(true)} />} />
+        <Route path="user/:id" element={<Profile onCreatePost={() => setIsCreateModalOpen(true)} />} />
+        <Route path="profile/:id" element={<Profile onCreatePost={() => setIsCreateModalOpen(true)} />} />
+        <Route path="u/:id" element={<Profile onCreatePost={() => setIsCreateModalOpen(true)} />} />
         <Route path="saved" element={<SavedView />} />
         <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
 
@@ -409,7 +415,7 @@ const Dashboard = () => {
             <Route path="map" element={<MapPage />} />
             <Route path="connections" element={
               <ConnectionsView
-                initialTab={(searchParams.get('tab') as any) || 'requests'}
+                initialTab={(searchParams.get('tab') as any) || 'followers'}
                 onUserSelect={handleUserSelect}
                 onMessage={(id) => navigate(`/dashboard/messages/${id}`)}
               />
@@ -417,8 +423,8 @@ const Dashboard = () => {
             <Route path="notifications" element={<NotificationsView />} />
             <Route path="settings/*" element={<SettingsView onBack={() => navigate('/dashboard/home')} />} />
             <Route path="search" element={<SearchView />} />
-            <Route path="user/:id" element={<Profile onLogout={logout} />} />
-            <Route path="profile/:id" element={<Profile onLogout={logout} />} />
+            <Route path="user/:id" element={<Profile />} />
+            <Route path="profile/:id" element={<Profile />} />
             <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
             <Route path="messages/*" element={
               <div className="flex-1 flex flex-col h-full bg-bg-card overflow-hidden">

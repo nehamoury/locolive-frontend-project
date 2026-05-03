@@ -7,6 +7,14 @@ import Highlights from '../../components/profile/Highlights';
 import PostCard from '../../components/post/PostCard';
 import { X as CloseIcon } from 'lucide-react';
 import { BACKEND } from '../../utils/config';
+import {
+  useUserProfile,
+  useUserStories,
+  useUserPosts,
+  useUserReels,
+  usePrivacyCheck,
+} from '../../hooks/useUserData';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface UserProfileViewProps {
   userId: string;
@@ -15,89 +23,70 @@ interface UserProfileViewProps {
 }
 
 const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }) => {
-  const [profile, setProfile] = useState<any>(null);
-  const [stories, setStories] = useState<any[]>([]);
-  const [reels, setReels] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [reelsLoading, setReelsLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'stories' | 'posts' | 'reels' | 'history'>('stories');
-  const [distanceKm, setDistanceKm] = useState<number | null>(null);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [postsLoading, setPostsLoading] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
 
-  const [errorStatus, setErrorStatus] = useState<number | null>(null);
+  // --- CORE RULE: viewer vs target ---
+  // userId = targetUserId (passed as prop from route)
+  // Current user is determined from auth context automatically by API
 
-  const fetchFullProfile = async () => {
-    try {
-      setLoading(true);
-      setErrorStatus(null);
-      const [userRes, storiesRes] = await Promise.all([
-        api.get(`/users/${userId}`),
-        api.get(`/stories/user/${userId}`).catch(() => ({ data: [] }))
-      ]);
-      setProfile(userRes.data);
-      setStories(storiesRes.data || []);
-      if (userRes.data.distance_km) {
-        setDistanceKm(userRes.data.distance_km);
-      }
-    } catch (err: any) {
-      console.error('Failed to fetch user profile:', err);
-      if (err.response?.status) {
-        setErrorStatus(err.response.status);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  // --- TanStack Query: Target User Data (with userId in query keys) ---
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useUserProfile(userId);
 
+  const {
+    data: storiesData,
+  } = useUserStories(userId);
+
+  const {
+    data: postsData,
+    isLoading: postsLoading,
+  } = useUserPosts(userId, 1, 12);
+
+  const {
+    data: reelsData,
+    isLoading: reelsLoading,
+  } = useUserReels(userId, 1, 12);
+
+  // --- Privacy Check ---
+  usePrivacyCheck(profile || null);
+
+  // --- Derived State ---
+  const stories = storiesData || [];
+  const posts = postsData?.posts || [];
+  const reels = reelsData?.reels || [];
+  const loading = profileLoading;
+
+  // Get distance from profile
+  const distanceKm = profile?.distance_km || null;
+
+  // Get error status from query error
+  const errorStatus = profileError && (profileError as any).response?.status
+    ? (profileError as any).response.status
+    : null;
+
+  // --- Refresh profile on post creation ---
   useEffect(() => {
-    fetchFullProfile();
-    window.addEventListener('postCreated', fetchFullProfile);
-    return () => window.removeEventListener('postCreated', fetchFullProfile);
-  }, [userId]);
-
-  // Lazy load reels/posts when tab is activated
-  useEffect(() => {
-    if (activeTab === 'reels' && reels.length === 0 && !reelsLoading) {
-      fetchReels();
-    }
-    if (activeTab === 'posts' && posts.length === 0 && !postsLoading) {
-      fetchPosts();
-    }
-  }, [activeTab]);
-
-  const fetchReels = async () => {
-    try {
-      setReelsLoading(true);
-      const res = await api.get(`/users/${userId}/reels?page=1&page_size=12`);
-      setReels(res.data.reels || []);
-    } catch (err) {
-      console.error('Failed to fetch user reels:', err);
-    } finally {
-      setReelsLoading(false);
-    }
-  };
-
-  const fetchPosts = async () => {
-    try {
-      setPostsLoading(true);
-      const res = await api.get(`/users/${userId}/posts`);
-      setPosts(res.data || []);
-    } catch (err) {
-      console.error('Failed to fetch user posts:', err);
-    } finally {
-      setPostsLoading(false);
-    }
-  };
+    const handlePostCreated = () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile', userId] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'posts', userId] });
+    };
+    window.addEventListener('postCreated', handlePostCreated);
+    return () => window.removeEventListener('postCreated', handlePostCreated);
+  }, [userId, queryClient]);
 
   const handleBlockAction = async () => {
+    if (!profile) return;
     const action = profile.is_blocked ? 'unblock' : 'block';
     if (!window.confirm(`Are you sure you want to ${action} ${profile.full_name || profile.username}?`)) return;
-    
+
     setBlocking(true);
     try {
       if (profile.is_blocked) {
@@ -107,7 +96,8 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
         await api.post('/privacy/block', { user_id: userId });
         import('react-hot-toast').then(({ toast }) => toast.success('User blocked successfully'));
       }
-      fetchFullProfile();
+      // Invalidate profile query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile', userId] });
     } catch (err) {
       import('react-hot-toast').then(({ toast }) => toast.error(`Failed to ${action} user`));
     } finally {
@@ -119,7 +109,8 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
   const handleFollow = async () => {
     try {
       await api.post('/connections/request', { target_user_id: userId });
-      setProfile((prev: any) => ({ ...prev, requested: true }));
+      // Invalidate profile query to refresh connection status
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile', userId] });
     } catch (err) {
       console.error('Follow request failed:', err);
     }
@@ -133,7 +124,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
     );
   }
 
-  if (!profile || errorStatus === 404) {
+  if (!profileLoading && (!profile || errorStatus === 404)) {
     return (
       <div className="p-8 text-center bg-bg-base h-full flex flex-col items-center justify-center transition-colors duration-300">
         <div className="w-20 h-20 bg-bg-sidebar/50 rounded-[32px] flex items-center justify-center mb-6 border border-border-base/50">
@@ -146,7 +137,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
     );
   }
 
-  if (errorStatus === 403) {
+  if (!profileLoading && errorStatus === 403) {
     return (
       <div className="h-full bg-bg-base overflow-y-auto no-scrollbar">
         {/* Header (Minimal for private users) */}
@@ -177,7 +168,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
     );
   }
 
-  const avatarLetter = (profile.full_name || profile.username || '?').charAt(0).toUpperCase();
+  const avatarLetter = (profile?.full_name || profile?.username || '?').charAt(0).toUpperCase();
 
   return (
     <motion.div 
@@ -187,8 +178,8 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
     >
       {/* ─── Hero Header ─── */}
       <div className="relative h-64 w-full bg-gradient-to-br from-[#f0f9ff] to-[#e0f2fe] overflow-hidden">
-        {profile.cover_url ? (
-          <img src={`${BACKEND}${profile.cover_url}`} className="w-full h-full object-cover" alt="Cover" />
+        {(profile as any)?.cover_url ? (
+          <img src={`${BACKEND}${(profile as any).cover_url}`} className="w-full h-full object-cover" alt="Cover" />
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-transparent to-transparent" />
         )}
@@ -224,15 +215,15 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                       exit={{ opacity: 0, scale: 0.95, y: 10 }}
                       className="absolute right-0 mt-2 w-48 bg-bg-card border border-border-base rounded-2xl shadow-2xl z-50 overflow-hidden"
                     >
-                      <button 
+                      <button
                         onClick={handleBlockAction}
                         disabled={blocking}
                         className={`w-full text-left px-4 py-3 text-sm font-black transition-colors flex items-center gap-3 ${
-                          profile.is_blocked ? 'text-primary hover:bg-primary/5' : 'text-red-500 hover:bg-red-50'
+                          profile?.is_blocked ? 'text-primary hover:bg-primary/5' : 'text-red-500 hover:bg-red-50'
                         }`}
                       >
                         <Shield className="w-4 h-4" />
-                        {blocking ? (profile.is_blocked ? 'Unblocking...' : 'Blocking...') : (profile.is_blocked ? 'Unblock User' : 'Block User')}
+                        {blocking ? (profile?.is_blocked ? 'Unblocking...' : 'Blocking...') : (profile?.is_blocked ? 'Unblock User' : 'Block User')}
                       </button>
                       <button className="w-full text-left px-4 py-3 text-sm font-black text-text-base hover:bg-bg-sidebar transition-colors flex items-center gap-3">
                         <MoreHorizontal className="w-4 h-4" />
@@ -256,7 +247,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               <div className="w-32 h-32 rounded-[32px] bg-bg-card p-1 shadow-2xl shadow-black/5">
                 <div className="w-full h-full rounded-[28px] bg-gradient-to-tr from-primary to-accent p-1">
                   <div className="w-full h-full rounded-[24px] bg-bg-card overflow-hidden flex items-center justify-center">
-                    {profile.avatar_url ? (
+                    {profile?.avatar_url ? (
                       <img src={`${BACKEND}${profile.avatar_url}`} className="w-full h-full object-cover" alt="" />
                     ) : (
                       <span className="text-4xl font-black text-primary italic">{avatarLetter}</span>
@@ -267,31 +258,31 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
             </div>
 
             <div className="flex gap-2 pb-2">
-              {profile.is_blocked ? (
-                <button 
+              {profile?.is_blocked ? (
+                <button
                   onClick={handleBlockAction}
                   disabled={blocking}
                   className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-red-50 text-red-500 border border-red-100 hover:bg-red-100 transition-all active:scale-95 cursor-pointer"
                 >
                   {blocking ? 'Unblocking...' : 'Unblock'}
                 </button>
-              ) : profile.connection_status === 'accepted' ? (
-                <button 
+              ) : profile?.connection_status === 'accepted' ? (
+                <button
                   disabled
                   className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-500 border border-pink-100 cursor-default"
                 >
                   Following
                 </button>
               ) : (
-                <button 
+                <button
                   onClick={handleFollow}
-                  disabled={profile.connection_status === 'pending' || profile.requested}
+                  disabled={profile?.connection_status === 'pending' || profile?.requested}
                   className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 cursor-pointer
-                    ${(profile.connection_status === 'pending' || profile.requested)
-                      ? 'bg-bg-sidebar text-text-muted cursor-not-allowed' 
+                    ${(profile?.connection_status === 'pending' || profile?.requested)
+                      ? 'bg-bg-sidebar text-text-muted cursor-not-allowed'
                       : 'bg-text-base text-bg-base shadow-black/10'}`}
                 >
-                  {profile.connection_status === 'pending' || profile.requested ? 'Requested' : 'Follow'}
+                  {profile?.connection_status === 'pending' || profile?.requested ? 'Requested' : 'Follow'}
                 </button>
               )}
               <button 
@@ -306,17 +297,17 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
           {/* Name & Bio */}
           <div className="mb-8">
             <h1 className="text-3xl font-black tracking-tight italic text-text-base uppercase mb-1">
-              {profile.full_name || profile.username}
+              {profile?.full_name || profile?.username}
             </h1>
             <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-wider mb-4">
-              <span>@{profile.username}</span>
+              <span>@{profile?.username}</span>
               <div className="w-1.5 h-1.5 bg-primary/20 rounded-full" />
               <div className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5" />
                 <span className="text-text-muted">{distanceKm ? `${distanceKm.toFixed(1)}km away` : 'Locolive Community'}</span>
               </div>
             </div>
-            {profile.bio && (
+            {profile?.bio && (
               <p className="text-sm text-text-muted font-medium leading-relaxed max-w-md italic border-l-4 border-border-base pl-4 py-1">
                 {profile.bio}
               </p>
@@ -329,10 +320,10 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               <QuickStat label="Moments" value={stories.length} icon={<Zap className="w-3.5 h-3.5" />} />
             </div>
             <div onClick={() => onBack()} className="cursor-pointer">
-              <QuickStat label="Connections" value={profile.connection_count || 0} icon={<Users className="w-3.5 h-3.5" />} />
+              <QuickStat label="Connections" value={profile?.connection_count || 0} icon={<Users className="w-3.5 h-3.5" />} />
             </div>
             <div onClick={() => setActiveTab('history')} className="cursor-pointer">
-              <QuickStat label="Crossed" value={profile.crossings_count || 0} icon={<Footprints className="w-3.5 h-3.5" />} />
+              <QuickStat label="Crossed" value={profile?.crossings_count || 0} icon={<Footprints className="w-3.5 h-3.5" />} />
             </div>
           </div>
 
@@ -380,7 +371,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               exit={{ opacity: 0, y: -10 }}
               className="min-h-[400px]"
             >
-              {profile.is_private && profile.connection_status === 'none' ? (
+              {profile?.is_private && profile?.connection_status === 'none' ? (
                 <div className="flex flex-col items-center justify-center py-32 text-center bg-bg-sidebar/30 rounded-[32px] border border-dashed border-border-base">
                   <div className="w-16 h-16 bg-bg-card rounded-[20px] flex items-center justify-center mb-6 shadow-sm border border-border-base">
                     <Lock className="w-8 h-8 text-text-muted/40" />
@@ -393,7 +384,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                   {activeTab === 'stories' && (
                     stories.length > 0 ? (
                       <div className="grid grid-cols-3 gap-2">
-                        {stories.map((story, idx) => (
+                        {stories.map((story: any, idx: number) => (
                           <div
                             key={story.id}
                             onClick={() => setViewingStoryIndex(idx)}
@@ -453,7 +444,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                       </div>
                     ) : reels.length > 0 ? (
                       <div className="grid grid-cols-3 gap-2">
-                        {reels.map((reel) => (
+                        {reels.map((reel: any) => (
                           <div
                             key={reel.id}
                             className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative group border border-border-base"
@@ -506,25 +497,26 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8"
             onClick={() => setSelectedPost(null)}
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="w-full max-w-2xl relative"
               onClick={(e) => e.stopPropagation()}
             >
-              <button 
+              <button
                 onClick={() => setSelectedPost(null)}
                 className="absolute -top-12 right-0 md:-right-12 p-2 text-white/60 hover:text-white transition-colors"
               >
                 <CloseIcon className="w-8 h-8" />
               </button>
-              <PostCard 
-                post={selectedPost} 
+              <PostCard
+                post={selectedPost}
                 currentUserID={""}
                 onDelete={() => {
                   setSelectedPost(null);
-                  fetchFullProfile();
+                  queryClient.invalidateQueries({ queryKey: ['users', 'profile', userId] });
+                  queryClient.invalidateQueries({ queryKey: ['users', 'posts', userId] });
                 }}
               />
             </motion.div>

@@ -4,9 +4,7 @@ import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import { useAuth } from '../../context/AuthContext';
 
-interface AccountInfoSectionProps {}
-
-const AccountInfoSection: FC<AccountInfoSectionProps> = () => {
+const AccountInfoSection: FC = () => {
   const { user, updateUser } = useAuth();
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [username, setUsername] = useState(user?.username || '');
@@ -89,9 +87,9 @@ const AccountInfoSection: FC<AccountInfoSectionProps> = () => {
           setUsernameStatus('taken');
           setUsernameMsg('Username is already taken');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         setUsernameStatus('error');
-        setUsernameMsg(err.response?.data?.error || 'Error checking username');
+        setUsernameMsg((err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Error checking username');
       }
     }, 500);
 
@@ -129,8 +127,8 @@ const AccountInfoSection: FC<AccountInfoSectionProps> = () => {
 
       updateUser(updatedProfile);
       import('react-hot-toast').then(({ toast }) => toast.success('Profile updated successfully!'));
-    } catch (err: any) {
-      import('react-hot-toast').then(({ toast }) => toast.error(err.response?.data?.error || 'Failed to update profile'));
+    } catch (err: unknown) {
+      import('react-hot-toast').then(({ toast }) => toast.error((err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Failed to update profile'));
     } finally {
       setSaving(false);
     }

@@ -6,6 +6,16 @@ const MIN_DISTANCE_METERS = 50; // Trigger update if moved >50m
 const MIN_TIME_MS = 30000;       // Or if >30 seconds have passed
 const FORCED_PING_INTERVAL = 60000; // Forced periodic ping every 60s
 
+interface ApiError {
+  response?: {
+    status?: number;
+  };
+}
+
+interface LegacyPermissionStatus extends PermissionStatus {
+  addListener?: (listener: () => void) => void;
+}
+
 /**
  * Custom hook to track user location and send it to the backend.
  * Ensures user is always present in Redis GEO for nearby discovery.
@@ -37,8 +47,8 @@ export const useGeolocation = (enabled: boolean = true) => {
         lastPingTimeRef.current = Date.now();
         lastSentCoordsRef.current = { lat: latitude, lng: longitude };
       }
-    } catch (err: any) {
-      if (err.response?.status !== 401) {
+    } catch (err: unknown) {
+      if ((err as ApiError).response?.status !== 401) {
         console.error('[Geolocation] Ping failed:', err);
       }
     }
@@ -87,8 +97,8 @@ export const useGeolocation = (enabled: boolean = true) => {
           try {
             if (typeof result.addEventListener === 'function') {
               result.addEventListener('change', handleChange);
-            } else if (typeof (result as any).addListener === 'function') {
-              (result as any).addListener(handleChange);
+            } else if (typeof (result as LegacyPermissionStatus).addListener === 'function') {
+              (result as LegacyPermissionStatus).addListener?.(handleChange);
             }
           } catch (e) {
             console.warn('[Geolocation] Could not add permission change listener:', e);
@@ -106,8 +116,10 @@ export const useGeolocation = (enabled: boolean = true) => {
   useEffect(() => {
     if (!enabled) return;
     if (!('geolocation' in navigator)) {
-      setError('Geolocation is not supported by your browser.');
-      return;
+      const timer = setTimeout(() => {
+        setError('Geolocation is not supported by your browser.');
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
     // Skip if permission is already known to be denied
@@ -123,16 +135,24 @@ export const useGeolocation = (enabled: boolean = true) => {
       if (import.meta.env.DEV) {
         const mockLat = 21.2120;
         const mockLng = 81.3164;
-        setPosition({ lat: mockLat, lng: mockLng });
+        const timer = setTimeout(() => {
+          setPosition({ lat: mockLat, lng: mockLng });
+          setError(null); // Clear error since we have a fallback
+        }, 0);
         latestCoordsRef.current = { lat: mockLat, lng: mockLng };
         console.info(`[Geolocation] DEV MODE: Using mock location ${mockLat}, ${mockLng} because permission was denied.`);
         if (!initialPingSentRef.current) {
-          sendPing(mockLat, mockLng, 'dev_mock_sync');
+          setTimeout(() => {
+            void sendPing(mockLat, mockLng, 'dev_mock_sync');
+          }, 0);
           initialPingSentRef.current = true;
         }
-        setError(null); // Clear error since we have a fallback
+        return () => clearTimeout(timer);
       } else {
-        setError('Geolocation permission denied. (Note: Mobile browsers require HTTPS for location access)');
+        const timer = setTimeout(() => {
+          setError('Geolocation permission denied. (Note: Mobile browsers require HTTPS for location access)');
+        }, 0);
+        return () => clearTimeout(timer);
       }
       return;
     }
@@ -191,11 +211,11 @@ export const useGeolocation = (enabled: boolean = true) => {
             }
           },
           (err) => handleGeolocationError(err, 'Watch position error'),
-          { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
+          { enableHighAccuracy: false, timeout: 60000, maximumAge: 10000 }
         );
       },
       (err) => handleGeolocationError(err, 'Initial position failed'),
-      { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
+      { enableHighAccuracy: false, timeout: 60000, maximumAge: 10000 }
     );
 
     // ── Forced periodic ping to keep Redis fresh (every 60s) ──
@@ -217,4 +237,3 @@ export const useGeolocation = (enabled: boolean = true) => {
 
   return { error, isGhostMode, position, permissionState };
 };
-

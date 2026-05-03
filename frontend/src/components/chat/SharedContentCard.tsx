@@ -22,9 +22,22 @@ interface SharedContentCardProps {
     isMe: boolean;
 }
 
+interface SharedContentData {
+    username?: string;
+    avatar_url?: string;
+    caption?: string;
+    body_text?: string;
+    media_url?: string;
+    video_url?: string;
+    media_type?: string;
+    created_at?: string;
+    likes_count?: number;
+    comments_count?: number;
+}
+
 const SharedContentCard: React.FC<SharedContentCardProps> = ({ type, id, isMe }) => {
     const navigate = useNavigate();
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<SharedContentData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -66,7 +79,7 @@ const SharedContentCard: React.FC<SharedContentCardProps> = ({ type, id, isMe })
     const username = data.username || 'user';
     const avatar = getMediaUrl(data.avatar_url, FALLBACKS.AVATAR(username));
     const caption = nullString(data.caption || data.body_text || '');
-    const mediaUrl = data.media_url || data.video_url;
+    const mediaUrl = data.media_url || data.video_url || '';
     const isVideo = type === 'REEL' || data.media_type === 'video';
 
     const handleClick = () => {
@@ -105,7 +118,7 @@ const SharedContentCard: React.FC<SharedContentCardProps> = ({ type, id, isMe })
                     <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
                             <span className="text-[14px] font-black tracking-tight text-gray-900">@{username}</span>
-                            <span className="text-[11px] text-gray-400 font-bold">· {formatTimeAgo(data.created_at)}</span>
+                            <span className="text-[11px] text-gray-400 font-bold">· {formatTimeAgo(data.created_at || '')}</span>
                         </div>
                         <span className="text-[9px] font-bold text-pink-500 uppercase tracking-widest opacity-60">
                             Shared {type.toLowerCase()}

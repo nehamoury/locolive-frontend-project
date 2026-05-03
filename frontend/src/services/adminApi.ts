@@ -3,7 +3,6 @@ import type {
   AdminStats,
   AdminUser,
   AdminReport,
-  AdminCrossing,
 } from '../types/admin';
 
 export interface MapUser {
@@ -52,13 +51,13 @@ export interface CreateAdminParams {
 }
 
 export const adminApi = {
-  // Stats
-  getStats: async (): Promise<AdminStats> => {
-    const { data } = await api.get<AdminStats>('/admin/stats');
+  // A. Dashboard
+  getDashboard: async (): Promise<AdminStats> => {
+    const { data } = await api.get<AdminStats>('/admin/dashboard');
     return data;
   },
 
-  // Users
+  // B. User Management
   getUsers: async (page: number = 1, pageSize: number = 20): Promise<{ items: AdminUser[]; total: number }> => {
     const { data } = await api.get<{ items: AdminUser[]; total: number }>('/admin/users', {
       params: { page, page_size: pageSize },
@@ -66,7 +65,16 @@ export const adminApi = {
     return data;
   },
 
-  // Search Users
+  getUserDetail: async (userId: string): Promise<any> => {
+    const { data } = await api.get<any>(`/admin/users/${userId}`);
+    return data;
+  },
+
+  handleUserAction: async (userId: string, action: string): Promise<any> => {
+    const { data } = await api.post<any>(`/admin/users/${userId}/actions`, { action });
+    return data;
+  },
+
   searchUsers: async (query: string, page: number = 1, pageSize: number = 20): Promise<{ items: AdminUser[]; total: number }> => {
     const { data } = await api.get<{ items: AdminUser[]; total: number }>('/admin/users/search', {
       params: { q: query, page, page_size: pageSize },
@@ -74,42 +82,19 @@ export const adminApi = {
     return data;
   },
 
-  banUser: async (userId: string, ban: boolean): Promise<AdminUser> => {
-    const { data } = await api.post<AdminUser>('/admin/users/ban', { user_id: userId, ban });
-    return data;
-  },
-
-  deleteUser: async (userId: string): Promise<void> => {
-    await api.delete(`/admin/users/${userId}`);
-  },
-
-  // Map
-  getMapActiveUsers: async (): Promise<{ users: MapUser[]; total: number }> => {
-    const { data } = await api.get<{ users: MapUser[]; total: number }>('/admin/map/active');
-    return data;
-  },
-
-  // Crossings
-  getCrossings: async (page: number = 1, pageSize: number = 20): Promise<{ items: AdminCrossing[]; total: number }> => {
-    const { data } = await api.get<{ items: AdminCrossing[]; total: number }>('/admin/crossings', {
-      params: { page, page_size: pageSize },
+  // C. Content Moderation
+  getContent: async (page: number = 1, pageSize: number = 20, type: string = 'all'): Promise<{ items: any[]; total: number }> => {
+    const { data } = await api.get<{ items: any[]; total: number }>('/admin/content', {
+      params: { page, page_size: pageSize, type },
     });
     return data;
   },
 
-  // Stories/Reels (Admin perspective)
-  getStories: async (page: number = 1, pageSize: number = 20): Promise<{ items: any[]; total: number }> => {
-    const { data } = await api.get<{ items: any[]; total: number }>('/admin/stories', {
-      params: { page, page_size: pageSize },
-    });
-    return data;
+  deleteContent: async (type: 'post' | 'reel' | 'story', id: string): Promise<void> => {
+    await api.delete(`/admin/${type}s/${id}`);
   },
 
-  deleteStory: async (storyId: string): Promise<void> => {
-    await api.delete(`/admin/stories/${storyId}`);
-  },
-
-  // Reports
+  // D. Reports System
   getReports: async (resolved?: boolean, page: number = 1, pageSize: number = 20): Promise<{ items: AdminReport[]; total: number }> => {
     const { data } = await api.get<{ items: AdminReport[]; total: number }>('/admin/reports', {
       params: { resolved, page, page_size: pageSize },
@@ -122,32 +107,40 @@ export const adminApi = {
     return data;
   },
 
-  // Activity Logs
-  getActivityLogs: async (page: number = 1, pageSize: number = 20): Promise<{ items: any[]; total: number }> => {
-    const { data } = await api.get<{ data: { items: any[]; total: number } }>('/admin/activity/logs', {
+  // E. Blocks / Privacy
+  getBlocks: async (page: number = 1, pageSize: number = 20): Promise<{ items: any[]; total: number }> => {
+    const { data } = await api.get<{ items: any[]; total: number }>('/admin/blocks', {
       params: { page, page_size: pageSize },
     });
-    return data.data;
+    return data;
   },
 
-  // Comments
-  getComments: async (page: number = 1, pageSize: number = 20): Promise<{ items: any[]; total: number }> => {
-    const { data } = await api.get<{ data: { items: any[]; total: number } }>('/admin/comments', {
-      params: { page, page_size: pageSize },
+  // F. Engagement Inspector
+  inspectEngagement: async (userId: string): Promise<any> => {
+    const { data } = await api.get<any>('/admin/engagement', {
+      params: { user_id: userId },
     });
-    return data.data;
+    return data;
   },
 
-  moderateComment: async (commentId: string, source: 'post' | 'reel', action: 'approve' | 'delete'): Promise<void> => {
-    await api.post('/admin/comments/moderate', { comment_id: commentId, source, action });
-  },
-
-  // Notifications (Admin)
-  getNotifications: async (page: number = 1, pageSize: number = 20): Promise<{ items: AdminNotification[]; total: number }> => {
-    const { data } = await api.get<{ data: { items: AdminNotification[]; total: number } }>('/admin/notifications', {
-      params: { page, page_size: pageSize },
+  // G. Logs / Error Viewer
+  getLogs: async (page: number = 1, pageSize: number = 50, level: string = 'all'): Promise<{ items: any[]; total: number }> => {
+    const { data } = await api.get<{ items: any[]; total: number }>('/admin/logs', {
+      params: { page, page_size: pageSize, level },
     });
-    return data.data;
+    return data;
+  },
+
+  // H. System Monitor
+  getSystemMonitor: async (): Promise<any> => {
+    const { data } = await api.get<any>('/admin/system');
+    return data;
+  },
+
+  // Legacy / Other
+  getMapActiveUsers: async (): Promise<{ users: MapUser[]; total: number }> => {
+    const { data } = await api.get<{ users: MapUser[]; total: number }>('/admin/map/active');
+    return data;
   },
 
   sendNotification: async (params: SendNotificationParams): Promise<{ recipients: number; total_target: number }> => {
@@ -155,37 +148,6 @@ export const adminApi = {
     return data.data;
   },
 
-  // Settings
-  getSettings: async (): Promise<AppSettings> => {
-    const { data } = await api.get<{ data: AppSettings }>('/admin/settings');
-    return data.data;
-  },
-
-  updateSettings: async (settings: Partial<AppSettings>): Promise<void> => {
-    await api.put('/admin/settings', settings);
-  },
-
-  // Admin Users
-  getAdmins: async (): Promise<{ items: AdminUser[] }> => {
-    const { data } = await api.get<{ data: { items: AdminUser[] } }>('/admin/admins');
-    return data.data;
-  },
-
-  createAdmin: async (params: CreateAdminParams): Promise<AdminUser> => {
-    const { data } = await api.post<{ data: AdminUser }>('/admin/admins', params);
-    return data.data;
-  },
-
-  updateAdmin: async (adminId: string, role: string): Promise<AdminUser> => {
-    const { data } = await api.put<{ data: AdminUser }>(`/admin/admins/${adminId}`, { role });
-    return data.data;
-  },
-
-  deleteAdmin: async (adminId: string): Promise<void> => {
-    await api.delete(`/admin/admins/${adminId}`);
-  },
-
-  // Logout
   logout: async (): Promise<void> => {
     await api.post('/admin/logout');
   },
