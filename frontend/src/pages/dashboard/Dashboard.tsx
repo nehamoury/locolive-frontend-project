@@ -357,7 +357,7 @@ const Dashboard = () => {
         <div className={`flex-1 overflow-y-auto no-scrollbar ${pathname.includes('reels') ? 'pb-0' : 'pb-20'}`}>
           {/* Mobile Header - Only visible on Home page */}
           {pathname.endsWith('/home') && !isCreateModalOpen && (
-            <div className="w-full pt-6 pb-4 px-6 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl relative z-[100] shrink-0">
+            <div className="w-full pt-2 pb-2 px-3 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl relative z-[100] shrink-0">
               <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard/explore')}>
                 <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-[0_4px_20px_rgba(255,59,142,0.15)] border border-primary/5">
                   <MapPin className="w-5.5 h-5.5 text-primary fill-primary/5" />
@@ -438,26 +438,34 @@ const Dashboard = () => {
 
         {/* Mobile Tab Bar */}
         {!pathname.includes('reels') && (
-          <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-bg-card/80 backdrop-blur-2xl flex items-center justify-around z-[100] border-t border-border-base/50 px-6 safe-area-bottom shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
-            <MobileNavItem icon={<Home className="w-[22px] h-[22px]" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
-            <MobileNavItem icon={<Search className="w-[22px] h-[22px]" />} active={pathname.includes('search')} onClick={() => navigate('/dashboard/search')} />
-            <motion.button
-              whileTap={{ scale: 0.9, rotate: 90 }}
-              onClick={() => setIsCreateModalOpen(true)}
-              className="w-13 h-13 bg-brand-gradient rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 text-white -mt-8 border-4 border-bg-base"
-            >
-              <Plus className="w-7 h-7 stroke-[3]" />
-            </motion.button>
-            <MobileNavItem icon={<Clapperboard className="w-[22px] h-[22px]" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
+          <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-white/90 backdrop-blur-xl flex items-center justify-around z-[100] border-t border-slate-100 px-6 safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+            <MobileNavItem icon={<Home className="w-6 h-6" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
+            <MobileNavItem icon={<Search className="w-6 h-6" />} active={pathname.includes('search')} onClick={() => navigate('/dashboard/search')} />
+            
+            {/* Center Add Button with Pink Glow */}
+            <div className="relative -mt-10">
+              <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 animate-pulse" />
+              <motion.button
+                whileTap={{ scale: 0.85, rotate: 90 }}
+                onClick={() => setIsCreateModalOpen(true)}
+                className="relative w-14 h-14 bg-brand-gradient rounded-[22px] flex items-center justify-center shadow-[0_8px_20px_rgba(255,59,142,0.4)] text-white border-4 border-white dark:border-slate-900"
+              >
+                <Plus className="w-8 h-8 stroke-[3]" />
+              </motion.button>
+            </div>
+
+            <MobileNavItem icon={<Clapperboard className="w-6 h-6" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
             <MobileNavItem
               icon={user?.avatar_url ? (
-                <img
-                  src={`${BACKEND}${user.avatar_url}`}
-                  className="w-[22px] h-[22px] rounded-full object-cover border border-border-base"
-                  alt=""
-                />
+                <div className={`w-7 h-7 rounded-full p-[1.5px] ${pathname.includes('profile') ? 'bg-primary' : 'bg-slate-200'}`}>
+                   <img
+                    src={`${BACKEND}${user.avatar_url}`}
+                    className="w-full h-full rounded-full object-cover bg-white"
+                    alt=""
+                  />
+                </div>
               ) : (
-                <User className="w-[22px] h-[22px]" />
+                <User className="w-6 h-6" />
               )}
               active={pathname.includes('profile')}
               onClick={() => navigate(`/dashboard/profile/${user?.id}`)}
