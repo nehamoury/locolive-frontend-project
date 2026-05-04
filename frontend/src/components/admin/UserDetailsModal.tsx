@@ -1,5 +1,6 @@
 import { X, Ban, Activity, Film, Flag, Calendar, Mail, Phone, Smartphone, LogOut, Trash2 } from 'lucide-react';
 import { useAdminUserDetail } from '../../hooks/useAdmin';
+import { nullString } from '../../utils/string';
 
 interface UserDetailsModalProps {
   user: any;
@@ -38,7 +39,7 @@ export function UserDetailsModal({ user: basicInfo, onClose, onAction }: UserDet
                  <img src={basicInfo.avatar_url} alt="" className="w-full h-full object-cover" />
                ) : (
                  <div className="w-full h-full flex items-center justify-center bg-gray-900">
-                   <span className="text-2xl font-black text-white">{(basicInfo.full_name || basicInfo.username)[0]}</span>
+                   <span className="text-2xl font-black text-white">{(nullString(basicInfo.full_name) || nullString(basicInfo.username) || '?')[0]}</span>
                  </div>
                )}
             </div>
@@ -46,8 +47,8 @@ export function UserDetailsModal({ user: basicInfo, onClose, onAction }: UserDet
 
           <div className="pt-16 flex flex-col md:flex-row md:items-start justify-between gap-6">
             <div>
-              <h2 className="text-2xl font-black text-gray-900">{basicInfo.full_name || basicInfo.username}</h2>
-              <p className="text-gray-400 font-bold tracking-tight">@{basicInfo.username}</p>
+              <h2 className="text-2xl font-black text-gray-900">{nullString(basicInfo.full_name) || nullString(basicInfo.username)}</h2>
+              <p className="text-gray-400 font-bold tracking-tight">@{nullString(basicInfo.username)}</p>
               
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
@@ -94,7 +95,7 @@ export function UserDetailsModal({ user: basicInfo, onClose, onAction }: UserDet
                     <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400">
                       <Mail className="w-4 h-4" />
                     </div>
-                    <span className="text-sm font-bold text-gray-700">{basicInfo.email || 'No email provided'}</span>
+                    <span className="text-sm font-bold text-gray-700">{nullString(basicInfo.email) || 'No email provided'}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400">

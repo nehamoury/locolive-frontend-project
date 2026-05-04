@@ -4,6 +4,7 @@ import { useAdminReports, useAdminUserAction } from '../../hooks/useAdmin';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import adminApi from '../../services/adminApi';
 import toast from 'react-hot-toast';
+import { nullString } from '../../utils/string';
 
 export function Reports() {
   const [page] = useState(1);
@@ -136,10 +137,10 @@ export function Reports() {
               </thead>
               <tbody>
                 {reports.map((report) => {
-                  const reporterUsername = report.reporter_username || report.reporter?.username || 'Unknown';
-                  const targetUsername = report.target_username || report.reported?.username || 'Unknown';
-                  const targetId = report.target_id || report.reported?.id || '';
-                  const riskLevel = report.priority_score > 5 ? 'critical' : report.priority_score > 2 ? 'high' : 'low';
+                  const reporterUsername = nullString(report.reporter_username) || nullString(report.reporter?.username) || 'Unknown';
+                  const targetUsername = nullString(report.target_username) || nullString(report.reported?.username) || 'Unknown';
+                  const targetId = String(report.target_id || report.reported?.id || '');
+                  const riskLevel = Number(report.priority_score) > 5 ? 'critical' : Number(report.priority_score) > 2 ? 'high' : 'low';
 
                   return (
                     <tr key={report.id} className="group hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0">
@@ -159,14 +160,14 @@ export function Reports() {
                            </div>
                            <div>
                              <span className="font-bold text-gray-900">@{targetUsername}</span>
-                             <p className="text-[10px] font-black text-pink-500 uppercase tracking-tighter">{report.target_type || 'user_profile'}</p>
+                              <p className="text-[10px] font-black text-pink-500 uppercase tracking-tighter">{String(nullString(report.target_type) || 'user_profile')}</p>
                            </div>
                         </div>
                       </td>
 
                       <td className="px-6 py-5">
-                        <p className="text-sm font-bold text-gray-700 line-clamp-1 max-w-[200px]" title={report.reason}>
-                          {report.reason}
+                        <p className="text-sm font-bold text-gray-700 line-clamp-1 max-w-[200px]" title={nullString(report.reason)}>
+                          {nullString(report.reason)}
                         </p>
                       </td>
 
@@ -182,7 +183,7 @@ export function Reports() {
 
                       <td className="px-6 py-5">
                         <p className="text-sm font-bold text-gray-700">
-                          {report.created_at ? new Date(report.created_at).toLocaleDateString() : 'N/A'}
+                          {report.created_at ? new Date(String(nullString(report.created_at))).toLocaleDateString() : 'N/A'}
                         </p>
                       </td>
 

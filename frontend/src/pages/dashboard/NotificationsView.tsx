@@ -1,8 +1,10 @@
 import React, { useState, useEffect, type FC } from 'react';
-import { Heart, UserPlus, MapPin, Bell, Eye, MessageCircle, ThumbsUp } from 'lucide-react';
+import { Heart, UserPlus, MapPin, Bell, Eye, MessageCircle, ThumbsUp, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { BACKEND } from '../../utils/config';
 import { toast } from 'react-hot-toast';
+import { nullString } from '../../utils/string';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,9 +64,9 @@ const getTypeConfig = (type: string): { emoji: string; color: string; bg: string
 
 // Parse rich message: bold parts wrapped in ** or actor names
 const parseMessage = (notif: Notification): React.ReactNode => {
-  const raw = notif.message || notif.content || '';
+  const raw = nullString(notif.message || notif.content || '');
   // Split on actor name if present to bold it
-  const actor = notif.actor_full_name || notif.actor_username;
+  const actor = nullString(notif.actor_full_name || notif.actor_username);
   if (actor && raw.includes(actor)) {
     const parts = raw.split(actor);
     return (
@@ -120,9 +122,9 @@ const NotifCard = ({
 
       {/* Content */}
       <div className="flex-1 min-w-0 pr-6">
-        {notif.title && (
+        {nullString(notif.title) && (
           <h4 className="text-[13px] font-black text-text-base uppercase tracking-tight mb-0.5 leading-none">
-            {notif.title}
+            {nullString(notif.title)}
           </h4>
         )}
         <p className="text-sm text-text-muted leading-snug">
@@ -209,6 +211,7 @@ interface NotificationsViewProps {
 }
 
 const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -268,6 +271,12 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-bg-base/80 backdrop-blur-md border-b border-border-base shadow-sm">
         <div className="flex items-center gap-2.5">
+          <button 
+            onClick={() => navigate(-1)}
+            className="md:hidden p-2 -ml-2 hover:bg-bg-sidebar rounded-full transition-colors text-text-muted hover:text-text-base"
+          >
+            <ArrowLeft className="w-7 h-7" />
+          </button>
           <h1 className="text-xl font-black text-text-normal  uppercase leading-none">Notifications</h1>
           {unreadCount > 0 && (
             <span className="min-w-[20px] h-5 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center px-1.5">

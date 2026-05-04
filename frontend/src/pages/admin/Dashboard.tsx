@@ -74,7 +74,7 @@ export function Dashboard() {
         />
         <StatsCard
           title="Total Content"
-          value={(stats?.totalPosts || 0) + (stats?.reelsToday || 0)}
+          value={stats?.totalContent || 0}
           icon={Film}
           trend={{ value: 4.1, isUp: true }}
           color="purple"

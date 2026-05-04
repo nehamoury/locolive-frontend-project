@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type FC } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Send, Bookmark, MapPin, MoreHorizontal, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,6 +14,7 @@ interface PostCardProps {
   currentUserID?: string;
   onDelete?: (postId: string) => void;
   onImageClick?: (post: any) => void;
+  isFeed?: boolean;
 }
 
 const timeAgo = (date: string) => {
@@ -27,9 +29,11 @@ const timeAgo = (date: string) => {
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageClick }) => {
+  const queryClient = useQueryClient();
   const [liked, setLiked] = useState<boolean>(post.liked_by_viewer ?? false);
   const [likeCount, setLikeCount] = useState<number>(post.likes_count ?? 0);
   const [commentsCount, setCommentsCount] = useState<number>(post.comments_count ?? 0);
+  const [saved, setSaved] = useState<boolean>(post.is_saved ?? false);
   const [showMenu, setShowMenu] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -138,6 +142,33 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
     setIsShareModalOpen(true);
   };
 
+  const handleSave = async () => {
+    const wasSaved = saved;
+    setSaved(!wasSaved);
+    
+    // Premium Haptic Feedback
+    if (!wasSaved && 'vibrate' in navigator) {
+      navigator.vibrate(30);
+    }
+
+    try {
+      if (wasSaved) {
+        await api.delete(`/posts/${post.id}/save`);
+      } else {
+        await api.post(`/posts/${post.id}/save`);
+      }
+      if (!wasSaved) {
+        queryClient.invalidateQueries({ queryKey: ['users', 'profile', 'me'] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['users', 'profile', 'me'] });
+      }
+    } catch (err) {
+      // Revert on failure
+      setSaved(wasSaved);
+      console.error('Failed to save/unsave post:', err);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -185,7 +216,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
           onClick={() => setShowMenu(!showMenu)}
           className="p-2 text-text-muted/50 hover:text-primary hover:bg-primary/5 transition-all rounded-full cursor-pointer relative"
         >
-          <MoreHorizontal className="w-5 h-5" />
+          <MoreHorizontal className="w-6 h-6" />
           {showMenu && (
             <div className="absolute right-0 top-10 bg-bg-card border border-border-base rounded-[12px] shadow-xl z-50 py-1 min-w-[180px] overflow-hidden">
               {isOwner && (
@@ -290,9 +321,9 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             className={`flex items-center gap-2 group cursor-pointer transition-colors ${liked ? 'text-red-500' : 'text-text-muted hover:text-red-500'}`}
           >
             <div className={`p-2 rounded-full transition-colors ${liked ? 'bg-red-500/10' : 'group-hover:bg-red-500/10'}`}>
-              <Heart className={`w-[20px] h-[20px] ${liked ? 'fill-red-500 stroke-red-500' : 'stroke-current'}`} />
+              <Heart className={`w-6 h-6 sm:w-5 sm:h-5 ${liked ? 'fill-red-500 stroke-red-500' : 'stroke-current'}`} />
             </div>
-            <span className="text-[13px] font-bold">{likeCount > 0 ? likeCount : ''}</span>
+            <span className="text-[14px] font-bold">{likeCount > 0 ? likeCount : ''}</span>
           </button>
 
           {/* Comment */}
@@ -301,9 +332,9 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             className="flex items-center gap-2 group cursor-pointer text-text-muted hover:text-primary transition-colors"
           >
             <div className="p-2 rounded-full group-hover:bg-primary/10 transition-colors">
-              <MessageCircle className="w-[20px] h-[20px]" />
+              <MessageCircle className="w-6 h-6 sm:w-5 sm:h-5" />
             </div>
-            <span className="text-[13px] font-bold">{commentsCount > 0 ? commentsCount : ''}</span>
+            <span className="text-[14px] font-bold">{commentsCount > 0 ? commentsCount : ''}</span>
           </button>
 
           {/* Share */}
@@ -312,14 +343,17 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             className="flex items-center gap-2 group cursor-pointer text-text-muted hover:text-primary transition-colors"
           >
             <div className="p-2 rounded-full group-hover:bg-primary/10 transition-colors">
-              <Send className="w-[20px] h-[20px]" />
+              <Send className="w-6 h-6 sm:w-5 sm:h-5" />
             </div>
           </button>
         </div>
 
         {/* Save (Bookmark) */}
-        <button className="p-2 text-text-muted hover:text-primary hover:bg-primary/10 rounded-full transition-colors cursor-pointer">
-          <Bookmark className="w-[20px] h-[20px]" />
+        <button 
+          onClick={handleSave}
+          className={`p-2 rounded-full transition-all cursor-pointer ${saved ? 'text-primary bg-primary/10' : 'text-text-muted hover:text-primary hover:bg-primary/10'}`}
+        >
+          <Bookmark className={`w-6 h-6 sm:w-5 sm:h-5 ${saved ? 'fill-current' : ''}`} />
         </button>
       </div>
 

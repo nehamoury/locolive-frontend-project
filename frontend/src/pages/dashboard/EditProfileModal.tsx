@@ -3,6 +3,7 @@ import { X, Camera, Loader2, Save } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { BACKEND } from '../../utils/config';
+import { nullString } from '../../utils/string';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -11,8 +12,8 @@ interface EditProfileModalProps {
 
 const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
   const { user, updateUser } = useAuth();
-  const [fullName, setFullName] = useState(user?.full_name || '');
-  const [bio, setBio] = useState(user?.bio || '');
+  const [fullName, setFullName] = useState(nullString(user?.full_name));
+  const [bio, setBio] = useState(nullString(user?.bio));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

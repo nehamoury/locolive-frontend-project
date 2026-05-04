@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/helpers';
 import PostCard from '../../components/post/PostCard';
 import { X as CloseIcon } from 'lucide-react';
+import { nullString } from '../../utils/string';
 
 interface SavedViewProps {
     isSettingsView?: boolean;
@@ -33,10 +34,24 @@ const SavedView: FC<SavedViewProps> = ({ isSettingsView }) => {
     const fetchSavedItems = async () => {
         setLoading(true);
         try {
-            // Currently backend only supports saved reels
-            const { data } = await api.get('/reels/saved');
-            const items = data.reels || data || [];
-            setSavedItems(items);
+            // Fetch both saved reels and saved posts
+            const [reelsRes, postsRes] = await Promise.all([
+                api.get('/reels/saved'),
+                api.get('/posts/saved')
+            ]);
+            
+            const reelsData = reelsRes.data.data?.reels || reelsRes.data.reels || reelsRes.data.data || reelsRes.data || [];
+            const postsData = postsRes.data.data?.posts || postsRes.data.posts || postsRes.data.data || postsRes.data || [];
+            
+            const reels = Array.isArray(reelsData) ? reelsData : [];
+            const posts = Array.isArray(postsData) ? postsData : [];
+            
+            // Merge and sort by created_at descending (approximate if mixed)
+            const allItems = [...reels, ...posts].sort((a, b) => 
+                new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+            );
+            
+            setSavedItems(allItems);
         } catch (error) {
             console.error('Failed to fetch saved items:', error);
             toast.error('Failed to load saved items');
@@ -65,11 +80,11 @@ const SavedView: FC<SavedViewProps> = ({ isSettingsView }) => {
                                 onClick={() => navigate(-1)}
                                 className="p-2 hover:bg-bg-card rounded-full transition-colors text-text-muted hover:text-text-base"
                             >
-                                <ArrowLeft className="w-6 h-6" />
+                                <ArrowLeft className="w-7 h-7" />
                             </button>
                             <div className="flex flex-col">
                                 <h1 className="text-2xl font-black text-text-base flex items-center gap-2">
-                                    <Bookmark className="w-6 h-6 text-primary fill-primary/10" />
+                                    <Bookmark className="w-7 h-7 text-primary fill-primary/10" />
                                     Saved Items
                                 </h1>
                                 <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Your private collection</p>
@@ -84,9 +99,9 @@ const SavedView: FC<SavedViewProps> = ({ isSettingsView }) => {
                         <div className="w-24 h-24 bg-bg-card rounded-[32px] flex items-center justify-center mb-6 shadow-sm border border-border-base/50">
                             <Bookmark className="w-10 h-10 text-text-muted/20" />
                         </div>
-                        <h2 className="text-xl font-black text-text-base mb-2 italic">Your collection is empty</h2>
+                        <h2 className="text-xl font-black text-text-base mb-2">Your collection is empty</h2>
                         <p className="text-sm text-text-muted font-medium max-w-[280px]">
-                            Save reels you love to see them here later.
+                            Save posts and reels you love to see them here later.
                         </p>
                         <button 
                             onClick={() => navigate('/dashboard/reels')}
@@ -99,10 +114,19 @@ const SavedView: FC<SavedViewProps> = ({ isSettingsView }) => {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {savedItems.map((item) => (
                             <motion.div
-                                layoutId={`saved-${item.id}`}
-                                key={item.id}
-                                onClick={() => navigate(`/dashboard/reels?id=${item.id}`)}
-                                className="aspect-[9/16] bg-bg-card rounded-2xl overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-xl transition-all border border-border-base/50"
+                                layoutId={`saved-${item.media_type || 'reel'}-${item.id}`}
+                                key={`${item.media_type || 'reel'}-${item.id}`}
+                                onClick={() => {
+                                    if (item.video_url && !item.media_type) {
+                                        navigate(`/dashboard/reels?id=${item.id}`);
+                                    } else {
+                                        setSelectedItem(item);
+                                    }
+                                }}
+                                className={cn(
+                                    "bg-bg-card rounded-2xl overflow-hidden group cursor-pointer relative shadow-sm hover:shadow-xl transition-all border border-border-base/50",
+                                    (item.video_url && !item.media_type) ? "aspect-[9/16]" : "aspect-square"
+                                )}
                             >
                                 {item.video_url || item.VideoURL || item.media_type === 'video' ? (
                                     <video
@@ -141,9 +165,9 @@ const SavedView: FC<SavedViewProps> = ({ isSettingsView }) => {
                                             <Clapperboard className="w-5 h-5 text-white drop-shadow-lg" />
                                         </div>
                                     )}
-                                    {item.caption && (
+                                    {nullString(item.caption) && (
                                         <p className="text-[10px] font-bold text-center line-clamp-3 mt-2 px-2 opacity-90 italic">
-                                            {item.caption}
+                                            {nullString(item.caption)}
                                         </p>
                                     )}
                                 </div>

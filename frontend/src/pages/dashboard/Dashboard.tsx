@@ -445,8 +445,8 @@ const Dashboard = () => {
         {/* Mobile Tab Bar */}
         {!pathname.includes('reels') && (
           <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-white/90 backdrop-blur-xl flex items-center justify-around z-[100] border-t border-slate-100 px-6 safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
-            <MobileNavItem icon={<Home className="w-6 h-6" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
-            <MobileNavItem icon={<Search className="w-6 h-6" />} active={pathname.includes('search')} onClick={() => navigate('/dashboard/search')} />
+            <MobileNavItem icon={<Home className="w-7 h-7" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
+            <MobileNavItem icon={<Search className="w-7 h-7" />} active={pathname.includes('search')} onClick={() => navigate('/dashboard/search')} />
             
             {/* Center Add Button with Pink Glow */}
             <div className="relative -mt-10">
@@ -456,14 +456,14 @@ const Dashboard = () => {
                 onClick={() => setIsCreateModalOpen(true)}
                 className="relative w-14 h-14 bg-brand-gradient rounded-[22px] flex items-center justify-center shadow-[0_8px_20px_rgba(255,59,142,0.4)] text-white border-4 border-white dark:border-slate-900"
               >
-                <Plus className="w-8 h-8 stroke-[3]" />
+                <Plus className="w-9 h-9 stroke-[3]" />
               </motion.button>
             </div>
 
-            <MobileNavItem icon={<Clapperboard className="w-6 h-6" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
+            <MobileNavItem icon={<Clapperboard className="w-7 h-7" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
             <MobileNavItem
               icon={user?.avatar_url ? (
-                <div className={`w-7 h-7 rounded-full p-[1.5px] ${pathname.includes('profile') ? 'bg-primary' : 'bg-slate-200'}`}>
+                <div className={`w-8 h-8 rounded-full p-[1.5px] ${pathname.includes('profile') ? 'bg-primary' : 'bg-slate-200'}`}>
                    <img
                     src={`${BACKEND}${user.avatar_url}`}
                     className="w-full h-full rounded-full object-cover bg-white"
@@ -471,7 +471,7 @@ const Dashboard = () => {
                   />
                 </div>
               ) : (
-                <User className="w-6 h-6" />
+                <User className="w-7 h-7" />
               )}
               active={pathname.includes('profile')}
               onClick={() => navigate(`/dashboard/profile/${user?.id}`)}

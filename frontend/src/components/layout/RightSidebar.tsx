@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
+import { useUserProfile } from '../../hooks/useUserData';
 
 interface RightSidebarProps {
   crossingsToday?: number;
@@ -23,8 +23,8 @@ const RightSidebar: FC<RightSidebarProps> = ({
   nearbyCount = 0,
   storiesCount = 0
 }) => {
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const { data: profile } = useUserProfile('me');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
@@ -148,10 +148,10 @@ const RightSidebar: FC<RightSidebarProps> = ({
         />
         <StatCard
           label="Saved"
-          count={0}
+          count={profile?.saved_count || 0}
           icon={<Star className="w-4 h-4" />}
           color="amber"
-          onClick={() => navigate(`/dashboard/profile/${user?.id}?tab=saved`)}
+          onClick={() => navigate(`/dashboard/saved`)}
         />
       </div>
 

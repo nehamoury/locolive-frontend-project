@@ -66,9 +66,9 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
               <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-[#FF3B8E] via-[#FF8C3B] to-[#9D3BFF] shadow-[0_10px_30px_rgba(255,59,142,0.3)]">
                 <div className="w-full h-full rounded-full bg-white p-1">
                   <div className="w-full h-full rounded-full overflow-hidden bg-slate-100 flex items-center justify-center border border-slate-200">
-                    {displayProfile?.avatar_url ? (
+                    {nullString(displayProfile?.avatar_url) ? (
                       <img
-                        src={displayProfile.avatar_url.startsWith('http') ? displayProfile.avatar_url : `${BACKEND}${displayProfile.avatar_url}`}
+                        src={nullString(displayProfile.avatar_url).startsWith('http') ? nullString(displayProfile.avatar_url) : `${BACKEND}${nullString(displayProfile.avatar_url)}`}
                         alt="Avatar"
                         className="w-full h-full object-cover"
                       />
@@ -131,7 +131,7 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
             {/* ── Bio Section ────────────────────────────────── */}
             <div className="text-center mb-10">
               <p className="text-base font-bold text-slate-700 tracking-tight italic">
-                {displayProfile?.bio || 'neha'}
+                {nullString(displayProfile?.bio) || 'neha'}
               </p>
             </div>
 

@@ -1,7 +1,7 @@
 import { type FC, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    ChevronLeft, 
+    ArrowLeft, 
     Plus, 
     Check, 
     Image as ImageIcon,
@@ -120,10 +120,10 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
                         onClick={onBack}
                         className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-all text-slate-600 active:scale-95"
                     >
-                        <ChevronLeft className="w-5 h-5" />
+                        <ArrowLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight italic">Create Highlight</h1>
+                        <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight ">Create Highlight</h1>
                         <p className="text-[10px] font-black text-pink-500 uppercase tracking-widest mt-0.5">
                             {step === 'select' ? `Select Stories (${selectedStories.length})` : 'Name your collection'}
                         </p>
@@ -197,7 +197,7 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
                                             <FolderPlus className="w-10 h-10 text-pink-500/30" />
                                         </div>
                                         <div className="space-y-3 max-w-xs px-6">
-                                            <h3 className="text-xl font-black text-slate-800 italic uppercase">Your Vault is Empty</h3>
+                                            <h3 className="text-xl font-black text-slate-800  uppercase">Your Vault is Empty</h3>
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-loose">
                                                 Stories are automatically saved to your vault after they expire. Check back later!
                                             </p>

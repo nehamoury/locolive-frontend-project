@@ -137,6 +137,18 @@ export const adminApi = {
     return data;
   },
 
+  // I. Comments Moderation
+  getComments: async (page: number = 1, pageSize: number = 20): Promise<{ items: any[]; total: number }> => {
+    const { data } = await api.get<{ items: any[]; total: number }>('/admin/comments', {
+      params: { page, page_size: pageSize },
+    });
+    return data;
+  },
+
+  moderateComment: async (commentId: string, source: 'post' | 'reel', action: 'approve' | 'delete'): Promise<void> => {
+    await api.post('/admin/comments/moderate', { comment_id: commentId, source, action });
+  },
+
   // Legacy / Other
   getMapActiveUsers: async (): Promise<{ users: MapUser[]; total: number }> => {
     const { data } = await api.get<{ users: MapUser[]; total: number }>('/admin/map/active');

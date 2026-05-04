@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import adminApi from '../../services/adminApi';
 import { toast } from 'react-hot-toast';
+import { nullString } from '../../utils/string';
 
 const Comments: React.FC = () => {
   const queryClient = useQueryClient();
@@ -71,13 +72,13 @@ const Comments: React.FC = () => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-xs">
-                        {comment.username[0].toUpperCase()}
+                        {(nullString(comment.username) || '?')[0].toUpperCase()}
                       </div>
-                      <span className="text-white font-medium">{comment.username}</span>
+                      <span className="text-white font-medium">{nullString(comment.username)}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-gray-300 max-w-md truncate">{comment.content}</p>
+                    <p className="text-gray-300 max-w-md truncate">{nullString(comment.content)}</p>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-md text-xs font-medium ${

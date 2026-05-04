@@ -322,7 +322,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                     <div className="mb-14">
                         <div className="flex items-center gap-2 mb-6 px-1">
                             <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />
-                            <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] italic">Featured Moments</span>
+                            <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Featured Moments</span>
                         </div>
                         <Highlights highlights={[]} isOwnProfile={false} />
                     </div>

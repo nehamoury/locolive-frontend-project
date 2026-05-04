@@ -175,7 +175,7 @@ function AppContent() {
           {/* Root Redirect */}
           <Route 
             path="/" 
-            element={<Navigate to={user ? "/dashboard/home" : "/login"} replace />} 
+            element={<Navigate to={user ? ((user.role === 'admin' || user.role === 'moderator') ? "/admin" : "/dashboard/home") : "/login"} replace />} 
           />
 
           {/* Catch-all 404 Route */}

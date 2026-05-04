@@ -180,7 +180,7 @@ const HighlightViewer = ({ highlightId, title, onClose }: HighlightViewerProps) 
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-gradient flex items-center justify-center text-white font-black italic">
+                <div className="w-10 h-10 rounded-full bg-brand-gradient flex items-center justify-center text-white font-black">
                    L
                 </div>
                 <div>

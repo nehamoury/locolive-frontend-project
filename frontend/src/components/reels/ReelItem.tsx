@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Volume2, VolumeX, Sparkles, Play, Pause } from 'lucide-react';
@@ -7,6 +8,7 @@ import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import ReelOptionsBottomSheet from './ReelOptionsBottomSheet';
 import ShareModal from '../share/ShareModal';
+import { nullString } from '../../utils/string';
 
 interface Reel {
   id: string;
@@ -35,6 +37,7 @@ interface ReelItemProps {
 }
 
 const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemProps) => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [liked, setLiked] = useState(reel.is_liked);
@@ -213,6 +216,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
         await api.post(`/reels/${reel.id}/save`);
       }
       setSaved(!saved);
+      queryClient.invalidateQueries({ queryKey: ['users', 'profile', 'me'] });
     } catch (err) {
       console.error('Save failed:', err);
     }
@@ -344,10 +348,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
               aria-label={liked ? "Unlike" : "Like"}
               className="flex items-center justify-center w-10 h-10 transition-all duration-300"
             >
-              <Heart
-                strokeWidth={2.4}
-                className={`w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${liked ? 'fill-primary text-primary' : 'text-white'}`}
-              />
+              <Heart className={`w-8 h-8 ${liked ? 'fill-primary text-primary' : 'text-white'}`} />
             </motion.button>
             <span className="text-[11.5px] font-bold text-white drop-shadow-md">{likesCount}</span>
           </div>
@@ -361,7 +362,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
               aria-label="View comments"
               className="flex items-center justify-center w-10 h-10 text-white transition-all"
             >
-              <MessageCircle strokeWidth={2.4} className="w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+              <MessageCircle className="w-8 h-8 text-white" />
             </motion.button>
             <span className="text-[11.5px] font-bold text-white drop-shadow-md">{reel.comments_count}</span>
           </div>
@@ -375,7 +376,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
               aria-label="Share reel"
               className="flex items-center justify-center w-10 h-10 text-white transition-all"
             >
-              <Share2 strokeWidth={2.5} className="w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+              <Share2 className="w-8 h-8 text-white" />
             </motion.button>
             <span className="text-[11px] font-bold text-white drop-shadow-md">{reel.shares_count || 0}</span>
           </div>
@@ -389,10 +390,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
               aria-label={saved ? "Unsave" : "Save"}
               className="flex items-center justify-center w-10 h-10 transition-all duration-300"
             >
-              <Bookmark
-                strokeWidth={2.5}
-                className={`w-7 h-7 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${saved ? 'fill-white text-white' : 'text-white'}`}
-              />
+              <Bookmark className={`w-8 h-8 ${saved ? 'fill-white text-white' : 'text-white'}`} />
             </motion.button>
           </div>
         </div>
@@ -439,7 +437,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
             <div className="w-11 h-11 rounded-[16px] p-0.5 bg-gradient-to-tr from-primary via-accent to-secondary shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
               <div className="w-full h-full rounded-[14px] border border-black overflow-hidden bg-gray-900">
                 <img
-                  src={getMediaUrl(reel.avatar_url, FALLBACKS.AVATAR(reel.username))}
+                  src={getMediaUrl(nullString(reel.avatar_url), FALLBACKS.AVATAR(reel.username))}
                   alt={reel.username}
                   className="w-full h-full object-cover"
                 />
@@ -467,9 +465,9 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
                 </motion.button>
               )}
             </div>
-            {reel.location_name && (
+            {nullString(reel.location_name) && (
               <p className="text-[9px] font-bold text-white/50  tracking-tighter flex items-center gap-1">
-                <Sparkles className="w-2 h-2 text-primary" /> {reel.location_name}
+                <Sparkles className="w-2 h-2 text-primary" /> {nullString(reel.location_name)}
               </p>
             )}
           </div>
@@ -479,7 +477,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
         {reel.caption && (
           <div className="max-w-[300px]">
             <p className={`text-white text-[13px] font-medium leading-relaxed font-body drop-shadow-lg ${!showFullCaption ? 'line-clamp-1' : ''}`}>
-              {reel.caption}
+              {nullString(reel.caption)}
             </p>
             {reel.caption.length > 50 && !showFullCaption && (
               <button

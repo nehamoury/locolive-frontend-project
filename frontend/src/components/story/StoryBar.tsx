@@ -56,9 +56,9 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
           {!hasMyStories && (
             <div
               onClick={(e) => { e.stopPropagation(); onCreateStory(); }}
-              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary border-2 border-white dark:border-bg-card flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer"
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary border-2 border-white dark:border-bg-card flex items-center justify-center shadow-lg hover:scale-110 transition-transform cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 stroke-[3] text-white" />
+              <Plus className="w-4.5 h-4.5 stroke-[3] text-white" />
             </div>
           )}
         </div>

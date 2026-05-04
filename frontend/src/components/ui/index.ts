@@ -5,3 +5,4 @@ export * from './Loader';
 export * from './PageLoader';
 export * from './OfflineBanner';
 export * from './IOSInstallBanner';
+export * from './SEOHead';

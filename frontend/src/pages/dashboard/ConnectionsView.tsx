@@ -6,10 +6,11 @@ import {
   MapPin,
   Loader2,
   Sparkles,
-  Lock
+  Lock,
+  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import {
@@ -53,6 +54,7 @@ const useSuggestions = () => {
 };
 
 const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', onUserSelect, onMessage }) => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab') as 'followers' | 'following' | null;
   const queryClient = useQueryClient();
@@ -194,10 +196,16 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', o
         {/* ── Header ───────────────────────────────────────────────────────────── */}
         <div className="flex flex-col mb-10">
           <div className="flex items-center gap-3 mb-2">
+            <button 
+              onClick={() => navigate(-1)}
+              className="md:hidden p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+            >
+              <ArrowLeft className="w-7 h-7" />
+            </button>
             <h1 className="text-4xl font-black tracking-tight text-gray-900 flex items-center gap-3">
               Connections
-              <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary" />
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Users className="w-7 h-7 text-primary" />
               </div>
             </h1>
           </div>
@@ -311,8 +319,8 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', o
           <section className="mt-10 pt-10 border-t border-gray-100">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-purple-500" />
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-purple-500" />
                 </div>
                 <h2 className="text-xl font-black text-gray-800 tracking-tight">People you may know</h2>
               </div>
@@ -435,13 +443,13 @@ const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => {
 
   return (
     <motion.div
-      whileHover={{ y: -4, x: 4 }}
-      className={`bg-white/80 backdrop-blur-sm p-4 md:p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 flex items-center justify-between group ${isPending ? 'bg-gray-50/50 border-dashed' : ''}`}
+      whileHover={{ y: -2, x: 2 }}
+      className={`bg-white/80 backdrop-blur-sm p-2.5 md:p-3 rounded-[20px] border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between group ${isPending ? 'bg-gray-50/40 border-dashed opacity-80' : ''}`}
     >
-      <div className="flex items-center gap-4 md:gap-5 overflow-hidden pr-2 md:pr-4 flex-1">
+      <div className="flex items-center gap-3 md:gap-4 overflow-hidden pr-2 flex-1">
         <div className="relative cursor-pointer group/avatar" onClick={onView}>
-          <div className={`w-14 h-14 md:w-16 md:h-16 rounded-full p-[2px] transition-all duration-500 ${isPending ? 'bg-gray-200' : 'bg-gradient-to-tr from-primary to-accent group-hover/avatar:rotate-12'}`}>
-            <div className="w-full h-full rounded-full bg-white p-1">
+          <div className={`w-11 h-11 md:w-13 md:h-13 rounded-full p-[1.5px] transition-all duration-500 ${isPending ? 'bg-gray-200' : 'bg-gradient-to-tr from-primary to-accent group-hover/avatar:rotate-12'}`}>
+            <div className="w-full h-full rounded-full bg-white p-0.5">
               <img 
                 src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} 
                 className="w-full h-full rounded-full object-cover" 
@@ -449,44 +457,39 @@ const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => {
               />
             </div>
           </div>
-          {isPending && (
-            <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-sm">
-              <Loader2 className="w-4 h-4 text-primary animate-spin" />
-            </div>
-          )}
         </div>
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onView}>
-          <div className="flex flex-col gap-0.5">
-            <h4 className="font-black text-gray-800 text-[14px] md:text-[16px] tracking-tight truncate">@{user.username}</h4>
+          <div className="flex flex-col">
+            <h4 className="font-black text-gray-800 text-[13.5px] md:text-[15px] tracking-tight truncate">@{user.username}</h4>
             <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${isPending ? 'text-amber-500' : 'text-emerald-500'}`}>
+              <span className={`text-[8.5px] font-bold uppercase tracking-tight ${isPending ? 'text-amber-500/70' : 'text-emerald-500'}`}>
                 {isPending ? 'Request Pending' : 'Connected'}
               </span>
             </div>
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2 md:gap-3 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         {!isPending ? (
           <button
             onClick={onMessage}
-            className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-2xl transition-all cursor-pointer shadow-sm hover:shadow-primary/20"
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
             title="Message"
           >
-            <MessageSquare className="w-5 h-5 md:w-6 md:h-6" />
+            <MessageSquare className="w-4 h-4" />
           </button>
         ) : (
-          <div className="flex flex-col items-center gap-1 px-3 py-2 bg-amber-50 rounded-2xl border border-amber-100/50">
-            <Lock className="w-4 h-4 text-amber-500" />
-            <span className="text-[9px] font-black uppercase text-amber-600 tracking-tighter">Locked</span>
+          <div className="flex flex-col items-center gap-0.5 px-2 py-0.5 bg-amber-50/50 rounded-lg border border-amber-100/20">
+            <Lock className="w-2.5 h-2.5 text-amber-500" />
+            <span className="text-[7.5px] font-black uppercase text-amber-600 tracking-tighter">Locked</span>
           </div>
         )}
         <button
           onClick={onRemove}
-          className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-2xl transition-all cursor-pointer border border-gray-100 group-hover:border-red-100"
+          className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-gray-50/50 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-all cursor-pointer border border-gray-100 group-hover:border-red-100"
           title={isPending ? "Cancel Request" : "Remove Connection"}
         >
-          <X className="w-5 h-5 md:w-6 md:h-6" />
+          <X className="w-4 h-4" />
         </button>
       </div>
     </motion.div>

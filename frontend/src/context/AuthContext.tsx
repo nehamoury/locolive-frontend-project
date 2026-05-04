@@ -14,6 +14,7 @@ export interface User {
   is_ghost_mode?: boolean;
   is_private?: boolean;
   panic_mode?: boolean;
+  saved_count?: number;
   role?: 'user' | 'admin' | 'moderator';
   provider?: string;
   is_profile_complete?: boolean;

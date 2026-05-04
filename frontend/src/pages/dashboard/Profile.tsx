@@ -23,11 +23,12 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
+import { nullString } from '../../utils/string';
 import ShareModal from '../../components/share/ShareModal';
 import EditProfileModal from '../../components/profile/EditProfileModal';
 import PostCard from '../../components/post/PostCard';
 import { X as CloseIcon } from 'lucide-react';
-import { Helmet } from 'react-helmet-async';
+import { SEOHead } from '../../components/ui/SEOHead';
 
 // --- Types ---
 interface ProfileData {
@@ -203,16 +204,20 @@ export const Profile: FC<ProfileProps> = () => {
 
     return (
         <div className="min-h-[100dvh] bg-white text-slate-900 pb-20 select-none transition-colors duration-300">
-            <Helmet>
-                <title>{profile ? `${profile.username} (@${profile.username})` : 'User Profile'}</title>
-            </Helmet>
+            <SEOHead
+                title={profile ? `${profile.full_name} (@${profile.username})` : 'User Profile'}
+                description={profile?.bio || `View ${profile?.username || 'this user'}'s profile on Locolive`}
+                image={profile?.avatar_url || undefined}
+                url={`https://locolive.appnity.co.in/profile/${profile?.id || ''}`}
+                type="profile"
+            />
             {/* Background Layer */}
             <div className="fixed inset-0 bg-linear-to-b from-pink-50/30 to-white -z-10" />
 
             {/* ── Mobile Header Sticky (md:hidden) ── */}
             <div className="sticky top-0 z-50 md:hidden flex items-center justify-between px-4 py-2 pt-[calc(0.25rem+env(safe-area-inset-top))] bg-white/80 backdrop-blur-md border-b border-pink-100/50">
                 <button onClick={() => navigate(-1)} className="p-1 -ml-1 active:opacity-50">
-                    <ChevronLeft className="w-6 h-6 text-slate-900" />
+                    <ChevronLeft className="w-7 h-7 text-slate-900" />
                 </button>
                 <h1 className="text-[19px] font-bold text-slate-900 truncate">
                     {profile?.username || 'User'}
@@ -220,7 +225,7 @@ export const Profile: FC<ProfileProps> = () => {
                 {isOwnProfile && (
                     <>
                         <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="active:opacity-50">
-                            <Settings className="w-6 h-6 text-slate-900" />
+                            <Settings className="w-7 h-7 text-slate-900" />
                         </button>
                         {isDropdownOpen && (
                             <>
@@ -245,9 +250,9 @@ export const Profile: FC<ProfileProps> = () => {
             <div className="max-w-[935px] mx-auto px-4 md:px-5">
 
                 {/* ── MOBILE HEADER CONTENT (Restored to previous centered style) ── */}
-                <div className="md:hidden flex flex-col items-center pt-3">
+                <div className="md:hidden flex flex-col items-center pt-1">
                     {/* Avatar */}
-                    <div className="relative mb-2">
+                    <div className="relative mb-1">
                         <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-[#FF3B8E] via-[#FF8C3B] to-[#9D3BFF] shadow-lg shadow-pink-500/10">
                             <div className="w-full h-full rounded-full bg-white p-0">
                                 <img
@@ -260,15 +265,20 @@ export const Profile: FC<ProfileProps> = () => {
                     </div>
 
                     {/* Username */}
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-[18px] font-medium text-slate-900">{profile?.full_name}</span>
+                    <div className="flex items-center gap-1.5 mb-0">
+                        <span className="text-[18px] font-medium text-slate-900">{nullString(profile?.full_name)}</span>
                         {profile?.is_verified && (
                             <CheckCircle2 className="w-5 h-5 text-[#FF006E] fill-[#FF006E]/10" />
                         )}
                     </div>
-
+                    {/* Bio */}
+                    <div className="w-full px-5  text-center mb-3 flex justify-center">
+                        <p className="text-[15px] text-slate-600 leading-relaxed font-medium line-clamp-3 text-center">
+                            {nullString(profile?.bio) || 'No bio yet.'}
+                        </p>
+                    </div>
                     {/* Stats Row */}
-                    <div className="flex items-center justify-around w-full max-w-[290px] mb-4">
+                    <div className="flex items-center justify-around w-full max-w-[290px] mb-2">
                         <div className="flex flex-col items-center">
                             <span className="text-[17px] font-bold text-slate-900">{posts.length + reels.length}</span>
                             <span className="text-[13px] text-slate-500 font-medium">Posts</span>
@@ -294,18 +304,18 @@ export const Profile: FC<ProfileProps> = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-2 w-full max-w-[400px] mb-4 px-0">
+                    <div className="flex items-center gap-2 w-full max-w-[400px] mb-2 px-0">
                         {isOwnProfile ? (
                             <>
                                 <button
                                     onClick={() => navigate('/dashboard/settings?section=account_info')}
-                                    className="flex-1 h-11 bg-pink-50/50 border border-pink-100 rounded-xl text-[15px] font-bold text-[#2F2F2F] active:scale-95 transition-all shadow-sm"
+                                    className="flex-1 h-11 bg-pink-50/50 border border-pink-100 rounded-md text-[15px] font-bold text-[#2F2F2F] active:scale-95 transition-all shadow-sm"
                                 >
                                     Edit profile
                                 </button>
                                 <button
                                     onClick={() => setIsShareModalOpen(true)}
-                                    className="flex-1 h-11 bg-pink-50/50  border border-pink-100 rounded-xl text-[15px] font-bold text-[#2F2F2F] active:scale-95 transition-all shadow-sm"
+                                    className="flex-1 h-11 bg-pink-50/50  border border-pink-100 rounded-md text-[15px] font-bold text-[#2F2F2F] active:scale-95 transition-all shadow-sm"
                                 >
                                     Share profile
                                 </button>
@@ -331,12 +341,7 @@ export const Profile: FC<ProfileProps> = () => {
                         )}
                     </div>
 
-                    {/* Bio */}
-                    <div className="px-6 text-center mb-2">
-                        <p className="text-[15px] text-slate-600 leading-relaxed font-medium line-clamp-3">
-                            {profile?.bio || 'No bio yet.'}
-                        </p>
-                    </div>
+
                 </div>
 
                 {/* ── DESKTOP HEADER CONTENT (Instagram Style) ── */}

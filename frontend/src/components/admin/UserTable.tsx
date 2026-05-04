@@ -1,5 +1,6 @@
 import { Eye, Ban, Trash2, Shield, MoreHorizontal, UserCheck, ShieldAlert } from 'lucide-react';
 import type { AdminUser } from '../../types/admin';
+import { nullString } from '../../utils/string';
 
 interface UserTableProps {
   users: AdminUser[];
@@ -61,7 +62,7 @@ export function UserTable({ users, isLoading, onView, onAction }: UserTableProps
                         <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-900">
-                          <span className="text-sm font-black text-white">{(user.full_name || user.username)[0]}</span>
+                          <span className="text-sm font-black text-white">{(nullString(user.full_name) || nullString(user.username) || '?')[0]}</span>
                         </div>
                       )}
                     </div>
@@ -70,8 +71,8 @@ export function UserTable({ users, isLoading, onView, onAction }: UserTableProps
                     )}
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900 leading-tight">{user.full_name || user.username}</p>
-                    <p className="text-xs font-medium text-gray-400 mt-0.5">@{user.username}</p>
+                    <p className="font-bold text-gray-900 leading-tight">{nullString(user.full_name) || nullString(user.username)}</p>
+                    <p className="text-xs font-medium text-gray-400 mt-0.5">@{nullString(user.username)}</p>
                   </div>
                 </div>
               </td>
@@ -92,7 +93,7 @@ export function UserTable({ users, isLoading, onView, onAction }: UserTableProps
               
               <td className="px-6 py-5">
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-gray-700 truncate max-w-[150px]">{user.email || '—'}</p>
+                  <p className="text-sm font-bold text-gray-700 truncate max-w-[150px]">{nullString(user.email) || '—'}</p>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Verified Device</p>
                 </div>
               </td>

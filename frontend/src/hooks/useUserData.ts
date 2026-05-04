@@ -51,6 +51,7 @@ export interface UserProfile {
   connection_count: number;
   following_count: number;
   followers_count: number;
+  saved_count: number;
   views_count: number;
   crossings_count: number;
   last_active_at: string;
@@ -97,7 +98,7 @@ export const useUserConnections = (userId: string | null, isMe: boolean = false)
     queryKey: userKeys.connections(userId || ''),
     queryFn: async () => {
       if (!userId) throw new Error('userId is required');
-      const endpoint = isMe ? '/me/connections' : `/users/${userId}/connections`;
+      const endpoint = isMe ? '/connections' : `/users/${userId}/connections`;
       const { data } = await api.get<UserConnection[]>(endpoint);
       return data;
     },
@@ -112,10 +113,12 @@ export const useUserFollowers = (userId: string | null, isMe: boolean = false) =
     queryKey: userKeys.followers(userId || ''),
     queryFn: async () => {
       if (!userId) throw new Error('userId is required');
-      const endpoint = isMe ? '/me/followers' : `/users/${userId}/followers`;
+      const endpoint = isMe ? '/connections/followers' : `/users/${userId}/followers`;
       const { data } = await api.get(endpoint);
-      // Normalize response - ensure it's always an array
-      const normalized = Array.isArray(data) ? data : (data?.followers || data?.data || []);
+      // Normalize response - handle direct array, {followers: []}, or {success: true, data: []}, or {success: true, data: {followers: []}}
+      const normalized = Array.isArray(data) 
+        ? data 
+        : (data?.data?.followers || data?.followers || data?.data || data?.items || []);
       console.log(`[useUserFollowers] endpoint: ${endpoint}, data type:`, typeof data, 'isArray:', Array.isArray(data), 'normalized:', normalized.length);
       return normalized as UserConnection[];
     },
@@ -130,10 +133,12 @@ export const useUserFollowing = (userId: string | null, isMe: boolean = false) =
     queryKey: userKeys.following(userId || ''),
     queryFn: async () => {
       if (!userId) throw new Error('userId is required');
-      const endpoint = isMe ? '/me/following' : `/users/${userId}/following`;
+      const endpoint = isMe ? '/connections/following' : `/users/${userId}/following`;
       const { data } = await api.get(endpoint);
-      // Normalize response - ensure it's always an array
-      const normalized = Array.isArray(data) ? data : (data?.following || data?.data || []);
+      // Normalize response - handle direct array, {following: []}, or {success: true, data: []}, or {success: true, data: {following: []}}
+      const normalized = Array.isArray(data) 
+        ? data 
+        : (data?.data?.following || data?.following || data?.data || data?.items || []);
       console.log(`[useUserFollowing] endpoint: ${endpoint}, data type:`, typeof data, 'isArray:', Array.isArray(data), 'normalized:', normalized.length);
       return normalized as UserConnection[];
     },

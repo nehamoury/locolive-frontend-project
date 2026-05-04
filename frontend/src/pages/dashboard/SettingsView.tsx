@@ -56,7 +56,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
         { id: 'privacy', label: 'Privacy', desc: 'Manage your privacy settings', icon: <Shield className="w-4 h-4" />, color: 'bg-purple-100 text-purple-600' },
         { id: 'security', label: 'Security', desc: 'Password, 2FA and login activity', icon: <Lock className="w-4 h-4" />, color: 'bg-blue-100 text-blue-600' },
         { id: 'notifications', label: 'Notifications', desc: 'Manage email and push alerts', icon: <Bell className="w-4 h-4" />, color: 'bg-rose-100 text-rose-600' },
-        { id: 'saved', label: 'Saved Items', desc: 'Your private collection of reels', icon: <Bookmark className="w-4 h-4" />, color: 'bg-amber-100 text-amber-600' },
+        { id: 'saved', label: 'Saved Items', desc: 'Your private collection of posts and reels', icon: <Bookmark className="w-4 h-4" />, color: 'bg-amber-100 text-amber-600' },
       ]
     },
     {

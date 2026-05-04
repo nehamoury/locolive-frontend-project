@@ -21,8 +21,11 @@ export const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
     return <SplashScreen />;
   }
 
-  // Redirect to dashboard if user is already authenticated
+  // Redirect to dashboard or admin panel if user is already authenticated
   if (user) {
+    if (user.role === 'admin' || user.role === 'moderator') {
+      return <Navigate to="/admin" replace />;
+    }
     return <Navigate to="/dashboard/home" replace />;
   }
 

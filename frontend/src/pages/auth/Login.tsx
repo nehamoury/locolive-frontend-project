@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import { SEOHead } from '../../components/ui/SEOHead';
 import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/button';
@@ -137,9 +137,7 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden font-sans py-12 px-4 select-none transition-colors duration-300">
-      <Helmet>
-        <title>Login</title>
-      </Helmet>
+      <SEOHead title="Login" description="Sign in to Locolive and discover people, stories, and moments around you." url="https://locolive.appnity.co.in/login" />
 
       {/* Decorative Gradients */}
       <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[60%] h-[40%] bg-primary/20 blur-[130px] rounded-full" />
