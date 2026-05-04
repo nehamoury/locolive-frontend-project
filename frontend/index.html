@@ -1,111 +1,56 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#ff3b8e" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Locolive" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-    <!-- ═══ SEO & OpenGraph Meta Tags (Static — visible to all scrapers) ═══ -->
-    <meta name="description" content="Discover people, stories, and moments around you. Locolive is a location-based social platform where proximity connects you to the world." />
-    <meta name="keywords" content="location-based social, discover people nearby, live stories, reels, social network, proximity, Locolive" />
-    <meta name="author" content="Locolive" />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://locolive.appnity.co.in" />
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ff3b8e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Locolive" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&display=swap"
+    rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-    <!-- Open Graph / Facebook / WhatsApp -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://locolive.appnity.co.in" />
-    <meta property="og:title" content="Locolive — Discover Your World, Nearby" />
-    <meta property="og:description" content="Discover people, stories, and moments around you. Locolive is a location-based social platform where proximity connects you to the world." />
-    <meta property="og:image" content="https://locolive.appnity.co.in/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Locolive — Location-based social platform" />
-    <meta property="og:site_name" content="Locolive" />
-    <meta property="og:locale" content="en_US" />
+  <title>Locolive | Discover Your Local World</title>
+  <meta name="description"
+    content="Discover people, stories, and moments around you. Locolive is a location-based social platform where proximity connects you to the world." />
+  <meta name="keywords"
+    content="location-based social, discover people nearby, live stories, reels, social network, proximity, Locolive" />
+  <meta name="author" content="Locolive" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://locolive.appnity.co.in" />
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://locolive.appnity.co.in" />
-    <meta name="twitter:title" content="Locolive — Discover Your World, Nearby" />
-    <meta name="twitter:description" content="Discover people, stories, and moments around you. Locolive is a location-based social platform where proximity connects you to the world." />
-    <meta name="twitter:image" content="https://locolive.appnity.co.in/og-image.png" />
-    <meta name="twitter:image:alt" content="Locolive — Location-based social platform" />
+  <!-- Open Graph / Facebook / WhatsApp -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://locolive.appnity.co.in" />
+  <meta property="og:title" content="Locolive | Discover Your Local World" />
+  <meta property="og:description"
+    content="A privacy-centric social platform connecting you with local stories and people in real-time." />
+  <meta property="og:image" content="https://locolive.appnity.co.in/pwa-512x512.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:site_name" content="Locolive" />
 
-    <!-- Mobile Debugging Console (Eruda) — DEV ONLY -->
-    <!-- REMOVE or comment out these 2 lines before production build -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:url" content="https://locolive.appnity.co.in" />
+  <meta name="twitter:title" content="Locolive | Discover Your Local World" />
+  <meta name="twitter:description"
+    content="A privacy-centric social platform connecting you with local stories and people in real-time." />
+  <meta name="twitter:image" content="https://locolive.appnity.co.in/pwa-512x512.png" />
+</head>
 
-    <script>
-      // Global Defensive Layer against "Cannot read property of undefined" crashes
-      (function() {
-        var originalAdd = EventTarget.prototype.addEventListener;
-        var originalRemove = EventTarget.prototype.removeEventListener;
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
 
-        function safeWrapper(originalFunc) {
-          return function(type, listener, options) {
-            if (!this || this === undefined) {
-              console.warn('Blocked add/removeEventListener on undefined target');
-              return;
-            }
-            try {
-              return originalFunc.apply(this, arguments);
-            } catch (e) {
-              console.error('EventListener Error caught:', e);
-            }
-          };
-        }
-
-        EventTarget.prototype.addEventListener = safeWrapper(originalAdd);
-        EventTarget.prototype.removeEventListener = safeWrapper(originalRemove);
-        
-        // Explicitly protect window and document as well (redundant but safer for some mobile engines)
-        window.addEventListener = safeWrapper(window.addEventListener);
-        window.removeEventListener = safeWrapper(window.removeEventListener);
-        document.addEventListener = safeWrapper(document.addEventListener);
-        document.removeEventListener = safeWrapper(document.removeEventListener);
-      })();
-
-      // Global error suppressor for PWA stability
-      window.onerror = function(msg, url, line, col, error) {
-        if (msg.includes('ResizeObserver') || msg.includes('Google') || msg.includes('undefined (reading \'addEventListener\')')) {
-          console.warn('Suppressed known harmless/handled error:', msg);
-          return true;
-        }
-        return false; // Let other errors pass to ErrorBoundary
-      };
-    </script>
-    <title>Locolive | Location-Based Social Networking</title>
-    <meta name="description" content="Locolive is a privacy-centric social platform that connects you with people and stories happening right where you are. Discover, share, and connect safely." />
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://locolive.app/" />
-    <meta property="og:title" content="Locolive | Discover Your Local World" />
-    <meta property="og:description" content="A privacy-centric social platform connecting you with local stories and people in real-time." />
-    <meta property="og:image" content="https://locolive.app/og-image.png" />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://locolive.app/" />
-    <meta property="twitter:title" content="Locolive | Discover Your Local World" />
-    <meta property="twitter:description" content="A privacy-centric social platform connecting you with local stories and people in real-time." />
-    <meta property="twitter:image" content="https://locolive.app/og-image.png" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
 </html>

@@ -13,6 +13,7 @@ import { usePWA } from '../../hooks/usePWA';
 import { useTheme } from '../../context/ThemeContext';
 import UserSearch from './UserSearch';
 import { gamificationService, type StreakData } from '../../services/gamificationService';
+import LogoImg from '../../assets/WhatsApp Image 2026-04-28 at 4.00.46 PM.png';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -120,7 +121,7 @@ const Sidebar: FC<SidebarProps> = ({
             onClick={() => navigate('/dashboard/home')}
           >
             <img 
-              src="/src/assets/WhatsApp Image 2026-04-28 at 4.00.46 PM.png" 
+              src={LogoImg} 
               alt="Locolive" 
               className={`rounded-xl object-cover shadow-lg shadow-primary/10 border border-white/50 transition-all duration-300 ${effectiveCollapsed ? 'w-10 h-10' : 'w-9 h-9'}`}
             />
