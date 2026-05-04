@@ -152,7 +152,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
           setEmailMsg('Email is available');
         } else {
           setEmailStatus('taken');
-          setEmailMsg(res.data.message || 'Email is already registered');
+          setEmailMsg(res.data.message || 'Email is unavailable');
         }
       } catch (err: any) {
         setEmailStatus('error');
