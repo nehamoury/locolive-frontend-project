@@ -165,8 +165,8 @@ export const adminApi = {
   },
 
   // J. Admins Management
-  getAdmins: async (): Promise<any[]> => {
-    const { data } = await api.get<any[]>('/admin/admins');
+  getAdmins: async (): Promise<{ items: any[]; total: number }> => {
+    const { data } = await api.get<{ items: any[]; total: number }>('/admin/admins');
     return data;
   },
 
@@ -185,16 +185,16 @@ export const adminApi = {
   },
 
   // K. Notifications History
-  getNotifications: async (page: number = 1, pageSize: number = 20): Promise<any[]> => {
-    const { data } = await api.get<any[]>('/admin/notifications', {
+  getNotifications: async (page: number = 1, pageSize: number = 20): Promise<{ items: any[]; total: number }> => {
+    const { data } = await api.get<{ items: any[]; total: number }>('/admin/notifications', {
       params: { page, page_size: pageSize },
     });
     return data;
   },
 
   // L. Crossings
-  getCrossings: async (page: number = 1, pageSize: number = 20): Promise<any[]> => {
-    const { data } = await api.get<any[]>('/admin/crossings', {
+  getCrossings: async (page: number = 1, pageSize: number = 20): Promise<{ items: any[]; total: number }> => {
+    const { data } = await api.get<{ items: any[]; total: number }>('/admin/crossings', {
       params: { page, page_size: pageSize },
     });
     return data;
