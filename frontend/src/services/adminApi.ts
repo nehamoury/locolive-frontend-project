@@ -163,6 +163,42 @@ export const adminApi = {
   logout: async (): Promise<void> => {
     await api.post('/admin/logout');
   },
+
+  // J. Admins Management
+  getAdmins: async (): Promise<any[]> => {
+    const { data } = await api.get<any[]>('/admin/admins');
+    return data;
+  },
+
+  createAdmin: async (params: CreateAdminParams): Promise<any> => {
+    const { data } = await api.post<any>('/admin/admins', params);
+    return data;
+  },
+
+  updateAdmin: async (id: string, role: string): Promise<any> => {
+    const { data } = await api.put<any>(`/admin/admins/${id}`, { role });
+    return data;
+  },
+
+  deleteAdmin: async (id: string): Promise<void> => {
+    await api.delete(`/admin/admins/${id}`);
+  },
+
+  // K. Notifications History
+  getNotifications: async (page: number = 1, pageSize: number = 20): Promise<any[]> => {
+    const { data } = await api.get<any[]>('/admin/notifications', {
+      params: { page, page_size: pageSize },
+    });
+    return data;
+  },
+
+  // L. Crossings
+  getCrossings: async (page: number = 1, pageSize: number = 20): Promise<any[]> => {
+    const { data } = await api.get<any[]>('/admin/crossings', {
+      params: { page, page_size: pageSize },
+    });
+    return data;
+  },
 };
 
 export default adminApi;

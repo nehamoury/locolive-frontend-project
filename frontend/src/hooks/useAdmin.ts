@@ -108,3 +108,32 @@ export const useAdminDeleteStory = () => {
     },
   });
 };
+
+export const useAdminAdmins = () => {
+  return useQuery({
+    queryKey: ['admin', 'admins'],
+    queryFn: () => adminApi.getAdmins(),
+  });
+};
+
+export const useAdminNotifications = (page: number = 1, pageSize: number = 20) => {
+  return useQuery({
+    queryKey: ['admin', 'notifications', page, pageSize],
+    queryFn: () => adminApi.getNotifications(page, pageSize),
+  });
+};
+
+export const useAdminCrossings = (page: number = 1, pageSize: number = 20) => {
+  return useQuery({
+    queryKey: ['admin', 'crossings', page, pageSize],
+    queryFn: () => adminApi.getCrossings(page, pageSize),
+  });
+};
+
+export const useAdminMapUsers = () => {
+  return useQuery({
+    queryKey: ['admin', 'map', 'users'],
+    queryFn: () => adminApi.getMapActiveUsers(),
+    refetchInterval: 5000, // Update map every 5 seconds
+  });
+};
