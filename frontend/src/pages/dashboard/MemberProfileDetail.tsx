@@ -130,7 +130,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
         );
     }
 
-    if (errorStatus === 403) {
+    if (profile?.is_private && profile?.connection_status !== 'accepted' && profile?.connection_status !== 'self') {
         return (
             <div className="h-full bg-white flex flex-col">
                 <div className="p-8">
@@ -144,7 +144,13 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                     </div>
                     <h3 className="text-2xl font-black text-gray-900 mb-3 uppercase italic tracking-tight">Private Account</h3>
                     <p className="text-sm text-gray-400 font-bold max-w-[300px] leading-relaxed mb-10">Follow this account to see their photos, videos and moments on Locolive.</p>
-                    <button className="px-10 py-4 bg-gray-900 text-white rounded-[24px] font-black uppercase tracking-[2px] text-xs shadow-2xl">Send Connection Request</button>
+                    <button 
+                        onClick={handleFollow}
+                        disabled={profile.connection_status === 'pending' || profile.requested}
+                        className="px-10 py-4 bg-gray-900 text-white rounded-[24px] font-black uppercase tracking-[2px] text-xs shadow-2xl disabled:opacity-50"
+                    >
+                        {profile.connection_status === 'pending' || profile.requested ? 'Request Sent' : 'Send Connection Request'}
+                    </button>
                 </div>
             </div>
         );
