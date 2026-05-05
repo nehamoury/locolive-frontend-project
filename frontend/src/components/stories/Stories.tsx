@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { Plus } from 'lucide-react';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl } from '../../utils/media';
 
 export interface Story {
   id: string;
@@ -48,7 +48,7 @@ const Stories = ({ stories, onStoryClick, onCreateStory }: StoriesProps) => {
                 <div className="w-full h-full rounded-2xl bg-gray-100 dark:bg-bg-base flex items-center justify-center overflow-hidden">
                   {stories[0]?.avatar_url ? (
                     <img
-                      src={stories[0].avatar_url.startsWith('http') ? stories[0].avatar_url : `${BACKEND}${stories[0].avatar_url}`}
+                      src={getMediaUrl(stories[0].avatar_url)}
                       alt="Your Story"
                       className="w-full h-full object-cover"
                     />
@@ -85,7 +85,7 @@ const Stories = ({ stories, onStoryClick, onCreateStory }: StoriesProps) => {
                 <div className="w-full h-full rounded-2xl bg-gray-100 dark:bg-bg-base overflow-hidden">
                   {story.avatar_url ? (
                     <img
-                      src={story.avatar_url.startsWith('http') ? story.avatar_url : `${BACKEND}${story.avatar_url}`}
+                      src={getMediaUrl(story.avatar_url)}
                       alt={story.username}
                       className="w-full h-full object-cover"
                     />

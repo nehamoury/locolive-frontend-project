@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Compass, 
-  Map as MapIcon, 
-  Users, 
-  Footprints, 
-  Sparkles, 
-  PlayCircle, 
+import {
+  Compass,
+  Map as MapIcon,
+  Users,
+  Footprints,
+  Sparkles,
+  PlayCircle,
   Flame,
   Layout,
   ArrowLeft
@@ -32,6 +32,9 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
   const setActiveTab = (tab: ExploreTab) => {
     setActiveTabState(tab);
     setSearchParams({ tab }, { replace: true });
+    if (tab === 'heatmap') {
+      setViewMode('map');
+    }
   };
 
   useEffect(() => {
@@ -39,21 +42,33 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
     if (tabParam && tabParam !== activeTab) {
       setActiveTabState(tabParam);
     }
+    // Always force map view for heatmap tab
+    if (tabParam === 'heatmap') {
+      setViewMode('map');
+    }
   }, [searchParams, activeTab]);
-  
-  const position = useMemo(() => 
-    userPosition ? { lat: userPosition[0], lng: userPosition[1] } : null
-  , [userPosition]);
 
-  const { 
-    nearbyUsers, 
-    crossings, 
-    suggestedUsers, 
-    mapStories, 
+  useEffect(() => {
+    const handleToggle = (e: Event) => {
+      const mode = (e as CustomEvent).detail as 'feed' | 'map';
+      if (mode) setViewMode(mode);
+    };
+    window.addEventListener('toggle_explore_view', handleToggle);
+    return () => window.removeEventListener('toggle_explore_view', handleToggle);
+  }, []);
+
+  const position = useMemo(() =>
+    userPosition ? { lat: userPosition[0], lng: userPosition[1] } : null
+    , [userPosition]);
+
+  const {
+    nearbyUsers,
+    crossings,
+    suggestedUsers,
+    mapStories,
     loading,
     refresh,
-    removeSuggestedUser,
-    removeNearbyUser
+    dismissUser
   } = useExploreData(position);
 
   const tabs = [
@@ -67,13 +82,13 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
 
   return (
     <div className="h-full w-full bg-bg-base flex flex-col overflow-hidden relative transition-colors duration-300">
-      
+
       {/* ─── Map View Overlay UI (Floating) ─── */}
       <AnimatePresence>
         {viewMode === 'map' && (
           <>
             {/* Minimalist Back to Feed Toggle (Naked Arrow) */}
-            <motion.div 
+            <motion.div
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -20, opacity: 0 }}
@@ -93,7 +108,7 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
       {/* ─── Feed View Header (Structured) ─── */}
       <AnimatePresence>
         {viewMode === 'feed' && (
-          <motion.header 
+          <motion.header
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -101,7 +116,7 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div className="flex flex-col">
-                <h1 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-text-base">Explore</h1>
+                <h1 className="text-2xl sm:text-3xl font-black  uppercase tracking-tighter text-text-base">Explore</h1>
                 <p className="text-[9px] sm:text-[10px] font-bold text-text-muted uppercase tracking-[3px] mt-1">Discover your world</p>
               </div>
 
@@ -128,11 +143,10 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as ExploreTab)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
-                    activeTab === tab.id
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${activeTab === tab.id
                       ? 'bg-text-base text-bg-base border-text-base shadow-xl'
                       : 'bg-bg-card text-text-muted border-border-base hover:border-text-muted/30'
-                  }`}
+                    }`}
                 >
                   {tab.icon}
                   {tab.label}
@@ -156,14 +170,14 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
                 exit={{ opacity: 0, y: -20 }}
                 className="h-full"
               >
-                <ExploreFeed 
+                <ExploreFeed
                   activeTab={activeTab}
                   data={{ nearbyUsers, crossings, suggestedUsers, mapStories, loading }}
                   onUserSelect={onUserSelect}
                   onStoryClick={onStoryClick}
                   onRefresh={refresh}
-                  onRemoveSuggested={removeSuggestedUser}
-                  onRemoveNearby={removeNearbyUser}
+                  onRemoveSuggested={dismissUser}
+                  onRemoveNearby={dismissUser}
                 />
               </motion.div>
             ) : (
@@ -174,11 +188,11 @@ const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePagePr
                 exit={{ opacity: 0 }}
                 className="h-full w-full"
               >
-                <MapPage 
-                  onUserSelect={onUserSelect} 
+                <MapPage
+                  onUserSelect={onUserSelect}
                   onStorySelect={onStoryClick}
-                  userPosition={userPosition} 
-                  // In map view, we might want to override some filters based on activeTab
+                  userPosition={userPosition}
+                // In map view, we might want to override some filters based on activeTab
                 />
               </motion.div>
             )}

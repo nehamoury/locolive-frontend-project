@@ -56,20 +56,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       try {
         // Verify token by fetching user profile
-        const response = await api.get('/profile/me', {
-          headers: { Authorization: `Bearer ${storedToken}` }
-        });
+        // The interceptor will handle 401 automatically by trying a refresh
+        const response = await api.get('/profile/me');
         
         const user = response.data;
         authStore.login(storedToken, user, !user.is_profile_complete);
       } catch (err: unknown) {
         console.error('Token verification failed:', err);
-        const status = (err as { response?: { status?: number } }).response?.status;
-        if (status === 401 || status === 403) {
-          authStore.logout();
-          localStorage.removeItem('token');
-          localStorage.removeItem('auth-storage');
-        }
+        // Note: The api interceptor will have already attempted refresh.
+        // If we get here, it means the session is truly dead.
+        authStore.logout();
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth-storage');
       } finally {
         setLoading(false);
       }

@@ -102,75 +102,84 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
     let isSubscribed = true;
 
     const handlePlay = async () => {
-      if (isActive) {
+      if (isActive && isPlaying) {
         try {
-          // Absolute Silence: Force pause all other videos on the page
+          // Absolute Silence: Force pause all other videos
           document.querySelectorAll('video').forEach(v => {
             if (v !== video) {
               v.pause();
               v.muted = true;
-              v.volume = 0;
             }
           });
 
-          // Reset to beginning for a fresh start
-          video.currentTime = 0;
           video.muted = isMuted;
-          video.volume = 1;
+          video.volume = isMuted ? 0 : 1;
 
-          // Small delay to ensure browser is ready after scroll
           await new Promise(resolve => setTimeout(resolve, 50));
 
-          if (isSubscribed) {
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-              await playPromise;
-              setIsPlaying(true);
-            }
+          if (isSubscribed && isPlaying) {
+            await video.play();
           }
         } catch (error) {
-          if (isSubscribed) {
-            console.log("Autoplay prevented or interrupted:", error);
-            setIsPlaying(false);
-            // If it failed and we are not muted, try playing muted as fallback
-            if (!video.muted) {
-              video.muted = true;
-              video.play().catch(() => { });
-            }
-          }
+          console.log("Playback interrupted:", error);
         }
       } else {
         video.pause();
-        video.currentTime = 0;
-        video.muted = true;
-        video.volume = 0;
-        setIsPlaying(false);
       }
     };
 
     handlePlay();
 
-    // Sync with MediaSession API
-    if (isActive && 'mediaSession' in navigator) {
+    return () => {
+      isSubscribed = false;
+      if (!isActive && video) {
+        video.pause();
+        video.currentTime = 0;
+      }
+    };
+  }, [isActive, isPlaying, isMuted]);
+
+  // Effect for MediaSession (Depends only on isActive)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isActive) return;
+
+    if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: `LocoLive Reel`,
         artist: `@${reel.username}`,
         artwork: [{ src: getMediaUrl(reel.avatar_url, FALLBACKS.AVATAR(reel.username)), sizes: '512x512', type: 'image/png' }]
       });
 
-      navigator.mediaSession.setActionHandler('play', () => video.play());
-      navigator.mediaSession.setActionHandler('pause', () => video.pause());
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        video.play();
+        setIsPlaying(true);
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        video.pause();
+        setIsPlaying(false);
+      });
     }
 
     return () => {
-      isSubscribed = false;
-      if (video) {
-        video.pause();
-        video.currentTime = 0;
-        video.muted = true;
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'none';
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
       }
     };
-  }, [isActive, isMuted, reel.username, reel.avatar_url]);
+  }, [isActive, isPlaying, reel.username, reel.avatar_url]);
+
+  // Separate effect for Mute/Unmute to prevent video restart
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isActive || isMuted;
+      videoRef.current.volume = isMuted ? 0 : 1;
+    }
+  }, [isActive, isMuted]);
+
 
   const isLiking = useRef(false);
   const handleLike = async () => {
@@ -267,12 +276,12 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
     const video = videoRef.current;
     if (!video) return;
 
-    if (isPlaying) {
+    if (video.paused) {
+      video.play().catch(console.error);
+      setIsPlaying(true);
+    } else {
       video.pause();
       setIsPlaying(false);
-    } else {
-      video.play();
-      setIsPlaying(true);
     }
     setShowPlayAnim(true);
     setTimeout(() => setShowPlayAnim(false), 500);
@@ -291,7 +300,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
       {/* Primary High-Fidelity Video Foreground */}
       <video
         ref={videoRef}
-        src={shouldLoad ? getMediaUrl(reel.video_url) : ''}
+        src={shouldLoad ? getMediaUrl(reel.video_url) : undefined}
         className="relative z-10 w-full h-full object-cover drop-shadow-2xl"
         loop
         muted={!isActive || isMuted}
@@ -319,19 +328,6 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
         )}
       </AnimatePresence>
 
-      {/* Double Tap Heart Animation */}
-      <AnimatePresence>
-        {showHeartAnim && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0, rotate: -15 }}
-            animate={{ scale: 1.8, opacity: 1, rotate: 0 }}
-            exit={{ scale: 2.2, opacity: 0 }}
-            className="absolute z-50 pointer-events-none"
-          >
-            <Heart className="w-28 h-28 text-white fill-white drop-shadow-[0_0_30px_rgba(255,0,110,0.8)]" />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Overlay Gradients - Refined for depth */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent via-40% to-black pointer-events-none" />
@@ -346,9 +342,23 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
               whileTap={{ scale: 0.9 }}
               onClick={handleLike}
               aria-label={liked ? "Unlike" : "Like"}
-              className="flex items-center justify-center w-10 h-10 transition-all duration-300"
+              className="flex items-center justify-center w-10 h-10 transition-all duration-300 relative"
             >
               <Heart className={`w-8 h-8 ${liked ? 'fill-primary text-primary' : 'text-white'}`} />
+              
+              {/* Floating Heart Animation */}
+              <AnimatePresence>
+                {showHeartAnim && (
+                  <motion.div
+                    initial={{ y: 0, opacity: 1, scale: 1 }}
+                    animate={{ y: -60, opacity: 0, scale: 1.5 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute pointer-events-none"
+                  >
+                    <Heart className="w-8 h-8 fill-primary text-primary" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.button>
             <span className="text-[11.5px] font-bold text-white drop-shadow-md">{likesCount}</span>
           </div>
@@ -448,7 +458,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <h4 className="text-white font-black text-[13px]  tracking-wider font-brand drop-shadow-md">@{reel.username}</h4>
-              {reel.connection_status !== 'accepted' && (
+              {reel.user_id !== currentUserID && reel.connection_status !== 'accepted' && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -456,9 +466,9 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
                     e.stopPropagation();
                     handleFollow();
                   }}
-                  className={`px-2.5 py-0.5 rounded-full backdrop-blur-md border border-white/20 text-[9px] font-black uppercase tracking-widest transition-all ml-1 ${(isFollowing || reel.connection_status === 'pending')
-                    ? 'bg-white/30 text-white'
-                    : 'bg-primary/80 text-white hover:bg-primary'
+                  className={`px-4 py-1.5 rounded-[12px] shadow-lg text-[10px] font-bold uppercase tracking-wider transition-all ml-2 ${(isFollowing || reel.connection_status === 'pending')
+                    ? 'bg-white/20 backdrop-blur-md text-white border border-white/30'
+                    : 'bg-primary text-white hover:bg-primary-dark shadow-primary/20'
                     }`}
                 >
                   {(isFollowing || reel.connection_status === 'pending') ? 'Following' : 'Follow'}

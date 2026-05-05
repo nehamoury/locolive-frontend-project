@@ -1,5 +1,5 @@
 import { useState, type FC, useEffect } from 'react';
-import { Camera, MapPin, Check } from 'lucide-react';
+import { Camera, MapPin, Check, LogOut } from 'lucide-react';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import { useAuth } from '../../context/AuthContext';
@@ -135,10 +135,10 @@ const AccountInfoSection: FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-4 sm:space-y-6 pb-10">
       <div className="space-y-1">
-        <h2 className="text-2xl font-black text-text-base">Account Information</h2>
-        <p className="text-[14px] text-text-muted font-bold">Manage your personal information and account details</p>
+        <h2 className="text-xl sm:text-2xl font-black text-text-base">Account Information</h2>
+        <p className="text-[12px] sm:text-[14px] text-text-muted font-bold">Manage your personal information and account details</p>
       </div>
 
       {/* 1. Profile Photo Section */}
@@ -172,7 +172,7 @@ const AccountInfoSection: FC = () => {
               type="text" 
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-6 py-4 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all shadow-inner"
+              className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-4 py-3 sm:px-6 sm:py-4 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all shadow-inner"
             />
           </div>
           <div className="space-y-2">
@@ -183,7 +183,7 @@ const AccountInfoSection: FC = () => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={!canChangeUsername}
-                className={`w-full bg-bg-base/50 border rounded-2xl pl-6 pr-12 py-4 text-sm font-bold text-text-base outline-none transition-all shadow-inner ${
+                className={`w-full bg-bg-base/50 border rounded-2xl pl-4 pr-12 py-3 sm:pl-6 sm:py-4 text-sm font-bold text-text-base outline-none transition-all shadow-inner ${
                   !canChangeUsername ? 'cursor-not-allowed opacity-60' :
                   (usernameStatus === 'invalid' || usernameStatus === 'taken' || usernameStatus === 'error') ? 'border-red-500/50 focus:border-red-500' :
                   usernameStatus === 'available' ? 'border-green-500/50 focus:border-green-500' :
@@ -211,29 +211,29 @@ const AccountInfoSection: FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-60">
           <div className="space-y-2">
             <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Email</label>
-            <input type="text" value={user?.email || "Not set"} disabled className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-6 py-4 text-sm font-bold text-text-muted cursor-not-allowed" />
+            <input type="text" value={user?.email || "Not set"} disabled className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-4 py-3 sm:px-6 sm:py-4 text-sm font-bold text-text-muted cursor-not-allowed" />
           </div>
           <div className="space-y-2">
             <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">Phone</label>
-            <input type="text" value={user?.phone || "Not set"} disabled className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-6 py-4 text-sm font-bold text-text-muted cursor-not-allowed" />
+            <input type="text" value={user?.phone || "Not set"} disabled className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl px-4 py-3 sm:px-6 sm:py-4 text-sm font-bold text-text-muted cursor-not-allowed" />
           </div>
         </div>
       </div>
 
       {/* 3. Bio Section */}
-      <div className="bg-bg-card rounded-[32px] border border-border-base/50 p-8 space-y-3 shadow-sm">
+      <div className="bg-bg-card rounded-[24px] sm:rounded-[32px] border border-border-base/50 p-5 sm:p-8 space-y-3 shadow-sm">
         <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">About Me / Bio</label>
         <textarea 
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           rows={4}
-          className="w-full bg-bg-base/50 border border-border-base/50 rounded-3xl px-6 py-4 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all resize-none shadow-inner"
+          className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl sm:rounded-3xl px-4 py-3 sm:px-6 sm:py-4 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all resize-none shadow-inner"
           placeholder="Write something about yourself..."
         />
       </div>
 
       {/* 4. Location Section */}
-      <div className="bg-bg-card rounded-[32px] border border-border-base/50 p-6 flex items-center justify-between shadow-sm">
+      <div className="bg-bg-card rounded-[24px] sm:rounded-[32px] border border-border-base/50 p-4 sm:p-6 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-5">
           <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
             <MapPin className="w-6 h-6" />
@@ -246,16 +246,26 @@ const AccountInfoSection: FC = () => {
         <span className="px-4 py-1.5 bg-green-500/10 text-green-600 text-[10px] font-black uppercase rounded-full border border-green-500/20">Default</span>
       </div>
 
-      {/* 5. Save Button */}
-      <button 
-        onClick={handleSaveProfile}
-        disabled={saving}
-        className="w-full flex items-center justify-center gap-3 p-6 bg-brand-gradient hover:opacity-90 text-white rounded-[32px] shadow-xl shadow-pink-500/20 transition-all group cursor-pointer disabled:opacity-50 active:scale-[0.98]"
-      >
-        <span className="text-[16px] font-black">
-          {saving ? 'Saving Changes...' : 'Save All Changes'}
-        </span>
-      </button>
+      {/* 5. Action Buttons */}
+      <div className="flex flex-col gap-3 pt-2">
+        <button 
+          onClick={handleSaveProfile}
+          disabled={saving}
+          className="w-full flex items-center justify-center gap-3 p-4 sm:p-6 bg-brand-gradient hover:opacity-90 text-white rounded-2xl sm:rounded-[32px] shadow-lg shadow-pink-500/20 transition-all group cursor-pointer disabled:opacity-50 active:scale-[0.98]"
+        >
+          <span className="text-sm sm:text-[16px] font-black uppercase tracking-widest">
+            {saving ? 'Saving...' : 'Save All Changes'}
+          </span>
+        </button>
+
+        <button
+          className="md:hidden w-full flex items-center justify-center gap-2 p-4 bg-red-500/5 hover:bg-red-500/10 text-red-500 rounded-2xl border border-red-500/10 transition-all font-black text-xs uppercase tracking-widest"
+          onClick={() => window.dispatchEvent(new CustomEvent('app_logout'))}
+        >
+          <LogOut className="w-4 h-4" />
+          Log Out
+        </button>
+      </div>
 
 
     </div>

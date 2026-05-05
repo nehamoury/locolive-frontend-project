@@ -92,6 +92,17 @@ export const useUserProfile = (userId: string | null) => {
   });
 };
 
+export const useMyProfile = () => {
+  return useQuery({
+    queryKey: userKeys.profile('me'),
+    queryFn: async () => {
+      const { data } = await api.get<UserProfile>('/profile/me');
+      return data;
+    },
+    staleTime: 30000,
+  });
+};
+
 // --- Connections ---
 export const useUserConnections = (userId: string | null, isMe: boolean = false) => {
   return useQuery({

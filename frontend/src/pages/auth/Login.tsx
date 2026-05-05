@@ -136,7 +136,7 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden font-sans py-12 px-4 select-none transition-colors duration-300">
+    <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden font-sans select-none transition-colors duration-300">
       <SEOHead title="Login" description="Sign in to Locolive and discover people, stories, and moments around you." url="https://locolive.appnity.co.in/login" />
 
       {/* Decorative Gradients */}
@@ -146,7 +146,7 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[440px] p-8 md:p-10 rounded-[40px] border border-white/60 glass shadow-2xl relative z-10"
+        className="w-full h-screen sm:h-auto sm:max-w-[440px] p-6 sm:p-10 sm:rounded-[40px] sm:border sm:border-white/60 sm:glass sm:shadow-2xl relative z-10 flex flex-col justify-center sm:block bg-bg-base/40 sm:bg-transparent"
       >
         {/* Logo Section */}
         <div className="flex items-center gap-4 mb-10">
@@ -261,16 +261,6 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
                 className="text-sm font-bold text-text-base hover:text-primary transition-colors cursor-pointer"
               >
                 Sign up
-              </button>
-            </div>
-            
-            <div className="pt-2 border-t border-border-base/50">
-              <button
-                type="button"
-                onClick={() => window.location.href = '/admin/login'}
-                className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] hover:text-primary transition-colors cursor-pointer"
-              >
-                Administrator Login
               </button>
             </div>
           </div>

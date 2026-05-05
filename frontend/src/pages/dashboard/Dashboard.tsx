@@ -23,7 +23,7 @@ import ReelsView from '../../components/reels/ReelsView';
 import MapPage from './MapPage';
 import SavedView from './SavedView';
 import { useGeolocation } from '../../hooks/useGeolocation';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl } from '../../utils/media';
 
 // Modals
 import CreatePostModal from '../../components/post/CreatePostModal';
@@ -454,7 +454,7 @@ const Dashboard = () => {
               <motion.button
                 whileTap={{ scale: 0.85, rotate: 90 }}
                 onClick={() => setIsCreateModalOpen(true)}
-                className="relative w-14 h-14 bg-brand-gradient rounded-[22px] flex items-center justify-center shadow-[0_8px_20px_rgba(255,59,142,0.4)] text-white border-4 border-white dark:border-slate-900"
+                className="relative w-14 h-14 bg-brand-gradient rounded-[22px] flex items-center justify-center shadow-[0_8px_20px_rgba(255,59,142,0.4)] text-white"
               >
                 <Plus className="w-9 h-9 stroke-[3]" />
               </motion.button>
@@ -465,7 +465,7 @@ const Dashboard = () => {
               icon={user?.avatar_url ? (
                 <div className={`w-8 h-8 rounded-full p-[1.5px] ${pathname.includes('profile') ? 'bg-primary' : 'bg-slate-200'}`}>
                    <img
-                    src={`${BACKEND}${user.avatar_url}`}
+                    src={getMediaUrl(user.avatar_url)}
                     className="w-full h-full rounded-full object-cover bg-white"
                     alt=""
                   />

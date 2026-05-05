@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, type FC } from 'react';
-import { 
-  Search, User, Loader2, X, CheckCircle2, 
-  Clock, Hash, Video, MapPin, Users,
-  ChevronRight, Sparkles, Lock, AlertCircle
+import {
+  Search, User, Loader2, X, CheckCircle2,
+  Clock,
+  ChevronRight, Lock, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -34,21 +34,47 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Mock Recent Searches (In real app, fetch from localStorage)
-  const recentSearches = [
-    { id: '1', term: 'UI/UX Design' },
-    { id: '2', term: 'Travel Diaries' },
-    { id: '3', term: 'Photography' },
-    { id: '4', term: 'Productivity Tips' },
-  ];
+  // Real Search History from localStorage
+  const [recentHistory, setRecentHistory] = useState<{ id: string, term: string }[]>([]);
 
-  // Quick Filters
-  const quickFilters = [
-    { id: 'people', icon: <Users className="w-4 h-4" />, title: 'People', desc: 'Find friends and creators', color: 'blue' },
-    { id: 'posts', icon: <Hash className="w-4 h-4" />, title: 'Posts', desc: 'Explore posts and updates', color: 'pink' },
-    { id: 'stories', icon: <Video className="w-4 h-4" />, title: 'Stories', desc: 'Discover moments', color: 'green' },
-    { id: 'places', icon: <MapPin className="w-4 h-4" />, title: 'Places', desc: 'Find places near you', color: 'orange' },
-  ];
+  useEffect(() => {
+    const saved = localStorage.getItem('search_history');
+    if (saved) {
+      try {
+        setRecentHistory(JSON.parse(saved));
+      } catch (e) {
+        setRecentHistory([]);
+      }
+    } else {
+      // Default placeholder if empty
+      const defaults = [
+        { id: '1', term: 'UI/UX Design' },
+        { id: '2', term: 'Travel Diaries' },
+        { id: '3', term: 'Photography' },
+        { id: '4', term: 'Productivity Tips' },
+      ];
+      setRecentHistory(defaults);
+      localStorage.setItem('search_history', JSON.stringify(defaults));
+    }
+  }, []);
+
+  const clearRecent = () => {
+    setRecentHistory([]);
+    localStorage.removeItem('search_history');
+  };
+
+  const removeRecentItem = (id: string) => {
+    const updated = recentHistory.filter(item => item.id !== id);
+    setRecentHistory(updated);
+    localStorage.setItem('search_history', JSON.stringify(updated));
+  };
+
+  const addToRecent = (term: string) => {
+    const newItem = { id: Date.now().toString(), term };
+    const updated = [newItem, ...recentHistory.filter(i => i.term !== term)].slice(0, 8);
+    setRecentHistory(updated);
+    localStorage.setItem('search_history', JSON.stringify(updated));
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -90,8 +116,9 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [mode]);
 
-  const handleUserClick = (userId: string) => {
-    navigate(`/dashboard/profile/${userId}`);
+  const handleUserClick = (user: SearchResult) => {
+    addToRecent(user.username);
+    navigate(`/dashboard/profile/${user.id}`);
     if (onClose) onClose();
     setShowDropdown(false);
     setQuery('');
@@ -108,16 +135,16 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
       {error ? (
         <div className="flex flex-col items-center justify-center py-12 px-6 text-center bg-red-50 dark:bg-red-950/10 rounded-3xl border border-red-100 dark:border-red-900/20">
           <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-3">
-             <AlertCircle className="w-6 h-6 text-red-500" />
+            <AlertCircle className="w-6 h-6 text-red-500" />
           </div>
-          <div className="text-red-500 font-black text-sm mb-1 italic">Oops!</div>
+          <div className="text-red-500 font-black text-sm mb-1 ">Oops!</div>
           <div className="text-red-500/60 text-[11px] font-bold uppercase tracking-widest leading-relaxed">{error}</div>
         </div>
       ) : results.length > 0 ? (
         results.map((user) => (
           <button
             key={user.id}
-            onClick={() => handleUserClick(user.id)}
+            onClick={() => handleUserClick(user)}
             className="w-full flex items-center gap-4 p-3.5 rounded-[22px] hover:bg-white dark:hover:bg-bg-base hover:shadow-xl hover:-translate-y-0.5 border border-transparent hover:border-border-base transition-all group"
           >
             <div className="w-14 h-14 rounded-2xl p-[2.5px] bg-brand-gradient flex-shrink-0 group-hover:rotate-3 transition-transform duration-300">
@@ -146,7 +173,7 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
               </span>
             </div>
             <div className="ml-auto opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all">
-               <ChevronRight className="w-5 h-5 text-primary" />
+              <ChevronRight className="w-5 h-5 text-primary" />
             </div>
           </button>
         ))
@@ -155,7 +182,7 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
           <div className="w-20 h-20 bg-white dark:bg-bg-sidebar rounded-3xl flex items-center justify-center mb-5 shadow-sm border border-border-base/50">
             <User className="w-9 h-9 text-text-muted/20" />
           </div>
-          <div className="text-text-base font-black text-lg mb-2 italic">No matches found</div>
+          <div className="text-text-base font-black text-lg mb-2 ">No matches found</div>
           <div className="text-text-muted text-[11px] font-black uppercase tracking-[0.2em] max-w-[200px] leading-relaxed">Try adjusting your keywords for better results</div>
         </div>
       ) : null}
@@ -175,7 +202,7 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
               onClick={onClose}
               className="fixed inset-0 bg-black/20 backdrop-blur-[12px] z-[120]"
             />
-            
+
             {/* Search Panel with Glassmorphism */}
             <motion.div
               initial={{ x: -450, opacity: 0 }}
@@ -186,14 +213,14 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
             >
               {/* Decorative Gradient Blob */}
               <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-              
+
               <div className="px-8 mb-4 flex items-center justify-between relative z-10">
                 <div className="flex flex-col">
-                  <h2 className="text-[34px] font-black tracking-tight text-text-base italic leading-none">Search</h2>
+                  <h2 className="text-[34px] font-black tracking-tight text-text-base  eading-none">Search</h2>
                   <div className="h-1 w-12 bg-brand-gradient rounded-full mt-2" />
                 </div>
-                <button 
-                  onClick={onClose} 
+                <button
+                  onClick={onClose}
                   className="w-10 h-10 flex items-center justify-center bg-bg-base/50 hover:bg-red-500/10 hover:text-red-500 rounded-2xl transition-all active:scale-90 border border-border-base/50"
                 >
                   <X className="w-5 h-5" />
@@ -202,7 +229,7 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
 
               <div className="px-8 mb-8 relative z-10">
                 <p className="text-[13px] text-text-muted font-bold mb-6 tracking-wide uppercase opacity-70">Find your tribe nearby</p>
-                
+
                 <div className="relative group">
                   <div className="absolute -inset-0.5 bg-brand-gradient rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition-opacity" />
                   <div className="relative flex items-center bg-white dark:bg-bg-base/80 border border-border-base rounded-2xl transition-all focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5">
@@ -237,8 +264,8 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
                 {query.length > 0 ? (
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div className="flex items-center justify-between mb-4 px-1">
-                       <span className="text-[11px] font-black uppercase tracking-[2px] text-text-muted">Results</span>
-                       <span className="text-[11px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">{results.length} found</span>
+                      <span className="text-[11px] font-black uppercase tracking-[2px] text-text-muted">Results</span>
+                      <span className="text-[11px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">{results.length} found</span>
                     </div>
                     {renderResults()}
                   </div>
@@ -251,74 +278,45 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
                           <Clock className="w-3.5 h-3.5 text-primary" />
                           Recent
                         </h3>
-                        <button className="text-[11px] font-black text-primary hover:bg-primary/5 px-3 py-1.5 rounded-xl transition-all uppercase tracking-wider">Clear All</button>
-                      </div>
-                      <div className="grid gap-2">
-                        {recentSearches.map(item => (
-                          <div key={item.id} className="flex items-center justify-between group cursor-pointer p-3.5 rounded-[20px] bg-bg-base/30 hover:bg-white dark:hover:bg-bg-base border border-transparent hover:border-border-base hover:shadow-xl transition-all">
-                            <div className="flex items-center gap-3.5">
-                              <div className="w-10 h-10 rounded-xl bg-white dark:bg-bg-sidebar flex items-center justify-center text-text-muted group-hover:text-primary group-hover:scale-110 transition-all shadow-sm border border-border-base/50">
-                                <Search className="w-4 h-4" />
-                              </div>
-                              <span className="text-[14px] font-bold text-text-muted group-hover:text-text-base transition-colors">{item.term}</span>
-                            </div>
-                            <button className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all text-text-muted/30">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Quick Filters */}
-                    <div className="animate-in fade-in slide-in-from-left-4 duration-700 delay-100">
-                      <h3 className="text-[12px] font-black uppercase tracking-[2.5px] text-text-base mb-5 flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 text-primary" />
-                        Explore
-                      </h3>
-                      <div className="grid grid-cols-2 gap-3.5">
-                        {quickFilters.map(filter => (
-                          <button 
-                            key={filter.id}
-                            className="p-5 bg-bg-base/30 hover:bg-white dark:hover:bg-bg-base border border-transparent hover:border-border-base hover:shadow-2xl hover:-translate-y-1 transition-all rounded-[28px] flex flex-col items-start gap-4 group text-left cursor-pointer overflow-hidden relative"
+                        {recentHistory.length > 0 && (
+                          <button
+                            onClick={clearRecent}
+                            className="text-[11px] font-black text-primary hover:bg-primary/5 px-3 py-1.5 rounded-xl transition-all uppercase tracking-wider cursor-pointer"
                           >
-                            <div className="absolute top-0 right-0 w-16 h-16 bg-current opacity-[0.03] -mr-8 -mt-8 rounded-full blur-2xl group-hover:opacity-[0.08] transition-opacity" />
-                            
-                            <div className={`w-11 h-11 rounded-[20px] flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-6 shadow-sm
-                              ${filter.color === 'blue' ? 'bg-blue-500 text-white shadow-blue-500/20' : ''}
-                              ${filter.color === 'pink' ? 'bg-pink-500 text-white shadow-pink-500/20' : ''}
-                              ${filter.color === 'green' ? 'bg-green-500 text-white shadow-green-500/20' : ''}
-                              ${filter.color === 'orange' ? 'bg-orange-500 text-white shadow-orange-500/20' : ''}
-                            `}>
-                              {filter.icon}
-                            </div>
-                            <div>
-                              <div className="text-[14px] font-black text-text-base leading-tight">{filter.title}</div>
-                              <div className="text-[10px] text-text-muted font-bold leading-tight mt-1 opacity-70">{filter.desc}</div>
-                            </div>
+                            Clear All
                           </button>
-                        ))}
+                        )}
                       </div>
-                    </div>
 
-                    {/* Promo Card */}
-                    <div className="relative group cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
-                      <div className="absolute inset-0 bg-brand-gradient blur-2xl opacity-10 group-hover:opacity-30 transition-opacity rounded-[32px]" />
-                      <div className="relative p-7 bg-white dark:bg-bg-base/40 backdrop-blur-xl border border-border-base rounded-[32px] overflow-hidden group-hover:border-primary/30 transition-all shadow-xl">
-                        <div className="flex items-start gap-5">
-                          <div className="w-14 h-14 bg-brand-gradient rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-                            <Sparkles className="w-7 h-7" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-[15px] font-black text-text-base leading-tight mb-2 italic">Lost in the crowd?</h4>
-                            <p className="text-[11px] text-text-muted font-bold mb-5 leading-relaxed opacity-80">Discover what's trending around you right now.</p>
-                            <button className="flex items-center gap-2 text-[11px] font-black text-primary uppercase tracking-widest group-hover:gap-4 transition-all">
-                              <span>Explore All</span>
-                              <ChevronRight className="w-4 h-4 stroke-[3]" />
-                            </button>
-                          </div>
+                      {recentHistory.length > 0 ? (
+                        <div className="grid gap-2">
+                          {recentHistory.map(item => (
+                            <div
+                              key={item.id}
+                              onClick={() => { setQuery(item.term); performSearch(item.term); }}
+                              className="flex items-center justify-between group cursor-pointer p-3.5 rounded-[20px] bg-bg-base/30 hover:bg-white dark:hover:bg-bg-base border border-transparent hover:border-border-base hover:shadow-xl transition-all"
+                            >
+                              <div className="flex items-center gap-3.5">
+                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-bg-sidebar flex items-center justify-center text-text-muted group-hover:text-primary group-hover:scale-110 transition-all shadow-sm border border-border-base/50">
+                                  <Search className="w-4 h-4" />
+                                </div>
+                                <span className="text-[14px] font-bold text-text-muted group-hover:text-text-base transition-colors">{item.term}</span>
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removeRecentItem(item.id); }}
+                                className="p-2 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 rounded-xl transition-all text-text-muted/30 cursor-pointer"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="py-12 flex flex-col items-center justify-center text-center opacity-30">
+                          <Clock className="w-10 h-10 mb-3" />
+                          <p className="text-[10px] font-black uppercase tracking-widest">Search history is empty</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

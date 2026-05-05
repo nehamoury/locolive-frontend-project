@@ -37,7 +37,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
 
   useEffect(() => {
     if (!isOpen) {
-        setPostType('post');
+      setPostType('post');
     }
   }, [isOpen]);
 
@@ -73,19 +73,29 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
 
         // Apply crop if it's an image and not original
         if (mediaType === 'image' && mediaPreview && (cropSettings.ratio !== 'original' || cropSettings.zoom !== 1)) {
-           try {
-             // In a real production app, we'd calculate precise pixel coordinates.
-             // For now, we'll use a simplified approach or just pass the settings.
-             // Since implementing a full pixel-perfect cropper from scratch is complex,
-             // we will notify the user we are applying the frame.
-             console.log('Applying crop settings:', cropSettings);
-           } catch (err) {
-             console.error('Crop failed, using original', err);
-           }
+          try {
+            // In a real production app, we'd calculate precise pixel coordinates.
+            // For now, we'll use a simplified approach or just pass the settings.
+            // Since implementing a full pixel-perfect cropper from scratch is complex,
+            // we will notify the user we are applying the frame.
+            console.log('Applying crop settings:', cropSettings);
+          } catch (err) {
+            console.error('Crop failed, using original', err);
+          }
         }
 
         const formData = new FormData();
         formData.append('file', fileToUpload);
+
+        // Add crop settings if available
+        if (mediaType === 'image' && cropSettings.pixelCrop) {
+          formData.append('cropX', String(Math.round(cropSettings.pixelCrop.x)));
+          formData.append('cropY', String(Math.round(cropSettings.pixelCrop.y)));
+          formData.append('cropWidth', String(Math.round(cropSettings.pixelCrop.width)));
+          formData.append('cropHeight', String(Math.round(cropSettings.pixelCrop.height)));
+          formData.append('aspectRatio', cropSettings.ratio);
+        }
+
         const uploadRes = await api.post('/upload', formData);
         mediaUrl = uploadRes.data.url;
       }
@@ -161,11 +171,11 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
   };
 
   const handleTypeChange = (key: PostType) => {
-      if (key === 'reel' && onRequestReelModal) {
-          onRequestReelModal();
-          return;
-      }
-      setPostType(key);
+    if (key === 'reel' && onRequestReelModal) {
+      onRequestReelModal();
+      return;
+    }
+    setPostType(key);
   };
 
   return (
@@ -191,7 +201,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
               <button
                 onClick={handleClose}
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-               >
+              >
                 <X className="w-4 h-4 text-gray-600" />
               </button>
             </div>
@@ -207,11 +217,10 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
                   <button
                     key={key}
                     onClick={() => handleTypeChange(key as PostType)}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                      postType === key
-                        ? 'bg-white shadow-sm text-gray-900'
-                        : 'text-gray-400 hover:text-gray-700'
-                    }`}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${postType === key
+                      ? 'bg-white shadow-sm text-gray-900'
+                      : 'text-gray-400 hover:text-gray-700'
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span>{label}</span>
@@ -232,11 +241,10 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
                   <button
                     key={t}
                     onClick={() => setMediaType(t)}
-                    className={`flex-1 py-2 rounded-full text-xs font-bold capitalize transition-all ${
-                      mediaType === t
-                        ? 'bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] text-white shadow-md'
-                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                    }`}
+                    className={`flex-1 py-2 rounded-full text-xs font-bold capitalize transition-all ${mediaType === t
+                      ? 'bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] text-white shadow-md'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
                   >
                     {t}
                   </button>
@@ -251,25 +259,25 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
                 >
                   {mediaPreview ? (
                     <div className="w-full h-full relative group">
-                        {mediaType === 'video' ? (
-                        <video src={mediaPreview} className="w-full h-full object-cover transition-all" style={{ transform: `scale(${cropSettings.zoom}) translate(${cropSettings.position.x/10}px, ${cropSettings.position.y/10}px)`, aspectRatio: cropSettings.ratio === 'original' ? 'auto' : cropSettings.ratio }} muted />
-                        ) : (
-                        <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover transition-all" style={{ transform: `scale(${cropSettings.zoom}) translate(${cropSettings.position.x/10}px, ${cropSettings.position.y/10}px)`, aspectRatio: cropSettings.ratio === 'original' ? 'auto' : cropSettings.ratio }} />
-                        )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3">
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); setIsCropModalOpen(true); }}
-                                className="px-6 py-2.5 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-full hover:scale-105 active:scale-95 transition-all"
-                            >
-                                Edit Frame
-                            </button>
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                                className="px-6 py-2.5 bg-white/20 backdrop-blur-md text-white font-black uppercase tracking-widest text-[10px] rounded-full hover:scale-105 active:scale-95 transition-all border border-white/30"
-                            >
-                                Change
-                            </button>
-                        </div>
+                      {mediaType === 'video' ? (
+                        <video src={mediaPreview} className="w-full h-full object-cover transition-all" style={{ transform: `scale(${cropSettings.zoom}) translate(${cropSettings.position.x / 10}px, ${cropSettings.position.y / 10}px)`, aspectRatio: cropSettings.ratio === 'original' ? 'auto' : cropSettings.ratio }} muted />
+                      ) : (
+                        <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover transition-all" style={{ transform: `scale(${cropSettings.zoom}) translate(${cropSettings.position.x / 10}px, ${cropSettings.position.y / 10}px)`, aspectRatio: cropSettings.ratio === 'original' ? 'auto' : cropSettings.ratio }} />
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIsCropModalOpen(true); }}
+                          className="px-6 py-2.5 bg-white text-black font-black uppercase tracking-widest text-[10px] rounded-full hover:scale-105 active:scale-95 transition-all"
+                        >
+                          Edit Frame
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                          className="px-6 py-2.5 bg-white/20 backdrop-blur-md text-white font-black uppercase tracking-widest text-[10px] rounded-full hover:scale-105 active:scale-95 transition-all border border-white/30"
+                        >
+                          Change
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -353,16 +361,16 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
         </motion.div>
       )}
       {mediaFile && (
-          <UniversalCropModal
-            isOpen={isCropModalOpen}
-            file={mediaFile}
-            initialRatio={postType === 'story' || postType === 'reel' ? '9/16' : 'original'}
-            onConfirm={(settings) => {
-                setCropSettings(settings);
-                setIsCropModalOpen(false);
-            }}
-            onCancel={() => setIsCropModalOpen(false)}
-          />
+        <UniversalCropModal
+          isOpen={isCropModalOpen}
+          file={mediaFile}
+          initialRatio={postType === 'story' || postType === 'reel' ? '9/16' : 'original'}
+          onConfirm={(settings) => {
+            setCropSettings(settings);
+            setIsCropModalOpen(false);
+          }}
+          onCancel={() => setIsCropModalOpen(false)}
+        />
       )}
     </AnimatePresence>
   );

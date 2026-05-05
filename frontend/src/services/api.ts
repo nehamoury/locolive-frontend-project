@@ -66,15 +66,6 @@ const clearLocalSession = () => {
   localStorage.removeItem('auth-storage');
 };
 
-const redirectToLoginIfNeeded = () => {
-  const isAuthPage = window.location.pathname.includes('/login') ||
-    window.location.pathname.includes('/signup') ||
-    window.location.pathname.includes('/forgot-password');
-
-  if (!isAuthPage) {
-    window.location.replace('/login');
-  }
-};
 
 // Request interceptor — attach JWT fallback from localStorage (if any)
 api.interceptors.request.use(
@@ -112,16 +103,29 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
     const isUnauthorized = error.response?.status === 401;
+    const token = localStorage.getItem('token');
 
-    if (isUnauthorized && originalRequest && !originalRequest._retry && !shouldSkipRefresh(originalRequest.url)) {
+    if (isUnauthorized && originalRequest && !originalRequest._retry && !shouldSkipRefresh(originalRequest.url) && token) {
       originalRequest._retry = true;
 
       try {
         if (!isRefreshing) {
           isRefreshing = true;
-          refreshPromise = api.post('/users/renew-access').then((res) => {
+          refreshPromise = api.post('/users/renew-access').then(async (res) => {
             if (res.data?.access_token) {
-              localStorage.setItem('token', res.data.access_token);
+              const newToken = res.data.access_token;
+              localStorage.setItem('token', newToken);
+              
+              // Sync Zustand store if it exists
+              try {
+                const { useAuthStore } = await import('../store/useAuthStore');
+                const store = useAuthStore.getState();
+                if (store.isAuthenticated && store.user) {
+                  store.login(newToken, store.user, store.requiresProfileCompletion);
+                }
+              } catch (e) {
+                console.error('Failed to sync auth store after refresh', e);
+              }
             }
           }).finally(() => {
             isRefreshing = false;
@@ -135,17 +139,16 @@ api.interceptors.response.use(
 
         return api(originalRequest);
       } catch (refreshError) {
-        console.warn('Token refresh failed. Clearing session...', refreshError);
+        console.warn('Session expired. Clearing local state...');
         clearLocalSession();
-        redirectToLoginIfNeeded();
+        // Only redirect if absolutely necessary and not already on auth page
+        const isAuthPage = window.location.pathname.includes('/login') ||
+          window.location.pathname.includes('/signup');
+        if (!isAuthPage) {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       }
-    }
-
-    if (isUnauthorized) {
-      console.warn('Global 401 caught. Clearing session...');
-      clearLocalSession();
-      redirectToLoginIfNeeded();
     }
 
     return Promise.reject(error);

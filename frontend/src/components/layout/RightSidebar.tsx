@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
-import { useUserProfile } from '../../hooks/useUserData';
+import { useMyProfile } from '../../hooks/useUserData';
 
 interface RightSidebarProps {
   crossingsToday?: number;
@@ -24,7 +24,7 @@ const RightSidebar: FC<RightSidebarProps> = ({
   storiesCount = 0
 }) => {
   const navigate = useNavigate();
-  const { data: profile } = useUserProfile('me');
+  const { data: profile } = useMyProfile();
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Music, MapPin, User, ChevronRight } from 'lucide-react';
 import ActionBar from './ActionBar';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl } from '../../utils/media';
 
 interface ReelData {
   id: string;
@@ -82,15 +82,15 @@ const VideoCard: React.FC<VideoCardProps> = ({
       {/* Background Cinematic Glow (Desktop Only) */}
       {!isMobile && (
         <div className="absolute inset-0 -z-10 bg-bg-base overflow-hidden">
-          {isImage ? (
+            {isImage ? (
             <img 
-              src={`${BACKEND}${reel.video_url}`}
+              src={getMediaUrl(reel.video_url)}
               className="w-full h-full object-cover blur-[100px] opacity-10"
               alt=""
             />
           ) : (
             <video
-              src={`${BACKEND}${reel.video_url}`}
+              src={getMediaUrl(reel.video_url)}
               className="w-full h-full object-cover blur-[100px] opacity-10"
               muted
               playsInline
@@ -122,7 +122,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
             className="w-full h-full"
           >
             <img
-              src={`${BACKEND}${reel.video_url}`}
+              src={getMediaUrl(reel.video_url) || undefined}
               className="w-full h-full object-cover"
               alt={reel.caption}
             />
@@ -130,7 +130,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
         ) : (
           <video
             ref={videoRef}
-            src={`${BACKEND}${reel.video_url}`}
+            src={getMediaUrl(reel.video_url) || undefined}
             className="w-full h-full object-cover cursor-pointer"
             loop
             muted={isMuted}
@@ -183,7 +183,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
                 <div className="w-9 h-9 rounded-full border border-primary/30 bg-white/10 p-0.5">
                   <div className="w-full h-full rounded-full overflow-hidden bg-black/20 flex items-center justify-center">
                     {reel.avatar_url ? (
-                      <img src={`${BACKEND}${reel.avatar_url}`} alt={reel.username} className="w-full h-full object-cover" />
+                      <img src={getMediaUrl(reel.avatar_url)} alt={reel.username} className="w-full h-full object-cover" />
                     ) : (
                       <User className="text-white w-4 h-4" />
                     )}

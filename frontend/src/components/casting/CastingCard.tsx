@@ -34,11 +34,11 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
   return (
     <motion.div
       whileHover={{ y: -5 }}
-      className="bg-bg-card rounded-[32px] sm:rounded-[40px] p-3 sm:p-4 shadow-sm border border-border-base flex flex-col gap-3 sm:gap-4 group transition-all"
+      className="bg-bg-card rounded-[20px] sm:rounded-[40px] p-2 sm:p-4 shadow-sm border border-border-base flex flex-col gap-3 sm:gap-4 group transition-all"
     >
       {/* Profile Image Container */}
-      <div 
-        className="relative aspect-square rounded-[24px] sm:rounded-[32px] overflow-hidden bg-bg-base cursor-pointer"
+      <div
+        className="relative aspect-square h-[270px] rounded-[24px] sm:rounded-[32px] overflow-hidden bg-bg-base cursor-pointer object-cover "
         onClick={() => onViewProfile(user.id)}
       >
         {user.avatar_url ? (
@@ -50,7 +50,7 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5">
             <User className="w-10 h-10 md:w-12 md:h-12 text-primary/20" />
-            <span className="text-[9px] font-black italic text-primary/10 uppercase tracking-widest mt-2">Locolive</span>
+            <span className="text-[9px] font-black  text-primary/10 uppercase tracking-widest mt-2">Locolive</span>
           </div>
         )}
 
@@ -60,11 +60,10 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
             e.stopPropagation();
             setIsLiked(!isLiked);
           }}
-          className={`absolute top-3 right-3 w-9 h-9 sm:w-10 sm:h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all active:scale-90 shadow-lg ${
-            isLiked 
-              ? 'bg-primary text-white shadow-primary/20' 
-              : 'bg-bg-card/80 text-text-muted hover:text-primary border border-border-base/50'
-          }`}
+          className={`absolute top-3 right-3 w-9 h-9 sm:w-10 sm:h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all active:scale-90 shadow-lg ${isLiked
+            ? 'bg-primary text-white shadow-primary/20'
+            : 'bg-bg-card/80 text-text-muted hover:text-primary border border-border-base/50'
+            }`}
         >
           <Heart className={`w-4.5 h-4.5 sm:w-5 sm:h-5 ${isLiked ? 'fill-current' : ''}`} />
         </button>
@@ -93,11 +92,11 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
                 </span>
               </div>
             ) : (
-                user.is_verified && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 fill-blue-50 shrink-0" />
+              user.is_verified && <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 fill-blue-50 shrink-0" />
             )}
           </div>
         </div>
-        
+
         <div className="flex items-center justify-between mt-1">
           <p className="text-[11px] font-bold text-text-muted/60">@{user.username}</p>
           <p className="text-[9px] font-black text-text-muted uppercase tracking-widest bg-bg-base px-2 py-0.5 rounded-md border border-border-base/50">
@@ -109,13 +108,13 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3">
             {tags.slice(0, 3).map((tag, i) => (
-              <span 
+              <span
                 key={tag}
                 className={cn(
                   "text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-tight border",
                   i === 0 ? 'bg-primary/5 text-primary border-primary/10' :
-                  i === 1 ? 'bg-accent/5 text-accent border-accent/10' :
-                  'bg-blue-500/5 text-blue-500 border-blue-500/10'
+                    i === 1 ? 'bg-accent/5 text-accent border-accent/10' :
+                      'bg-blue-500/5 text-blue-500 border-blue-500/10'
                 )}
               >
                 {tag.replace('#', '')}
@@ -135,7 +134,7 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
         </button>
         <button
           onClick={() => onPass(user.id)}
-          className="px-4 py-3 bg-bg-base text-text-muted rounded-2xl border border-border-base hover:bg-bg-base/80 transition-all active:scale-95"
+          className="px-2 py-3 bg-bg-base text-text-muted rounded-2xl border border-border-base hover:bg-bg-base/80 transition-all active:scale-95"
         >
           Skip
         </button>

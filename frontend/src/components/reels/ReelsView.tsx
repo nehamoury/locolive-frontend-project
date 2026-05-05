@@ -78,10 +78,10 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
         setActiveIndex(index);
         // Delay scroll to ensure DOM is ready
         setTimeout(() => {
-            if (containerRef.current) {
-                const height = containerRef.current.clientHeight;
-                containerRef.current.scrollTop = index * height;
-            }
+          if (containerRef.current) {
+            const height = containerRef.current.clientHeight;
+            containerRef.current.scrollTop = index * height;
+          }
         }, 100);
       }
     }
@@ -122,17 +122,17 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
       {/* Back Button */}
       <button
         onClick={() => navigate('/dashboard/home')}
-        className="absolute top-6 left-6 z-50 p-2.5 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-black/40 transition-all active:scale-95 shadow-lg md:hidden"
+        className="absolute top-1 left-2 z-50 p-1 text-white hover:scale-110 active:scale-95 transition-all md:hidden"
       >
-        <ArrowLeft className="w-6 h-6" />
+        <ArrowLeft className="w-8 h-8 drop-shadow-lg" />
       </button>
 
       {/* Layout Wrapper: Center Reel + Right Sidebar/Arrows */}
       <div className="flex items-center justify-center md:gap-6 z-10 w-full h-full">
-        
+
         {/* Main Reel Container */}
         <div className="relative w-full h-full md:w-[450px] md:max-h-[900px] group bg-black shadow-[20px_0_80px_-20px_rgba(0,0,0,0.3)] overflow-hidden md:rounded-[32px] md:border md:border-white/10">
-          
+
           {/* Top Bar Navigation (IG Style) */}
           <div className="absolute top-4 md:top-6 w-full px-4 md:px-6 flex items-center justify-between z-50 pointer-events-auto">
             <div className="w-10"></div>
@@ -159,10 +159,10 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
           >
             {reels.length > 0 ? (
               reels.map((reel: Reel, idx: number) => (
-                <ReelItem 
-                  key={reel.id} 
-                  reel={reel} 
-                  isActive={idx === activeIndex} 
+                <ReelItem
+                  key={reel.id}
+                  reel={reel}
+                  isActive={idx === activeIndex}
                   onToggleComments={() => setIsCommentsOpen(!isCommentsOpen)}
                   currentUserID={user?.id}
                 />

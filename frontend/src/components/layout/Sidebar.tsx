@@ -6,7 +6,7 @@ import {
   Menu, Sun,
   Flame, Moon, Clapperboard
 } from 'lucide-react';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl } from '../../utils/media';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePWA } from '../../hooks/usePWA';
@@ -174,7 +174,7 @@ const Sidebar: FC<SidebarProps> = ({
           <NavItem 
             icon={user?.avatar_url ? (
               <img 
-                src={`${BACKEND}${user.avatar_url}`} 
+                src={getMediaUrl(user.avatar_url)} 
                 className="w-6 h-6 rounded-full object-cover border border-border-base" 
                 alt="" 
               />

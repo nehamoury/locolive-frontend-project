@@ -6,7 +6,6 @@ import StoryViewer from '../../components/story/StoryViewer';
 import Highlights from '../../components/profile/Highlights';
 import PostCard from '../../components/post/PostCard';
 import { X as CloseIcon } from 'lucide-react';
-import { BACKEND } from '../../utils/config';
 import {
   useUserProfile,
   useUserStories,
@@ -15,6 +14,7 @@ import {
   usePrivacyCheck,
 } from '../../hooks/useUserData';
 import { useQueryClient } from '@tanstack/react-query';
+import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 interface UserProfileViewProps {
   userId: string;
@@ -179,7 +179,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
       {/* ─── Hero Header ─── */}
       <div className="relative h-64 w-full bg-gradient-to-br from-[#f0f9ff] to-[#e0f2fe] overflow-hidden">
         {(profile as any)?.cover_url ? (
-          <img src={`${BACKEND}${(profile as any).cover_url}`} className="w-full h-full object-cover" alt="Cover" />
+          <img src={getMediaUrl((profile as any).cover_url)} className="w-full h-full object-cover" alt="Cover" />
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-transparent to-transparent" />
         )}
@@ -248,7 +248,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                 <div className="w-full h-full rounded-[28px] bg-gradient-to-tr from-primary to-accent p-1">
                   <div className="w-full h-full rounded-[24px] bg-bg-card overflow-hidden flex items-center justify-center">
                     {profile?.avatar_url ? (
-                      <img src={`${BACKEND}${profile.avatar_url}`} className="w-full h-full object-cover" alt="" />
+                      <img src={getMediaUrl(profile.avatar_url, FALLBACKS.AVATAR(profile.username))} className="w-full h-full object-cover" alt="" />
                     ) : (
                       <span className="text-4xl font-black text-primary italic">{avatarLetter}</span>
                     )}
@@ -390,7 +390,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                             onClick={() => setViewingStoryIndex(idx)}
                             className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative cursor-pointer group border border-border-base"
                           >
-                            <img src={`${BACKEND}${story.media_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                            <img src={getMediaUrl(story.media_url)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
                             <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
                                <div className="flex items-center gap-1.5 text-white/90">
                                   <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
@@ -418,7 +418,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                             onClick={() => setSelectedPost(post)}
                             className="aspect-square bg-bg-sidebar rounded-[24px] overflow-hidden relative group border border-border-base cursor-pointer"
                           >
-                            <img src={`${BACKEND}${post.media_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                            <img src={getMediaUrl(post.media_url)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
                                <div className="flex items-center gap-1">
                                   <Heart className="w-4 h-4 fill-white" />
@@ -450,7 +450,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                             className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative group border border-border-base"
                           >
                             <video
-                              src={`${BACKEND}${reel.video_url}`}
+                              src={getMediaUrl(reel.video_url)}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               poster={reel.thumbnail}
                             />

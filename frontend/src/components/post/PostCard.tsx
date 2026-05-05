@@ -320,7 +320,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             onClick={handleLike}
             className={`flex items-center gap-2 group cursor-pointer transition-colors ${liked ? 'text-red-500' : 'text-text-muted hover:text-red-500'}`}
           >
-            <div className={`p-2 rounded-full transition-colors ${liked ? 'bg-red-500/10' : 'group-hover:bg-red-500/10'}`}>
+            <div className="p-2 rounded-full transition-colors">
               <Heart className={`w-6 h-6 sm:w-5 sm:h-5 ${liked ? 'fill-red-500 stroke-red-500' : 'stroke-current'}`} />
             </div>
             <span className="text-[14px] font-bold">{likeCount > 0 ? likeCount : ''}</span>
@@ -331,7 +331,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             onClick={() => setIsCommentsOpen(true)}
             className="flex items-center gap-2 group cursor-pointer text-text-muted hover:text-primary transition-colors"
           >
-            <div className="p-2 rounded-full group-hover:bg-primary/10 transition-colors">
+            <div className="p-2 rounded-full transition-colors">
               <MessageCircle className="w-6 h-6 sm:w-5 sm:h-5" />
             </div>
             <span className="text-[14px] font-bold">{commentsCount > 0 ? commentsCount : ''}</span>
@@ -342,7 +342,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             onClick={handleShare}
             className="flex items-center gap-2 group cursor-pointer text-text-muted hover:text-primary transition-colors"
           >
-            <div className="p-2 rounded-full group-hover:bg-primary/10 transition-colors">
+            <div className="p-2 rounded-full transition-colors">
               <Send className="w-6 h-6 sm:w-5 sm:h-5" />
             </div>
           </button>
@@ -351,9 +351,9 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
         {/* Save (Bookmark) */}
         <button 
           onClick={handleSave}
-          className={`p-2 rounded-full transition-all cursor-pointer ${saved ? 'text-primary bg-primary/10' : 'text-text-muted hover:text-primary hover:bg-primary/10'}`}
+          className={`p-2 rounded-full transition-all cursor-pointer ${saved ? 'text-primary' : 'text-text-muted hover:text-primary'}`}
         >
-          <Bookmark className={`w-6 h-6 sm:w-5 sm:h-5 ${saved ? 'fill-current' : ''}`} />
+          <Bookmark className={`w-6 h-6 sm:w-5 sm:h-5 ${saved ? 'fill-current' : 'stroke-current'}`} />
         </button>
       </div>
 

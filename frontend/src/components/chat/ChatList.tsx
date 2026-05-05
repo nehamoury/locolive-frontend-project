@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { Search, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl } from '../../utils/media';
 import CreateGroupModal from './CreateGroupModal';
 
 interface Conversation {
@@ -50,7 +50,6 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   const [following, setFollowing] = useState<FollowingUser[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'All' | 'Unread' | 'Following' | 'Groups'>('All');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchData = async () => {
@@ -97,28 +96,29 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   }, []);
 
   const getFilteredItems = () => {
-    if (activeTab === 'Following') {
-      return following
-        .filter(u => 
-          (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (u.username || '').toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .map(u => ({
+    // 1. Start with active conversations
+    let allItems: Conversation[] = [...conversations];
+
+    // 2. Add following users who don't have a conversation yet
+    following.forEach(u => {
+      if (!allItems.some(c => c.username === u.username)) {
+        allItems.push({
           id: u.id,
           username: u.username,
           full_name: u.full_name,
           avatar_url: u.avatar_url,
           last_message: 'Start a new conversation',
-          last_message_at: new Date().toISOString(),
+          last_message_at: new Date(0).toISOString(), // Put at bottom
           unread_count: 0,
           isGroup: false
-        }));
-    }
+        });
+      }
+    });
 
-    if (activeTab === 'Groups') {
-      return groups
-        .filter(g => (g.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
-        .map(g => ({
+    // 3. Add groups
+    groups.forEach(g => {
+      if (!allItems.some(c => c.id === g.id)) {
+        allItems.push({
           id: g.id,
           username: g.name,
           full_name: g.name,
@@ -127,23 +127,17 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
           last_message_at: g.created_at,
           unread_count: 0,
           isGroup: true
-        }));
-    }
+        });
+      }
+    });
 
-    return conversations
-      .filter(c => {
-        const matchesSearch = (c.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                             (c.username || '').toLowerCase().includes(searchQuery.toLowerCase());
-        
-        if (!matchesSearch) return false;
-        if (activeTab === 'Unread') return c.unread_count > 0;
-        return true;
-      })
-      .map(c => ({
-        ...c,
-        unread_count: c.id === selectedId ? 0 : c.unread_count,
-        isGroup: false
-      }));
+    // 4. Sort and Filter
+    return allItems
+      .filter(item => 
+        (item.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.username || '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
   };
 
   const displayItems = getFilteredItems();
@@ -166,38 +160,19 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
         </div>
       </div>
 
-      {/* Pill Tabs */}
-      <div className="px-6 mb-6">
-        <div className="flex items-center gap-1.5 p-1 bg-gray-50/50 rounded-2xl border border-gray-100/50 overflow-x-auto no-scrollbar scroll-smooth flex-nowrap">
-          {(['All', 'Following', 'Unread', 'Groups'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 min-w-[80px] py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
-                activeTab === tab 
-                  ? 'bg-white text-gray-900 shadow-sm border border-gray-100/50' 
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+      {/* New Group Button (Always visible since tabs are gone) */}
+      <div className="px-6 mb-4">
+        <button 
+          onClick={() => setIsCreateModalOpen(true)}
+          className="w-full p-3 rounded-2xl bg-gradient-to-r from-sky-500/5 to-indigo-500/5 border border-sky-100/50 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all group"
+        >
+          <Plus className="w-4 h-4 text-sky-500" />
+          <span className="text-[11px] font-black text-sky-600 uppercase tracking-widest">New Group</span>
+        </button>
       </div>
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-20 px-2 space-y-1">
-        {activeTab === 'Groups' && (
-          <button 
-            onClick={() => setIsCreateModalOpen(true)}
-            className="w-full mb-4 p-4 rounded-2xl bg-gradient-to-r from-sky-500/5 to-indigo-500/5 border border-sky-100/50 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all group"
-          >
-            <div className="w-10 h-10 rounded-full bg-sky-500 text-white flex items-center justify-center shadow-lg shadow-sky-500/20 group-hover:rotate-90 transition-transform">
-              <Plus className="w-5 h-5" />
-            </div>
-            <span className="text-[12px] font-black text-sky-600 uppercase tracking-widest">New Group Chat</span>
-          </button>
-        )}
 
         {displayItems.length > 0 ? (
           displayItems.map((conv, idx) => (
@@ -206,13 +181,13 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
               conv={conv} 
               isSelected={selectedId === conv.id} 
               onClick={() => onSelect(conv.id, conv.isGroup)} 
-              onDelete={activeTab !== 'Following' ? (e) => handleDeleteConversation(e, conv.id, conv.isGroup) : undefined}
+              onDelete={conv.last_message !== 'Start a new conversation' ? (e) => handleDeleteConversation(e, conv.id, conv.isGroup) : undefined}
             />
           ))
         ) : (
           <div className="py-20 text-center px-10 opacity-30">
             <p className="text-[10px] font-black uppercase tracking-widest">
-              {activeTab === 'Unread' ? 'No unread messages' : activeTab === 'Groups' ? 'No groups yet' : activeTab === 'Following' ? 'No following users found' : 'No results'}
+              No conversations found
             </p>
           </div>
         )}
@@ -244,7 +219,7 @@ const ChatItem = ({ conv, isSelected, onClick, onDelete }: ChatItemProps) => {
         <div className={`w-14 h-14 rounded-full overflow-hidden bg-gray-100 p-[2px] ${conv.isGroup ? 'bg-gradient-to-tr from-sky-500 to-indigo-500' : 'bg-gradient-to-tr from-pink-500 to-purple-500'}`}>
           <div className="w-full h-full rounded-full bg-white overflow-hidden border-2 border-white">
             {conv.avatar_url ? (
-              <img src={conv.avatar_url.startsWith('http') ? conv.avatar_url : `${BACKEND}${conv.avatar_url}`} alt="" className="w-full h-full object-cover" />
+              <img src={getMediaUrl(conv.avatar_url)} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center font-bold text-gray-400 uppercase">{initial}</div>
             )}

@@ -16,7 +16,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import Highlights from '../../components/profile/Highlights';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl } from '../../utils/media';
 
 interface MemberProfileDetailProps {
     userId: string;
@@ -155,17 +155,26 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
             {/* Header / Hero */}
             <div className="h-[280px] shrink-0 relative bg-gray-50">
                 {profile.cover_url ? (
-                    <img src={`${BACKEND}${profile.cover_url}`} className="w-full h-full object-cover" alt="" />
+                    <img src={getMediaUrl(profile.cover_url)} className="w-full h-full object-cover" alt="" />
                 ) : (
                     <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100" />
                 )}
                 <div className="absolute inset-0 bg-black/10" />
                 
                 {/* Nav Buttons */}
-                <div className="absolute top-8 left-8 right-8 flex justify-between items-center z-10">
-                    <button onClick={onBack} className="w-12 h-12 flex items-center justify-center bg-white/60 backdrop-blur-xl rounded-2xl border border-white/40 hover:bg-white transition-all shadow-xl shadow-black/10">
-                        <ArrowLeft className="w-5 h-5 text-gray-900" />
-                    </button>
+                <div className="absolute top-8 left-0 right-0 px-8 flex items-center justify-between z-10">
+                    <div className="w-12">
+                        <button onClick={onBack} className="w-12 h-12 flex items-center justify-center bg-white/60 backdrop-blur-xl rounded-2xl border border-white/40 hover:bg-white transition-all shadow-xl shadow-black/10">
+                            <ArrowLeft className="w-5 h-5 text-gray-900" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 flex justify-center px-4">
+                        <span className="text-[13px] font-black text-gray-900 uppercase tracking-[0.2em] bg-white/40 backdrop-blur-xl px-5 py-2 rounded-2xl border border-white/40 shadow-xl shadow-black/5 truncate max-w-[200px]">
+                            {profile.username}
+                        </span>
+                    </div>
+
                     <div className="flex gap-3 relative">
                         <button className="w-12 h-12 flex items-center justify-center bg-white/60 backdrop-blur-xl rounded-2xl border border-white/40 hover:bg-white transition-all shadow-xl shadow-black/10">
                             <Share2 className="w-5 h-5 text-gray-900" />
@@ -217,7 +226,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                             <div className="w-36 h-36 rounded-[40px] p-1 bg-gradient-to-tr from-pink-500 to-purple-500 shadow-2xl shadow-pink-500/20">
                                 <div className="w-full h-full rounded-[38px] bg-white p-1 overflow-hidden">
                                     {profile.avatar_url ? (
-                                        <img src={`${BACKEND}${profile.avatar_url}`} className="w-full h-full rounded-[32px] object-cover" alt="" />
+                                        <img src={getMediaUrl(profile.avatar_url)} className="w-full h-full rounded-[32px] object-cover" alt="" />
                                     ) : (
                                         <div className="w-full h-full rounded-[32px] bg-gray-50 flex items-center justify-center text-4xl font-black text-gray-300 italic">
                                             {profile.username?.charAt(0).toUpperCase()}
@@ -371,7 +380,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                                                 `}
                                             >
                                                 <img 
-                                                    src={`${BACKEND}${post.media_url}`} 
+                                                    src={getMediaUrl(post.media_url)} 
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                                                     alt="" 
                                                 />

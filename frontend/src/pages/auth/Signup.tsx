@@ -283,7 +283,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden font-sans px-4 py-12 transition-colors duration-300">
+    <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden font-sans transition-colors duration-300">
       <SEOHead title="Create Account" description="Join Locolive — the location-based social platform to discover people and stories around you." url="https://locolive.appnity.co.in/signup" />
       {/* Background glow */}
       <div className="absolute top-[-300px] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[130px] pointer-events-none" />
@@ -300,7 +300,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
         </button>
       )}
 
-      <div className="w-full max-w-md glass rounded-[28px] p-8 shadow-2xl relative z-10 border border-white/60">
+      <div className="w-full h-screen sm:h-auto sm:max-w-md sm:glass sm:rounded-[28px] p-8 sm:shadow-2xl relative z-10 sm:border sm:border-white/60 flex flex-col justify-center bg-bg-base/40 sm:bg-transparent">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
           <img 

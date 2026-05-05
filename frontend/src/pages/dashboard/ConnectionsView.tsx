@@ -278,7 +278,7 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', o
                         </p>
                       </div>
                     ) : connections.length === 0 && (!sentRequests || sentRequests.length === 0) ? (
-                      <EmptyState activeTab={activeTab} />
+                      <EmptyState activeTab={activeTab} isSelf={isViewingSelf} />
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {/* Show Connected Users */}
@@ -286,6 +286,7 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', o
                           <FollowingCard
                             key={`connection-${user.id || user.username || idx}`}
                             user={user}
+                            showActions={isViewingSelf}
                             onMessage={() => onMessage?.(user.id)}
                             onRemove={() => handleRequest(user.id, 'remove')}
                             onView={() => onUserSelect?.(user.id)}
@@ -303,6 +304,7 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', o
                               last_active_at: null,
                               status: 'pending'
                             }}
+                            showActions={isViewingSelf}
                             onRemove={() => handleRequest(req.target_id || req.id, 'remove')}
                             onView={() => onUserSelect?.(req.target_id || req.id)}
                           />
@@ -438,7 +440,7 @@ const SuggestionCard = ({ user, onConnect, onDismiss, onView }: any) => {
 };
 
 
-const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => {
+const FollowingCard = ({ user, onMessage, onRemove, onView, showActions }: any) => {
   const isPending = user.status === 'pending';
 
   return (
@@ -470,7 +472,7 @@ const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => {
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        {!isPending ? (
+        {showActions && !isPending && (
           <button
             onClick={onMessage}
             className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-primary/5 text-primary hover:bg-primary hover:text-white rounded-lg transition-all cursor-pointer shadow-sm"
@@ -478,25 +480,28 @@ const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => {
           >
             <MessageSquare className="w-4 h-4" />
           </button>
-        ) : (
+        )}
+        {isPending && (
           <div className="flex flex-col items-center gap-0.5 px-2 py-0.5 bg-amber-50/50 rounded-lg border border-amber-100/20">
             <Lock className="w-2.5 h-2.5 text-amber-500" />
-            <span className="text-[7.5px] font-black uppercase text-amber-600 tracking-tighter">Locked</span>
+            <span className="text-[7.5px] font-black uppercase text-amber-600 tracking-tighter">Pending</span>
           </div>
         )}
-        <button
-          onClick={onRemove}
-          className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-gray-50/50 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-all cursor-pointer border border-gray-100 group-hover:border-red-100"
-          title={isPending ? "Cancel Request" : "Remove Connection"}
-        >
-          <X className="w-4 h-4" />
-        </button>
+        {showActions && (
+          <button
+            onClick={onRemove}
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-gray-50/50 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg transition-all cursor-pointer border border-gray-100 group-hover:border-red-100"
+            title={isPending ? "Cancel Request" : "Remove Connection"}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </motion.div>
   );
 };
 
-const EmptyState = ({ activeTab }: any) => {
+const EmptyState = ({ activeTab, isSelf }: any) => {
   const configs: any = {
     suggestions: {
       title: "No people nearby",
@@ -523,10 +528,10 @@ const EmptyState = ({ activeTab }: any) => {
         {config.icon}
       </div>
       <h3 className="text-[20px] font-black tracking-tight text-gray-800 mb-2 ">
-        {config.title}
+        {isSelf ? config.title : (activeTab === 'followers' ? 'No Followers' : 'No Following')}
       </h3>
       <p className="text-[14px] font-medium text-gray-500 max-w-[300px] leading-relaxed">
-        {config.desc}
+        {isSelf ? config.desc : `This user doesn't have any ${activeTab} yet.`}
       </p>
     </div>
   );

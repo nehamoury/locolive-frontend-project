@@ -35,6 +35,12 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
   const [showDetail, setShowDetail] = useState(!!searchParams.get('section'));
 
   useEffect(() => {
+    const handleLogout = () => logout();
+    window.addEventListener('app_logout', handleLogout);
+    return () => window.removeEventListener('app_logout', handleLogout);
+  }, [logout]);
+
+  useEffect(() => {
     const section = searchParams.get('section') as SettingsSection;
     if (section) {
       setActiveSection(section);
@@ -216,21 +222,6 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
         <div className="p-6 md:p-12 lg:p-16 max-w-4xl mx-auto w-full animate-in fade-in slide-in-from-right-4 duration-500">
           {renderActiveSection()}
 
-          {/* Global Logout at bottom of Account Info */}
-          {activeSection === 'account_info' && (
-            <button
-              onClick={() => logout()}
-              className="w-full flex items-center gap-4 p-6 bg-pink-50/10 hover:bg-pink-100/20 rounded-[32px] border border-pink-100/20 transition-all group cursor-pointer mt-10"
-            >
-              <div className="w-10 h-10 bg-bg-card rounded-xl flex items-center justify-center text-pink-500 shadow-sm border border-pink-100/20">
-                <LogOut className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <span className="text-[15px] font-black text-pink-600 block">Log Out</span>
-                <p className="text-[12px] text-pink-600/60 font-bold">Log out from your account on this device</p>
-              </div>
-            </button>
-          )}
         </div>
       </div>
     </div>

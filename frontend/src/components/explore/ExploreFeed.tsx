@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Flame } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import type { ExploreTab } from '../../pages/dashboard/ExplorePage';
@@ -37,9 +38,9 @@ interface ExploreFeedProps {
   onRemoveNearby: (id: string) => void;
 }
 
-export const ExploreFeed: React.FC<ExploreFeedProps> = ({ 
-  activeTab, 
-  data, 
+export const ExploreFeed: React.FC<ExploreFeedProps> = ({
+  activeTab,
+  data,
   onUserSelect,
   onStoryClick,
   onRefresh,
@@ -50,7 +51,7 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
     switch (activeTab) {
       case 'all':
         return (
-          <ExploreAllFeed 
+          <ExploreAllFeed
             nearbyUsers={data.nearbyUsers}
             crossings={data.crossings}
             stories={data.mapStories}
@@ -80,7 +81,7 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
         );
       case 'nearby':
         return (
-          <ExploreNearbyUsers 
+          <ExploreNearbyUsers
             users={data.nearbyUsers}
             loading={data.loading.nearby}
             onUserSelect={onUserSelect}
@@ -89,7 +90,7 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
         );
       case 'crossings':
         return (
-          <ExploreCrossings 
+          <ExploreCrossings
             crossings={data.crossings}
             loading={data.loading.crossings}
             onUserSelect={onUserSelect}
@@ -98,7 +99,7 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
         );
       case 'casting':
         return (
-          <CastingGrid 
+          <CastingGrid
             users={data.suggestedUsers}
             loading={data.loading.suggested}
             onMatch={async (id) => {
@@ -116,12 +117,12 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
               onRemoveSuggested(id);
               toast.success('User skipped');
             }}
-            onViewProfile={onUserSelect || (() => {})}
+            onViewProfile={onUserSelect || (() => { })}
           />
         );
       case 'stories':
         return (
-          <ExploreStoriesFeed 
+          <ExploreStoriesFeed
             stories={data.mapStories}
             loading={data.loading.stories}
             onRefresh={onRefresh.stories}
@@ -131,8 +132,17 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
       case 'heatmap':
         return (
           <div className="flex flex-col items-center justify-center h-full p-20 text-center">
-            <h3 className="text-xl font-black italic uppercase tracking-tighter text-text-base mb-4">You're in Heatmap Mode</h3>
-            <p className="text-sm font-bold text-text-muted max-w-sm">Switch to Map View in the top right to see real-time activity clusters in your area.</p>
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
+              <Flame className="w-10 h-10 text-primary" />
+            </div>
+            <h3 className="text-xl font-black uppercase tracking-tighter text-text-base mb-4">Heatmap is only available in Map View</h3>
+            <p className="text-sm font-bold text-text-muted max-w-sm mb-8">Switching you to Map View now to see real-time activity clusters...</p>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('toggle_explore_view', { detail: 'map' }))}
+              className="px-8 py-3 bg-brand-gradient text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+            >
+              Switch to Map View Now
+            </button>
           </div>
         )
       default:

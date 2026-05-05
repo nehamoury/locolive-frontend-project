@@ -159,9 +159,13 @@ export const Profile: FC<ProfileProps> = () => {
 
                 setFollowStatus(isConn ? 'accepted' : isPending ? 'pending' : 'none');
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to load profile:', err);
-            setError('Could not load profile. Please check your connection.');
+            if (err.response?.status === 404) {
+                setError('User not found. This profile may have been deleted or moved.');
+            } else {
+                setError('Could not load profile. Please check your connection.');
+            }
         } finally {
             setLoading(false);
         }
@@ -207,7 +211,7 @@ export const Profile: FC<ProfileProps> = () => {
             <SEOHead
                 title={profile ? `${profile.full_name} (@${profile.username})` : 'User Profile'}
                 description={profile?.bio || `View ${profile?.username || 'this user'}'s profile on Locolive`}
-                image={profile?.avatar_url || undefined}
+                image={getMediaUrl(profile?.avatar_url)}
                 url={`https://locolive.appnity.co.in/profile/${profile?.id || ''}`}
                 type="profile"
             />
@@ -285,7 +289,7 @@ export const Profile: FC<ProfileProps> = () => {
                         </div>
                         <div
                             className="flex flex-col items-center cursor-pointer"
-                            onClick={() => navigate('/dashboard/connections?tab=followers')}
+                            onClick={() => navigate(`/dashboard/connections?tab=followers${isOwnProfile ? '' : `&userId=${profile?.id}`}`)}
                         >
                             <span className="text-[17px] font-bold text-slate-900">
                                 {profile?.followers_count ?? 0}
@@ -294,7 +298,7 @@ export const Profile: FC<ProfileProps> = () => {
                         </div>
                         <div
                             className="flex flex-col items-center cursor-pointer"
-                            onClick={() => navigate('/dashboard/connections?tab=following')}
+                            onClick={() => navigate(`/dashboard/connections?tab=following${isOwnProfile ? '' : `&userId=${profile?.id}`}`)}
                         >
                             <span className="text-[17px] font-bold text-slate-900">
                                 {profile?.following_count ?? 0}
@@ -441,20 +445,20 @@ export const Profile: FC<ProfileProps> = () => {
                         {/* Row 2: Stats - Show counts even for private accounts */}
                         <div className="flex items-center gap-10 text-[16px]">
                             <div className="flex items-center gap-1.5"><span className="font-bold text-slate-900">{posts.length + reels.length}</span> <span className="text-slate-700">posts</span></div>
-                            <div
-                                className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
-                                onClick={() => navigate(`/dashboard/connections?tab=followers${isOwnProfile ? '' : `&u=${profile?.username}`}`)}
-                            >
-                                <span className="font-bold text-slate-900">{(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? '—' : (profile?.followers_count ?? 0)}</span>
-                                <span className="text-slate-700">followers</span>
-                            </div>
-                            <div
-                                className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
-                                onClick={() => navigate(`/dashboard/connections?tab=following${isOwnProfile ? '' : `&u=${profile?.username}`}`)}
-                            >
-                                <span className="font-bold text-slate-900">{(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? '—' : (profile?.following_count ?? 0)}</span>
-                                <span className="text-slate-700">following</span>
-                            </div>
+                             <div
+                                 className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
+                                 onClick={() => navigate(`/dashboard/connections?tab=followers${isOwnProfile ? '' : `&userId=${profile?.id}`}`)}
+                             >
+                                 <span className="font-bold text-slate-900">{(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? '—' : (profile?.followers_count ?? 0)}</span>
+                                 <span className="text-slate-700">followers</span>
+                             </div>
+                             <div
+                                 className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
+                                 onClick={() => navigate(`/dashboard/connections?tab=following${isOwnProfile ? '' : `&userId=${profile?.id}`}`)}
+                             >
+                                 <span className="font-bold text-slate-900">{(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? '—' : (profile?.following_count ?? 0)}</span>
+                                 <span className="text-slate-700">following</span>
+                             </div>
                         </div>
 
                         {/* Row 3: Bio */}
