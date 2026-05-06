@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth";
 import api from "./api";
 
 // The VAPID key is public and used to identify the web app to FCM
@@ -17,6 +18,61 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+
+// Make auth available globally for reCAPTCHA
+(window as any).auth = auth;
+
+// Store confirmation result for OTP verification
+let confirmationResult: ConfirmationResult | null = null;
+
+export const setupRecaptcha = (containerId: string) => {
+  if (!(window as any).recaptchaVerifier) {
+    (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+      size: 'invisible',
+      callback: () => {},
+    });
+  }
+};
+
+export const sendPhoneOTP = async (phoneNumber: string): Promise<boolean> => {
+  try {
+    setupRecaptcha('recaptcha-container');
+    const appVerifier = (window as any).recaptchaVerifier;
+    
+    confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+    return true;
+  } catch (error: any) {
+    console.error('Firebase send OTP error:', error);
+    // Reset reCAPTCHA on error
+    if ((window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier.clear();
+      (window as any).recaptchaVerifier = null;
+    }
+    throw error;
+  }
+};
+
+export const verifyPhoneOTP = async (otp: string): Promise<string> => {
+  try {
+    if (!confirmationResult) throw new Error('No confirmation result. Please resend OTP.');
+    
+    const result = await confirmationResult.confirm(otp);
+    const idToken = await result.user.getIdToken();
+    return idToken;
+  } catch (error: any) {
+    console.error('Firebase verify OTP error:', error);
+    throw error;
+  }
+};
+
+export const resetFirebaseAuth = () => {
+  confirmationResult = null;
+  if ((window as any).recaptchaVerifier) {
+    (window as any).recaptchaVerifier.clear();
+    (window as any).recaptchaVerifier = null;
+  }
+};
 
 // Safe messaging initialization
 let messaging: any = null;

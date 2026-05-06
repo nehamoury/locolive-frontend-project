@@ -18,6 +18,8 @@ export interface User {
   role?: 'user' | 'admin' | 'moderator';
   provider?: string;
   is_profile_complete?: boolean;
+  is_active?: boolean;
+  is_email_verified?: boolean;
 }
 
 interface AuthContextType {

@@ -103,24 +103,44 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
     const isUnauthorized = error.response?.status === 401;
-    const token = localStorage.getItem('token');
+    const isForbidden = error.response?.status === 403;
+    
+    // ─── 403 FORBIDDEN: Handle unverified accounts ────────────────────────────
+    if (isForbidden && (error.response?.data as any)?.error === 'account_not_verified') {
+      const isVerifyPage = window.location.pathname.includes('/verify');
+      if (!isVerifyPage) {
+        window.location.href = '/verify';
+      }
+      return Promise.reject(error);
+    }
 
-    if (isUnauthorized && originalRequest && !originalRequest._retry && !shouldSkipRefresh(originalRequest.url) && token) {
+    // ─── 401 UNAUTHORIZED: Trigger Silent Refresh ─────────────────────────────
+    if (isUnauthorized && originalRequest && !originalRequest._retry && !shouldSkipRefresh(originalRequest.url)) {
       originalRequest._retry = true;
 
       try {
         if (!isRefreshing) {
           isRefreshing = true;
-          refreshPromise = api.post('/users/renew-access').then(async (res) => {
-            if (res.data?.access_token) {
-              const newToken = res.data.access_token;
+          // Note: renew-access relies on HttpOnly cookies, so no token needs to be passed
+          // But we send fallback from localStorage if cookie fails
+          const fallbackRefresh = localStorage.getItem('refresh_token');
+          const body = fallbackRefresh ? { refresh_token: fallbackRefresh } : undefined;
+          refreshPromise = api.post('/users/renew-access', body).then(async (res) => {
+            const data = res.data as any;
+            if (data?.access_token) {
+              const newToken = data.access_token;
               localStorage.setItem('token', newToken);
+              
+              // Store new refresh token as fallback (cookie is primary)
+              if (data?.refresh_token) {
+                localStorage.setItem('refresh_token', data.refresh_token);
+              }
               
               // Sync Zustand store if it exists
               try {
                 const { useAuthStore } = await import('../store/useAuthStore');
                 const store = useAuthStore.getState();
-                if (store.isAuthenticated && store.user) {
+                if (store.user) {
                   store.login(newToken, store.user, store.requiresProfileCompletion);
                 }
               } catch (e) {
@@ -137,15 +157,21 @@ api.interceptors.response.use(
           await refreshPromise;
         }
 
+        // Re-attach the new token to the headers of the original request
+        const newToken = localStorage.getItem('token');
+        if (newToken) {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        }
+
         return api(originalRequest);
       } catch (refreshError) {
         console.warn('Session expired. Clearing local state...');
         clearLocalSession();
-        // Only redirect if absolutely necessary and not already on auth page
+        
         const isAuthPage = window.location.pathname.includes('/login') ||
           window.location.pathname.includes('/signup');
         if (!isAuthPage) {
-          window.location.href = '/login';
+          window.location.href = '/login?expired=true';
         }
         return Promise.reject(refreshError);
       }

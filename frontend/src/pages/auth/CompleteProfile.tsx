@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AtSign, Phone, Check, ArrowRight } from 'lucide-react';
+import { AtSign, Phone, Check, ArrowRight, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import authService from '../../services/authService';
 import logo from '../../assets/WhatsApp Image 2026-04-28 at 4.00.46 PM.png';
 
 
 const CompleteProfile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, token, login, setRequiresProfileCompletion } = useAuth();
+  const { user, token, login, logout, setRequiresProfileCompletion } = useAuth();
   
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
@@ -116,17 +115,30 @@ const CompleteProfile: React.FC = () => {
     setError('');
     
     try {
-      const response = await authService.completeProfile({
+      const response = await api.post('/users/complete-profile', {
         username: username.toLowerCase().replace(/\s+/g, ''),
         phone,
       });
       
-      const { access_token, user: updatedUser } = response.data;
+      // Accessing data through the 'data' wrapper from successResponse
+      const responseData = response.data;
+      const { access_token, requires_phone_verify } = responseData;
       
-      if (access_token && updatedUser) {
+      if (access_token) {
+        // Use the user data from response if available, or fetch fresh
+        const updatedUser = responseData.user;
+        
         login(access_token, updatedUser, false);
         setRequiresProfileCompletion(false);
-        navigate('/dashboard/home');
+        
+        // Redirect to phone verification if phone not verified
+        if (requires_phone_verify || !updatedUser.is_phone_verified) {
+          navigate('/verify-phone');
+        } else if (!updatedUser.is_active) {
+          navigate('/verify');
+        } else {
+          navigate('/dashboard/home');
+        }
       }
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Failed to complete profile.';
@@ -147,6 +159,14 @@ const CompleteProfile: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md glass rounded-[28px] p-8 shadow-2xl relative z-10 border border-white/60"
       >
+        {/* Exit Button */}
+        <button 
+          onClick={() => logout()}
+          className="absolute top-6 right-6 p-2 text-text-muted hover:text-text-base transition-colors z-20"
+          title="Exit"
+        >
+          <X className="w-5 h-5" />
+        </button>
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
           <img 
@@ -251,6 +271,15 @@ const CompleteProfile: React.FC = () => {
             )}
           </button>
         </form>
+
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <button
+            onClick={() => logout()}
+            className="text-[13px] font-bold text-text-muted/60 hover:text-text-base transition-colors py-2"
+          >
+            Cancel & Exit
+          </button>
+        </div>
       </motion.div>
     </div>
   );

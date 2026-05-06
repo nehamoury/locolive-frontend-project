@@ -15,7 +15,8 @@ import {
     MoreHorizontal,
     Bookmark,
     Heart,
-    Lock
+    Lock,
+    Mail
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -37,6 +38,7 @@ interface ProfileData {
     full_name: string;
     avatar_url: string;
     bio: string;
+    email?: string;
     post_count: number;
     followers_count: number;
     following_count: number;
@@ -276,7 +278,13 @@ export const Profile: FC<ProfileProps> = () => {
                         )}
                     </div>
                     {/* Bio */}
-                    <div className="w-full px-5  text-center mb-3 flex justify-center">
+                    <div className="w-full px-5 text-center mb-3 flex flex-col items-center">
+                        {profile?.email && (
+                            <div className="flex items-center gap-1 text-[13px] text-slate-400 mb-1">
+                                <Mail className="w-3.5 h-3.5" />
+                                <span>{profile.email}</span>
+                            </div>
+                        )}
                         <p className="text-[15px] text-slate-600 leading-relaxed font-medium line-clamp-3 text-center">
                             {nullString(profile?.bio) || 'No bio yet.'}
                         </p>
@@ -464,6 +472,12 @@ export const Profile: FC<ProfileProps> = () => {
                         {/* Row 3: Bio */}
                         <div className="flex flex-col items-start space-y-1">
                             <span className="text-base font-bold text-slate-900">{profile?.full_name || profile?.username}</span>
+                            {profile?.email && (
+                                <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-1">
+                                    <Mail className="w-4 h-4" />
+                                    <span>{profile.email}</span>
+                                </div>
+                            )}
                             <p className="text-base text-slate-700 font-medium leading-relaxed max-w-sm">
                                 {profile?.bio || 'No bio yet'}
                             </p>

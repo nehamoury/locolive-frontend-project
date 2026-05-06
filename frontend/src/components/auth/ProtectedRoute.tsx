@@ -30,9 +30,22 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Redirect to profile completion if user hasn't finished setup
-  if (!user.is_profile_complete && location.pathname !== '/complete-profile') {
-    return <Navigate to="/complete-profile" replace />;
+  // 1. Priority: Profile Completion
+  if (!user.is_profile_complete) {
+    if (location.pathname !== '/complete-profile') {
+      return <Navigate to="/complete-profile" replace />;
+    }
+    // If we are already on /complete-profile, allow render
+    return <>{children}</>;
+  }
+
+  // 2. Secondary: Identity Verification (only after profile is complete)
+  if (!user.is_active) {
+    if (location.pathname !== '/verify') {
+      return <Navigate to="/verify" replace />;
+    }
+    // If we are already on /verify, allow render
+    return <>{children}</>;
   }
 
   // Check admin privileges if required

@@ -20,6 +20,9 @@ const Signup = lazy(() => import('./pages/auth/Signup'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'))
 const CompleteProfile = lazy(() => import('./pages/auth/CompleteProfile'))
+const VerifyAccount = lazy(() => import('./components/auth/VerificationWizard'))
+const VerifyEmail = lazy(() => import('./pages/auth/VerifyEmail'))
+const VerifyPhone = lazy(() => import('./pages/auth/VerifyPhone'))
 
 // Main app (large — only loaded after login)
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
@@ -132,6 +135,18 @@ function AppContent() {
               </PublicRoute>
             } 
           />
+          <Route 
+            path="/verify-email" 
+            element={<VerifyEmail />} 
+          />
+          <Route 
+            path="/verify-phone" 
+            element={
+              <ProtectedRoute>
+                <VerifyPhone />
+              </ProtectedRoute>
+            } 
+          />
 
           {/* Protected Routes (Accessible only when logged in) */}
           
@@ -141,6 +156,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <CompleteProfile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/verify" 
+            element={
+              <ProtectedRoute>
+                <VerifyAccount />
               </ProtectedRoute>
             } 
           />
@@ -175,7 +198,21 @@ function AppContent() {
           {/* Root Redirect */}
           <Route 
             path="/" 
-            element={<Navigate to={user ? ((user.role === 'admin' || user.role === 'moderator') ? "/admin" : "/dashboard/home") : "/login"} replace />} 
+            element={
+              user ? (
+                !user.is_profile_complete ? (
+                  <Navigate to="/complete-profile" replace />
+                ) : !user.is_active ? (
+                  <Navigate to="/verify" replace />
+                ) : (user.role === 'admin' || user.role === 'moderator') ? (
+                  <Navigate to="/admin" replace />
+                ) : (
+                  <Navigate to="/dashboard/home" replace />
+                )
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            } 
           />
 
           {/* Catch-all 404 Route */}

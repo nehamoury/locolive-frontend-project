@@ -57,6 +57,9 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
         login(access_token, user, true);
         setRequiresProfileCompletion(true);
         navigate('/complete-profile');
+      } else if (!user.is_phone_verified) {
+        login(access_token, user, false);
+        navigate('/verify-phone');
       } else {
         login(access_token, user, false);
         navigate('/dashboard/home');
@@ -76,35 +79,38 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
     }
 
     // Using OAuth2 Token Client flow which is more reliable for custom buttons
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      scope: 'openid email profile',
-      callback: async (tokenResponse: any) => {
-        if (tokenResponse && tokenResponse.access_token) {
-          setIsLoading(true);
-          try {
-            const res = await api.post('/auth/google', {
-              access_token: tokenResponse.access_token
-            });
-            const { access_token, user, requires_profile_completion } = res.data;
-            
-            if (requires_profile_completion) {
-              login(access_token, user, true);
-              setRequiresProfileCompletion(true);
-              navigate('/complete-profile');
-            } else {
-              login(access_token, user, false);
-              navigate('/dashboard/home');
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        scope: 'openid email profile',
+        callback: async (tokenResponse: any) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            setIsLoading(true);
+            try {
+              const res = await api.post('/auth/google', {
+                access_token: tokenResponse.access_token
+              });
+              const { access_token, user, requires_profile_completion } = res.data;
+              
+              if (requires_profile_completion) {
+                login(access_token, user, true);
+                setRequiresProfileCompletion(true);
+                navigate('/complete-profile');
+              } else if (!user.is_phone_verified) {
+                login(access_token, user, false);
+                navigate('/verify-phone');
+              } else {
+                login(access_token, user, false);
+                navigate('/dashboard/home');
+              }
+            } catch (err: any) {
+              console.error('Google Login Error:', err);
+              setError('Google login failed. Please try again.');
+            } finally {
+              setIsLoading(false);
             }
-          } catch (err: any) {
-            console.error('Google Login Error:', err);
-            setError('Google login failed. Please try again.');
-          } finally {
-            setIsLoading(false);
           }
-        }
-      },
-    });
+        },
+      });
 
     client.requestAccessToken();
   };
@@ -125,7 +131,15 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
       
       // Manual login users have is_profile_complete = true by default
       login(access_token, user, false);
-      navigate('/dashboard/home');
+      
+      // Redirect based on verification status
+      if (!user.is_phone_verified) {
+        navigate('/verify-phone');
+      } else if (!user.is_active) {
+        navigate('/verify');
+      } else {
+        navigate('/dashboard/home');
+      }
     } catch (err: any) {
       console.error('Login Error:', err);
       const errorMessage = err.response?.data?.error || err.message || 'Login failed.';

@@ -12,6 +12,9 @@ interface User {
   role?: 'user' | 'admin' | 'moderator';
   provider?: string;
   is_profile_complete?: boolean;
+  is_email_verified?: boolean;
+  is_phone_verified?: boolean;
+  is_active?: boolean;
 }
 
 interface AuthState {

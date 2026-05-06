@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SEOHead } from '../../components/ui/SEOHead';
 import { ArrowRight, ArrowLeft, Mail, Lock, AtSign, User, Eye, EyeOff, Check, Zap, Phone, Footprints } from 'lucide-react';
@@ -51,6 +52,7 @@ const Stepper = ({ step }: { step: Step }) => (
 );
 
 const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -214,13 +216,16 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
     setIsLoading(true);
     setError('');
     try {
-      // Generate a unique numeric placeholder from the email to avoid unique constraint
-      // violations when multiple users sign up without entering a phone number.
-      let phoneHash = 0;
-      for (let i = 0; i < form.email.length; i++) {
-        phoneHash = ((phoneHash << 5) - phoneHash + form.email.charCodeAt(i)) | 0;
+      // Phone is mandatory for validation — ensure 10-digit fallback
+      let uniquePhone = form.phone;
+      if (!uniquePhone || uniquePhone.length !== 10) {
+        // Generate unique 10-digit number from email hash
+        let phoneHash = 0;
+        for (let i = 0; i < form.email.length; i++) {
+          phoneHash = ((phoneHash << 5) - phoneHash + form.email.charCodeAt(i)) | 0;
+        }
+        uniquePhone = String(Math.abs(phoneHash) % 9000000000 + 1000000000);
       }
-      const uniquePhone = form.phone || String(Math.abs(phoneHash) % 9000000000 + 1000000000);
 
       const payload = {
         email: form.email,
@@ -237,36 +242,31 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
       // Handle Avatar Upload if selected
       if (form.avatar && access_token) {
         try {
-          // 1. Upload the image
           const formData = new FormData();
           formData.append('file', form.avatar);
           
-          // We must set the token in the temporary header or use the api instance directly 
-          // if it handles the token. Since login() hasn't been called yet to set the global token,
-          // we should provide it in the headers for these specific calls.
           const uploadRes = await api.post('/upload', formData, {
             headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'multipart/form-data' }
           });
           
           const avatarUrl = uploadRes.data.url;
 
-          // 2. Update the profile with the returned URL
           const profileRes = await api.put('/profile', { avatar_url: avatarUrl }, {
             headers: { 'Authorization': `Bearer ${access_token}` }
           });
           
-          // Use the updated user object for the final login
           if (profileRes.data) {
              user = { ...user, avatar_url: avatarUrl };
           }
         } catch (uploadErr) {
           console.error('Avatar upload/update failed:', uploadErr);
-          // We continue anyway, as the account was created successfully
         }
       }
 
       if (access_token && user) {
-        login(access_token, user);
+        login(access_token, user, false);
+        // Redirect to phone verification (mandatory for all users)
+        navigate('/verify-phone');
       }
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Registration failed.';
@@ -348,7 +348,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Email</label>
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
@@ -377,7 +377,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Password</label>
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
