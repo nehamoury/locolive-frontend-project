@@ -208,15 +208,15 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
               initial={{ x: -450, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -450, opacity: 0 }}
-              transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-              className="fixed top-0 bottom-0 left-0 w-[420px] bg-white/80 dark:bg-bg-sidebar/80 backdrop-blur-3xl border-r border-border-base/50 shadow-[30px_0_90px_rgba(0,0,0,0.15)] z-[130] flex flex-col pt-8 overflow-hidden"
+              transition={{ type: 'spring', damping: 32, stiffness: 250 }}
+              className="fixed top-0 bottom-0 left-0 w-[420px] bg-white dark:bg-bg-sidebar backdrop-blur-3xl border-r border-border-base/50 shadow-[30px_0_90px_rgba(0,0,0,0.15)] z-[130] flex flex-col pt-8 overflow-hidden"
             >
               {/* Decorative Gradient Blob */}
               <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
               <div className="px-8 mb-4 flex items-center justify-between relative z-10">
                 <div className="flex flex-col">
-                  <h2 className="text-[34px] font-black tracking-tight text-text-base  eading-none">Search</h2>
+                  <h2 className="text-[34px] font-black tracking-tight text-text-base leading-none">Search</h2>
                   <div className="h-1 w-12 bg-brand-gradient rounded-full mt-2" />
                 </div>
                 <button
@@ -242,20 +242,15 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Search anything..."
                       autoFocus
-                      className="w-full pl-12 pr-16 py-4.5 bg-transparent border-none outline-none text-[15px] font-bold text-text-base placeholder:text-text-muted/40"
+                      className="w-full pl-12 pr-12 py-4.5 bg-transparent border-none outline-none text-[15px] font-bold text-text-base placeholder:text-text-muted/40"
                     />
-                    <div className="absolute right-4 flex items-center gap-2">
-                      {query ? (
+                    {query && (
+                      <div className="absolute right-4 flex items-center gap-2">
                         <button onClick={handleClear} className="p-1.5 bg-text-muted/10 hover:bg-text-muted/20 rounded-xl transition-colors">
                           <X className="w-3.5 h-3.5 text-text-muted" />
                         </button>
-                      ) : (
-                        <div className="px-2.5 py-1.5 bg-bg-base/50 border border-border-base rounded-lg text-[10px] font-black text-text-muted/60 flex items-center gap-1 shadow-sm">
-                          <span>⌘</span>
-                          <span>K</span>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

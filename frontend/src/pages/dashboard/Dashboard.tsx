@@ -218,7 +218,7 @@ const Dashboard = () => {
     }
   };
 
-  const showRightSidebar = !pathname.includes('profile') && !pathname.includes('settings') && !pathname.includes('notifications') && !pathname.includes('explore') && !pathname.includes('connections') && !pathname.includes('manage-highlights');
+  const showRightSidebar = !pathname.includes('profile') && !pathname.includes('user') && !pathname.includes('settings') && !pathname.includes('notifications') && !pathname.includes('explore') && !pathname.includes('connections') && !pathname.includes('manage-highlights');
 
   // ─── Memoized Sub-Routes ───────────────────────────────────────────────────
   // We useMemo here to prevent the entire route tree from remounting 

@@ -1,5 +1,6 @@
 import { useState, type FC, useEffect } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, ShieldAlert, Ghost, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
@@ -12,6 +13,78 @@ interface BlockedUser {
   avatar_url?: string;
 }
 
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText: string;
+  variant: 'purple' | 'blue' | 'red';
+  isLoading?: boolean;
+}
+
+const ConfirmModal: FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm, title, message, confirmText, variant, isLoading }) => {
+  const colors = {
+    purple: { bg: 'bg-purple-600', text: 'text-purple-700', border: 'border-purple-100', soft: 'bg-purple-50' },
+    blue: { bg: 'bg-blue-600', text: 'text-blue-700', border: 'border-blue-100', soft: 'bg-blue-50' },
+    red: { bg: 'bg-red-600', text: 'text-red-700', border: 'border-red-100', soft: 'bg-red-50' }
+  }[variant];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+          />
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-sm bg-white rounded-[32px] overflow-hidden shadow-2xl"
+          >
+            <div className="p-8 text-center">
+              <div className={cn("w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-6", colors.soft)}>
+                {variant === 'purple' && <Lock className="w-8 h-8 text-purple-600" />}
+                {variant === 'blue' && <Ghost className="w-8 h-8 text-blue-600" />}
+                {variant === 'red' && <ShieldAlert className="w-8 h-8 text-red-600" />}
+              </div>
+              <h3 className="text-xl font-black text-text-base mb-3">{title}</h3>
+              <p className="text-[14px] text-text-muted font-bold leading-relaxed mb-8">
+                {message}
+              </p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={onConfirm}
+                  disabled={isLoading}
+                  className={cn("w-full py-4 rounded-2xl text-white text-[13px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg", colors.bg, isLoading && 'opacity-50')}
+                >
+                  {isLoading ? 'Processing...' : confirmText}
+                </button>
+                <button 
+                  onClick={onClose}
+                  disabled={isLoading}
+                  className="w-full py-4 rounded-2xl bg-slate-50 text-slate-500 text-[13px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-slate-300 hover:text-slate-500 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 const PrivacySection: FC = () => {
   const { user, updateUser } = useAuth();
   const [isPrivate, setIsPrivate] = useState(user?.is_private || false);
@@ -22,7 +95,10 @@ const PrivacySection: FC = () => {
   const [whoCanSeeStories, setWhoCanSeeStories] = useState('connections');
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [loadingPrivacy, setLoadingPrivacy] = useState(false);
+  
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
+  const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
+  const [showGhostConfirm, setShowGhostConfirm] = useState(false);
 
   useEffect(() => {
     fetchPrivacyData();
@@ -83,6 +159,7 @@ const PrivacySection: FC = () => {
       import('react-hot-toast').then(({ toast }) => toast.error('Failed to update privacy settings'));
     } finally {
       setUpdatingPrivacy(false);
+      setShowPrivateConfirm(false);
     }
   };
 
@@ -98,6 +175,7 @@ const PrivacySection: FC = () => {
       import('react-hot-toast').then(({ toast }) => toast.error('Failed to update ghost mode'));
     } finally {
       setUpdatingPrivacy(false);
+      setShowGhostConfirm(false);
     }
   };
 
@@ -147,7 +225,7 @@ const PrivacySection: FC = () => {
                 
                 <div className="flex justify-end sm:justify-start">
                   <button 
-                    onClick={handleTogglePrivacy}
+                    onClick={() => setShowPrivateConfirm(true)}
                     disabled={updatingPrivacy}
                     className={cn(
                       "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
@@ -166,7 +244,7 @@ const PrivacySection: FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 border-t border-border-base/30">
                 <div className="flex items-center gap-5">
                   <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 shadow-sm shrink-0">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M9 10H9.01M15 10H15.01M12 2C7.03 2 3 6.03 3 11V22L12 19L21 22V11C21 6.03 16.97 2 12 2Z" /></svg>
+                    <Ghost className="w-6 h-6" />
                   </div>
                   <div className="text-left">
                     <h4 className="text-[16px] font-black text-text-base tracking-tight leading-none mb-1">Ghost Mode</h4>
@@ -178,7 +256,7 @@ const PrivacySection: FC = () => {
                 
                 <div className="flex justify-end sm:justify-start">
                   <button 
-                    onClick={handleToggleGhostMode}
+                    onClick={() => setShowGhostConfirm(true)}
                     disabled={updatingPrivacy}
                     className={cn(
                       "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50",
@@ -197,7 +275,7 @@ const PrivacySection: FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 border-t border-border-base/30">
                 <div className="flex items-center gap-5">
                   <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 shadow-sm shrink-0">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-6 h-6"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4m0 4h.01" /></svg>
+                    <ShieldAlert className="w-6 h-6" />
                   </div>
                   <div className="text-left">
                     <h4 className="text-[16px] font-black text-red-600 tracking-tight leading-none mb-1">Panic Mode</h4>
@@ -220,29 +298,6 @@ const PrivacySection: FC = () => {
                   </button>
                 </div>
               </div>
-
-              {showPanicConfirm && (
-                <div className="p-6 bg-red-50 rounded-3xl border border-red-100 animate-in zoom-in-95 duration-200">
-                  <h5 className="text-red-700 font-black text-[15px] mb-2">Are you absolutely sure?</h5>
-                  <p className="text-red-600/70 text-[12px] font-bold mb-5 leading-relaxed">
-                    This will immediately hide your profile and scrub your location.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button 
-                      onClick={handleActivatePanicMode}
-                      className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white text-[11px] font-black uppercase rounded-xl hover:bg-red-700 transition-colors"
-                    >
-                      Yes, Scrub Everything
-                    </button>
-                    <button 
-                      onClick={() => setShowPanicConfirm(false)}
-                      className="w-full sm:w-auto px-6 py-2.5 bg-white text-gray-600 text-[11px] font-black uppercase rounded-xl border border-red-100 hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
 
               <div className="pt-6 border-t border-border-base/30 space-y-6">
                 <h3 className="text-[14px] font-black uppercase tracking-widest text-text-muted/60">Interactions</h3>
@@ -310,6 +365,44 @@ const PrivacySection: FC = () => {
           </div>
         </>
       )}
+
+      {/* Confirmation Modals */}
+      <ConfirmModal 
+        isOpen={showPrivateConfirm}
+        onClose={() => setShowPrivateConfirm(false)}
+        onConfirm={handleTogglePrivacy}
+        isLoading={updatingPrivacy}
+        title="Account Privacy"
+        message={isPrivate 
+          ? "Switching to Public will allow anyone to see your profile and content." 
+          : "Switching to Private means only people you approve can see your posts."}
+        confirmText={isPrivate ? "Make Public" : "Make Private"}
+        variant="purple"
+      />
+
+      <ConfirmModal 
+        isOpen={showGhostConfirm}
+        onClose={() => setShowGhostConfirm(false)}
+        onConfirm={handleToggleGhostMode}
+        isLoading={updatingPrivacy}
+        title="Ghost Mode"
+        message={isGhostMode 
+          ? "Your location will become visible to your connections again." 
+          : "Your location will be hidden from everyone on the map."}
+        confirmText={isGhostMode ? "Disable Ghost" : "Enable Ghost"}
+        variant="blue"
+      />
+
+      <ConfirmModal 
+        isOpen={showPanicConfirm}
+        onClose={() => setShowPanicConfirm(false)}
+        onConfirm={handleActivatePanicMode}
+        isLoading={updatingPrivacy}
+        title="Panic Mode"
+        message="This will immediately hide your profile and scrub your location. Are you absolutely sure?"
+        confirmText="Yes, Scrub Everything"
+        variant="red"
+      />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState, useEffect, type FC } from 'react';
 import { Heart, UserPlus, MapPin, Bell, Eye, MessageCircle, ThumbsUp, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useNotifications } from '../../hooks/useNotifications';
 import { BACKEND } from '../../utils/config';
 import { toast } from 'react-hot-toast';
 import { nullString } from '../../utils/string';
@@ -71,7 +72,7 @@ const parseMessage = (notif: Notification): React.ReactNode => {
     const parts = raw.split(actor);
     return (
       <>
-        <span className="font-black text-text-base">{actor}</span>
+        <span className="font-semibold text-text-base">{actor}</span>
         {parts.slice(1).join(actor)}
       </>
     );
@@ -123,7 +124,7 @@ const NotifCard = ({
       {/* Content */}
       <div className="flex-1 min-w-0 pr-6">
         {nullString(notif.title) && (
-          <h4 className="text-[13px] font-black text-text-base uppercase tracking-tight mb-0.5 leading-none">
+          <h4 className="text-[13px] font-bold text-text-base uppercase tracking-tight mb-0.5 leading-none">
             {nullString(notif.title)}
           </h4>
         )}
@@ -133,7 +134,7 @@ const NotifCard = ({
         <p className="text-[11px] text-text-muted/40 mt-1 font-medium">{timeAgo(notif.created_at)}</p>
 
         {/* Inline Actions for Connection Requests */}
-        {notif.type === 'connection_request' && notif.related_user_id && (
+        {(notif.type === 'connection_request' || notif.type === 'follow') && notif.related_user_id && (
           <div className="mt-3">
             {!status ? (
               <div className="flex gap-2">
@@ -212,58 +213,13 @@ interface NotificationsViewProps {
 
 const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { notifications, markRead, markAllRead, unreadCount } = useNotifications();
+  const [loading, setLoading] = useState(false); // Notifications come from hook now
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await api.get('/notifications');
-        const data = res.data || [];
-        // Deduplicate notifications by message content (keep most recent)
-        const seenMessages = new Map<string, Notification>();
-        for (const notif of data) {
-          const key = `${notif.type}_${notif.message}`;
-          if (!seenMessages.has(key)) {
-            seenMessages.set(key, notif);
-          }
-        }
-        setNotifications(Array.from(seenMessages.values()));
-      } catch (err) {
-        console.error('Failed to fetch notifications:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNotifications();
+    // Hook handles initial fetch, we just ensure it's fresh
+    setLoading(false);
   }, []);
-
-  const markAllRead = async () => {
-    try {
-      await api.put('/notifications/read-all');
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      window.dispatchEvent(new CustomEvent('notifications_updated'));
-    } catch (err) {
-      console.error('Failed to mark all read:', err);
-    }
-  };
-
-  const markRead = async (id: string, relatedUserId?: string) => {
-    try {
-      await api.put(`/notifications/${id}/read`);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-      window.dispatchEvent(new CustomEvent('notifications_updated'));
-
-      // If it's a social notification, navigate to profile
-      if (relatedUserId && onUserSelect) {
-        onUserSelect(relatedUserId);
-      }
-    } catch (err) {
-      console.error('Failed to mark read:', err);
-    }
-  };
-
-  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <div className="h-full bg-bg-base overflow-y-auto no-scrollbar pb-24 md:pb-0 transition-colors duration-300">
@@ -323,8 +279,14 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
               onRead={(id) => {
                 const actorId = typeof notif.related_user_id === 'string'
                   ? notif.related_user_id
-                  : notif.related_user_id?.UUID;
-                markRead(id, actorId);
+                  : (notif.related_user_id?.UUID || notif.related_user_id?.uuid);
+                
+                markRead(id);
+
+                // If it's a social notification and we have a handler, navigate
+                if (actorId && onUserSelect) {
+                  onUserSelect(actorId);
+                }
               }}
             />
           ))}

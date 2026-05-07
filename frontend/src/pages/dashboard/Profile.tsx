@@ -47,6 +47,14 @@ interface ProfileData {
     is_verified?: boolean;
 }
 
+interface Highlight {
+    id: string;
+    title: string;
+    cover_url: string;
+    user_id: string;
+    stories_count: number;
+}
+
 interface ProfileProps {
     onCreatePost?: () => void;
 }
@@ -97,8 +105,10 @@ export const Profile: FC<ProfileProps> = () => {
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [posts, setPosts] = useState<any[]>([]);
     const [reels, setReels] = useState<any[]>([]);
+    const [highlights, setHighlights] = useState<Highlight[]>([]);
     const [loading, setLoading] = useState(true);
     const [reelsLoading, setReelsLoading] = useState(false);
+    const [highlightsLoading, setHighlightsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'thoughts'>('posts');
     const [followStatus, setFollowStatus] = useState<'none' | 'pending' | 'accepted'>('none');
@@ -147,6 +157,13 @@ export const Profile: FC<ProfileProps> = () => {
             const fetchedReels = reelsRes.data?.reels || (Array.isArray(reelsRes.data) ? reelsRes.data : []);
             setReels(fetchedReels);
             setReelsLoading(false);
+
+            // Fetch Highlights
+            setHighlightsLoading(true);
+            const highlightsEndpoint = isOwnProfile ? '/highlights/me' : `/users/${userId}/highlights`;
+            const highlightsRes = await api.get(highlightsEndpoint).catch(() => ({ data: [] }));
+            setHighlights(highlightsRes.data || []);
+            setHighlightsLoading(false);
 
             if (!isOwnProfile) {
                 const connsRes = await api.get('/connections').catch(() => ({ data: [] }));
@@ -453,31 +470,26 @@ export const Profile: FC<ProfileProps> = () => {
                         {/* Row 2: Stats - Show counts even for private accounts */}
                         <div className="flex items-center gap-10 text-[16px]">
                             <div className="flex items-center gap-1.5"><span className="font-bold text-slate-900">{posts.length + reels.length}</span> <span className="text-slate-700">posts</span></div>
-                             <div
-                                 className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
-                                 onClick={() => navigate(`/dashboard/connections?tab=followers${isOwnProfile ? '' : `&userId=${profile?.id}`}`)}
-                             >
-                                 <span className="font-bold text-slate-900">{(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? '—' : (profile?.followers_count ?? 0)}</span>
-                                 <span className="text-slate-700">followers</span>
-                             </div>
-                             <div
-                                 className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
-                                 onClick={() => navigate(`/dashboard/connections?tab=following${isOwnProfile ? '' : `&userId=${profile?.id}`}`)}
-                             >
-                                 <span className="font-bold text-slate-900">{(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? '—' : (profile?.following_count ?? 0)}</span>
-                                 <span className="text-slate-700">following</span>
-                             </div>
+                            <div
+                                className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
+                                onClick={() => navigate(`/dashboard/connections?tab=followers${isOwnProfile ? '' : `&userId=${profile?.id}`}`)}
+                            >
+                                <span className="font-bold text-slate-900">{profile?.followers_count ?? 0}</span>
+                                <span className="text-slate-700">followers</span>
+                            </div>
+                            <div
+                                className={`flex items-center gap-1.5 cursor-pointer hover:opacity-70 ${(!isOwnProfile && profile?.is_private && followStatus !== 'accepted') ? 'pointer-events-none' : ''}`}
+                                onClick={() => navigate(`/dashboard/connections?tab=following${isOwnProfile ? '' : `&userId=${profile?.id}`}`)}
+                            >
+                                <span className="font-bold text-slate-900">{profile?.following_count ?? 0}</span>
+                                <span className="text-slate-700">following</span>
+                            </div>
                         </div>
 
                         {/* Row 3: Bio */}
                         <div className="flex flex-col items-start space-y-1">
                             <span className="text-base font-bold text-slate-900">{profile?.full_name || profile?.username}</span>
-                            {profile?.email && (
-                                <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-1">
-                                    <Mail className="w-4 h-4" />
-                                    <span>{profile.email}</span>
-                                </div>
-                            )}
+
                             <p className="text-base text-slate-700 font-medium leading-relaxed max-w-sm">
                                 {profile?.bio || 'No bio yet'}
                             </p>
@@ -498,6 +510,34 @@ export const Profile: FC<ProfileProps> = () => {
                             <span className="text-[11px] md:text-xs font-bold text-slate-900">New</span>
                         </div>
                     )}
+
+                    {highlights.map((h) => (
+                        <div
+                            key={h.id}
+                            onClick={() => navigate(`/dashboard/manage-highlights?id=${h.id}`)}
+                            className="flex flex-col items-center gap-2 group cursor-pointer shrink-0"
+                        >
+                            <div className="w-16 h-16 md:w-[77px] md:h-[77px] rounded-full p-[2.5px] border border-slate-200 flex items-center justify-center bg-white group-hover:border-primary transition-all">
+                                <div className="w-full h-full rounded-full overflow-hidden">
+                                    <img
+                                        src={getMediaUrl(h.cover_url, FALLBACKS.POST)}
+                                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                        alt={h.title}
+                                    />
+                                </div>
+                            </div>
+                            <span className="text-[11px] md:text-xs font-bold text-slate-900 truncate max-w-[70px]">
+                                {h.title}
+                            </span>
+                        </div>
+                    ))}
+
+                    {highlightsLoading && [1, 2].map(i => (
+                        <div key={i} className="flex flex-col items-center gap-2 animate-pulse shrink-0">
+                            <div className="w-16 h-16 md:w-[77px] md:h-[77px] rounded-full bg-slate-100" />
+                            <div className="h-3 w-10 bg-slate-100 rounded" />
+                        </div>
+                    ))}
                 </div>
 
                 {/* ── Tabbed Content Navigation (Instagram Centered Icons) ── */}

@@ -89,10 +89,13 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchData();
-    }, 0);
-    return () => clearTimeout(timer);
+    void fetchData();
+
+    // Refresh when global notifications change (e.g. messages read in ChatWindow)
+    window.addEventListener('notifications_updated', fetchData);
+    return () => {
+      window.removeEventListener('notifications_updated', fetchData);
+    };
   }, []);
 
   const getFilteredItems = () => {

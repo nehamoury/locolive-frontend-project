@@ -26,7 +26,13 @@ const AdminLogin: React.FC = () => {
     setError('');
 
     try {
-      const response = await api.post('/users/login', formData);
+      const payload = {
+        identity: formData.identity.trim(),
+        password: formData.password.trim(),
+        is_admin_portal: true,
+      };
+
+      const response = await api.post('/users/login', payload);
 
       const { access_token, user } = response.data;
 

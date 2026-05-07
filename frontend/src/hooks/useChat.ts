@@ -47,6 +47,7 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
       if (!isGroup) {
         // Mark messages as read since we just opened the chat
         await api.put(`/messages/read/${targetUserId}`);
+        window.dispatchEvent(new CustomEvent('notifications_updated'));
       }
     } catch (err: unknown) {
       const status = (err as ApiError).response?.status;
@@ -121,6 +122,13 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
               const msg = data.payload;
               if (msg.sender_id === targetUserId || msg.receiver_id === targetUserId) {
                  setMessages(prev => [...prev, msg]);
+                 
+                 // If the message is from the other person and we are in the chat, mark as read
+                 if (msg.sender_id === targetUserId) {
+                   api.put(`/messages/read/${targetUserId}`).then(() => {
+                     window.dispatchEvent(new CustomEvent('notifications_updated'));
+                   }).catch(() => {});
+                 }
               }
               break;
             }

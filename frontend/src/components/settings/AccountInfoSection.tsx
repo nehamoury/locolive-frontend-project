@@ -1,10 +1,12 @@
 import { useState, type FC, useEffect } from 'react';
 import { Camera, MapPin, Check, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import { useAuth } from '../../context/AuthContext';
 
 const AccountInfoSection: FC = () => {
+  const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [username, setUsername] = useState(user?.username || '');
@@ -126,7 +128,13 @@ const AccountInfoSection: FC = () => {
       }
 
       updateUser(updatedProfile);
-      import('react-hot-toast').then(({ toast }) => toast.success('Profile updated successfully!'));
+      import('react-hot-toast').then(({ toast }) => {
+        toast.success('Profile updated successfully!');
+        // Redirect back to profile
+        setTimeout(() => {
+          navigate(`/dashboard/profile/${updatedProfile.id || user?.id}`);
+        }, 1000);
+      });
     } catch (err: unknown) {
       import('react-hot-toast').then(({ toast }) => toast.error((err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Failed to update profile'));
     } finally {
@@ -222,10 +230,16 @@ const AccountInfoSection: FC = () => {
 
       {/* 3. Bio Section */}
       <div className="bg-bg-card rounded-[24px] sm:rounded-[32px] border border-border-base/50 p-5 sm:p-8 space-y-3 shadow-sm">
-        <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60 ml-1">About Me / Bio</label>
+        <div className="flex items-center justify-between ml-1">
+          <label className="text-[11px] font-black uppercase tracking-widest text-text-muted/60">About Me / Bio</label>
+          <span className={`text-[10px] font-black uppercase tracking-widest ${bio.length >= 150 ? 'text-red-500' : 'text-text-muted/40'}`}>
+            {bio.length}/150
+          </span>
+        </div>
         <textarea 
           value={bio}
           onChange={(e) => setBio(e.target.value)}
+          maxLength={150}
           rows={4}
           className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl sm:rounded-3xl px-4 py-3 sm:px-6 sm:py-4 text-sm font-bold text-text-base outline-none focus:border-pink-500/50 transition-all resize-none shadow-inner"
           placeholder="Write something about yourself..."

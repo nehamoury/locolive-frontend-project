@@ -236,7 +236,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
             {isVideo ? (
               <video
                 ref={videoRef}
-                src={story.media_url.startsWith('http') ? story.media_url : `${BACKEND}${story.media_url}`}
+                src={story.media_url?.startsWith('http') ? story.media_url : (story.media_url ? `${BACKEND}${story.media_url}` : '')}
                 className="w-full h-full object-cover transition-transform duration-500"
                 style={story.crop_settings ? {
                   transform: `scale(${story.crop_settings.zoom}) translate(${story.crop_settings.position.x/10}px, ${story.crop_settings.position.y/10}px)`,
@@ -248,7 +248,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
               />
             ) : (
               <img
-                src={story.media_url.startsWith('http') ? story.media_url : `${BACKEND}${story.media_url}`}
+                src={story.media_url?.startsWith('http') ? story.media_url : (story.media_url ? `${BACKEND}${story.media_url}` : '')}
                 alt="Story"
                 className="w-full h-full object-cover transition-transform duration-500"
                 style={story.crop_settings ? {
@@ -298,7 +298,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
                   <div className="w-full h-full rounded-full border-2 border-transparent overflow-hidden">
                     {story.avatar_url ? (
                       <img 
-                        src={story.avatar_url.startsWith('http') ? story.avatar_url : `${BACKEND}${story.avatar_url}`} 
+                        src={story.avatar_url?.startsWith('http') ? story.avatar_url : (story.avatar_url ? `${BACKEND}${story.avatar_url}` : '')} 
                         alt={story.username} 
                         className="w-full h-full object-cover" 
                       />

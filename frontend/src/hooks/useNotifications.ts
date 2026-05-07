@@ -15,7 +15,13 @@ const UNREAD_POLL_INTERVAL = 180000; // Poll unread counts every 3 minutes as fa
 interface Notification {
   id: string;
   type: string;
+  title?: string;
   message: string;
+  content?: string;
+  actor_username?: string;
+  actor_full_name?: string;
+  actor_avatar_url?: string;
+  related_user_id?: any;
   is_read: boolean;
   created_at: string;
 }
@@ -36,7 +42,7 @@ type BrowserNotificationOptions = NotificationOptions & {
   vibrate?: number[];
 };
 
-type NotificationMap = Map<string, Notification>;
+
 
 export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -110,14 +116,23 @@ export const useNotifications = () => {
       const res = await api.get('/notifications');
       const data = res.data || [];
 
-      // Deduplicate notifications exactly like in NotificationsView
-      const seenMessages: NotificationMap = new Map();
-      for (const notif of data as Notification[]) {
-        const key = `${notif.type}_${notif.message}`;
+      // Deduplicate notifications exactly like in the WS handler
+      const seenMessages = new Map<string, Notification>();
+      for (const notif of (data as Notification[])) {
+        const actorId = typeof notif.related_user_id === 'string'
+          ? notif.related_user_id
+          : (notif.related_user_id?.UUID || notif.related_user_id?.uuid);
+        
+        // For follows/connections, deduplicate by actor so we only show the latest action from that person
+        const key = (notif.type.includes('follow') || notif.type.includes('connection')) && actorId
+          ? `${notif.type}-${actorId}`
+          : `${notif.type}-${notif.message}-${notif.created_at}`;
+          
         if (!seenMessages.has(key)) {
           seenMessages.set(key, notif);
         }
       }
+      
       const uniqueNotifications = Array.from(seenMessages.values());
       const uniqueUnreadCount = uniqueNotifications.filter((n) => !n.is_read).length;
 
@@ -252,6 +267,7 @@ export const useNotifications = () => {
   // Initial fetch
   useEffect(() => {
     const timer = setTimeout(() => {
+      void fetchUnreadCount();
       void fetchUnreadMessagesCount();
       void fetchPendingRequestsCount();
     }, 0);
@@ -472,6 +488,37 @@ export const useNotifications = () => {
             setTimeout(() => {
               window.location.href = '/login';
             }, 2000);
+            return;
+          }
+
+          if (data.type === 'notification') {
+            const notif = data.payload;
+            if (notif) {
+              setNotifications(prev => {
+                // Filter out duplicates (based on message and type, but for social actions use actor ID)
+                const uniqueNotifications = Array.from(new Map(
+                  prev.map(n => {
+                    const actorId = typeof n.related_user_id === 'string'
+                      ? n.related_user_id
+                      : (n.related_user_id?.UUID || n.related_user_id?.uuid);
+                    
+                    // For follows/connections, deduplicate by actor so we only show the latest action from that person
+                    const key = (n.type.includes('follow') || n.type.includes('connection')) && actorId
+                      ? `${n.type}-${actorId}`
+                      : `${n.type}-${n.message}-${n.created_at}`;
+                      
+                    return [key, n];
+                  })
+                ).values());
+                
+                const newList = [notif, ...uniqueNotifications];
+                setUnreadCount(newList.filter(n => !n.is_read).length);
+                return newList;
+              });
+              toast(notif.message, { icon: '🔔' });
+              playSound(notif.sound || 'soft_ping.wav', 'high');
+              if (notif.type === 'connection_request') fetchPendingRequestsCount();
+            }
             return;
           }
 
