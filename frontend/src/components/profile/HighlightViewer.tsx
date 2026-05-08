@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, VolumeX, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { X, Volume2, VolumeX, ChevronLeft, ChevronRight, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
-import { BACKEND } from '../../utils/config';
+import { getMediaUrl } from '../../utils/media';
+import { nullString } from '../../utils/string';
 
 interface Story {
   id: string;
@@ -16,23 +17,40 @@ interface HighlightViewerProps {
   highlightId: string;
   title: string;
   onClose: () => void;
+  isOwner?: boolean;
 }
 
 const STORY_DURATION = 5000;
 
-const HighlightViewer = ({ highlightId, title, onClose }: HighlightViewerProps) => {
+const HighlightViewer = ({ highlightId, title, onClose, isOwner }: HighlightViewerProps) => {
   const [stories, setStories] = useState<Story[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetchHighlightStories();
   }, [highlightId]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/highlights/${highlightId}`);
+      setShowDeleteConfirm(false);
+      onClose();
+      window.dispatchEvent(new CustomEvent('highlight_deleted'));
+    } catch (error) {
+      console.error('Failed to delete highlight', error);
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   const fetchHighlightStories = async () => {
     try {
@@ -146,7 +164,7 @@ const HighlightViewer = ({ highlightId, title, onClose }: HighlightViewerProps) 
             {isVideo ? (
               <video
                 ref={videoRef}
-                src={`${BACKEND}${story.media_url}`}
+                src={getMediaUrl(story.media_url)}
                 className="w-full h-full object-cover"
                 autoPlay
                 loop
@@ -155,7 +173,7 @@ const HighlightViewer = ({ highlightId, title, onClose }: HighlightViewerProps) 
               />
             ) : (
               <img
-                src={`${BACKEND}${story.media_url}`}
+                src={getMediaUrl(story.media_url)}
                 className="w-full h-full object-cover"
                 alt=""
               />
@@ -190,6 +208,11 @@ const HighlightViewer = ({ highlightId, title, onClose }: HighlightViewerProps) 
               </div>
 
               <div className="flex items-center gap-2">
+                {isOwner && (
+                  <button onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }} className="p-2 bg-red-500/20 backdrop-blur-md rounded-full text-red-500 border border-red-500/30 hover:bg-red-500/40 transition-all">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
                 {isVideo && (
                   <button onClick={(e) => { e.stopPropagation(); setMuted(!muted); }} className="p-2 bg-white/10 backdrop-blur-md rounded-full text-white/80">
                     {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -205,9 +228,55 @@ const HighlightViewer = ({ highlightId, title, onClose }: HighlightViewerProps) 
           {/* Caption */}
           {story.caption && (
             <div className="absolute bottom-10 inset-x-0 px-8 z-[100]">
-                <p className="text-white text-lg font-black leading-tight drop-shadow-xl">{story.caption}</p>
+                <p className="text-white text-lg font-black leading-tight drop-shadow-xl">{nullString(story.caption)}</p>
             </div>
           )}
+
+          {/* Delete Confirmation */}
+          <AnimatePresence>
+            {showDeleteConfirm && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                onClick={(e) => { e.stopPropagation(); if (!deleting) setShowDeleteConfirm(false); }}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-gray-900 border border-white/10 rounded-[32px] p-8 max-w-xs w-full mx-4 shadow-2xl text-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-5">
+                    <AlertTriangle className="w-8 h-8 text-red-400" />
+                  </div>
+                  <h3 className="text-white font-black text-lg mb-2">Delete Highlight?</h3>
+                  <p className="text-white/50 text-sm font-medium mb-8 leading-relaxed">
+                    This will remove "{title}" and all its stories permanently.
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="w-full py-3.5 bg-red-500 hover:bg-red-600 disabled:opacity-50 active:scale-95 transition-all text-white font-black text-sm uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2"
+                    >
+                      {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      {deleting ? 'Deleting...' : 'Delete'}
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={deleting}
+                      className="w-full py-3.5 bg-white/5 hover:bg-white/10 active:scale-95 transition-all text-white/70 font-black text-sm uppercase tracking-widest rounded-2xl"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </motion.div>
     </AnimatePresence>

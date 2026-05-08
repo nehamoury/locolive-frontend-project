@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AtSign, Phone, Check, ArrowRight, X } from 'lucide-react';
+import { AtSign, Phone, Lock, Eye, EyeOff, Check, ArrowRight, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import logo from '../../assets/WhatsApp Image 2026-04-28 at 4.00.46 PM.png';
@@ -15,6 +15,11 @@ const CompleteProfile: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPasswordStep, setShowPasswordStep] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [settingPassword, setSettingPassword] = useState(false);
   
   // Username check states
   const [usernameStatus, setUsernameStatus] = useState<'idle'|'checking'|'available'|'taken'|'invalid'|'error'>('idle');
@@ -125,11 +130,16 @@ const CompleteProfile: React.FC = () => {
       const { access_token, requires_phone_verify } = responseData;
       
       if (access_token) {
-        // Use the user data from response if available, or fetch fresh
         const updatedUser = responseData.user;
         
         login(access_token, updatedUser, false);
         setRequiresProfileCompletion(false);
+        
+        // If this is a Google user, prompt them to set a password first
+        if (updatedUser?.provider === 'google' || user?.provider === 'google') {
+          setShowPasswordStep(true);
+          return;
+        }
         
         // Redirect to phone verification if phone not verified
         if (requires_phone_verify || !updatedUser.is_phone_verified) {
@@ -145,6 +155,29 @@ const CompleteProfile: React.FC = () => {
       setError(msg);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
+
+    setSettingPassword(true);
+    setError('');
+
+    try {
+      const res = await api.post('/account/set-password', { password });
+      const { access_token, user: updatedUser } = res.data;
+      if (access_token && updatedUser) {
+        login(access_token, updatedUser, false);
+      }
+      navigate('/verify-phone');
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || 'Failed to set password.';
+      setError(msg);
+    } finally {
+      setSettingPassword(false);
     }
   };
 
@@ -272,14 +305,86 @@ const CompleteProfile: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-8 flex flex-col items-center gap-3">
-          <button
-            onClick={() => logout()}
-            className="text-[13px] font-bold text-text-muted/60 hover:text-text-base transition-colors py-2"
+        {showPasswordStep && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="border-t border-border-base pt-6 mt-6"
           >
-            Cancel & Exit
-          </button>
-        </div>
+            <div className="mb-6">
+              <h3 className="text-lg font-black text-text-base">Set a password</h3>
+              <p className="text-xs text-text-muted mt-1">
+                Your Google account is linked. Now create a password so you can log in with your username next time.
+              </p>
+            </div>
+
+            <form onSubmit={handleSetPassword} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min. 8 characters"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-11 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(v => !v)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted/40 hover:text-text-base transition-colors cursor-pointer"
+                  >
+                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Confirm Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat your password"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={settingPassword}
+                className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm cursor-pointer"
+              >
+                {settingPassword ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Setting password...</>
+                ) : (
+                  <>Set Password & Continue <ArrowRight className="w-4 h-4" /></>
+                )}
+              </button>
+            </form>
+          </motion.div>
+        )}
+
+        {!showPasswordStep && (
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <button
+              onClick={() => logout()}
+              className="text-[13px] font-bold text-text-muted/60 hover:text-text-base transition-colors py-2"
+            >
+              Cancel & Exit
+            </button>
+          </div>
+        )}
       </motion.div>
     </div>
   );

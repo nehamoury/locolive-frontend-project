@@ -123,7 +123,7 @@ const Sidebar: FC<SidebarProps> = ({
             <img 
               src={LogoImg} 
               alt="Locolive" 
-              className={`rounded-xl object-cover shadow-lg shadow-primary/10 border border-white/50 transition-all duration-300 ${effectiveCollapsed ? 'w-10 h-10' : 'w-9 h-9'}`}
+              className={`rounded-xl object-cover shadow-lg shadow-primary/10 border border-border-base/50 transition-all duration-300 ${effectiveCollapsed ? 'w-10 h-10' : 'w-9 h-9'}`}
             />
             {!effectiveCollapsed && (
               <div className="flex flex-col leading-none">
@@ -137,7 +137,7 @@ const Sidebar: FC<SidebarProps> = ({
               {streakData && streakData.current_streak > 0 && !effectiveCollapsed && (
                 <div 
                   onClick={() => navigate(`/dashboard/profile/${user?.id}`)}
-                  className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded-lg cursor-pointer hover:bg-orange-500/20 transition-all border border-orange-500/20 group"
+                  className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 dark:bg-orange-500/20 rounded-lg cursor-pointer hover:bg-orange-500/20 dark:hover:bg-orange-500/30 transition-all border border-orange-500/20 group"
                   title="Your current streak"
                 >
                   <span className="text-[12px] font-black text-orange-600">{streakData.current_streak}</span>

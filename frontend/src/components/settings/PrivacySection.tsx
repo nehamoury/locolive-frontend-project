@@ -46,7 +46,7 @@ const ConfirmModal: FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm, title
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative w-full max-w-sm bg-white rounded-[32px] overflow-hidden shadow-2xl"
+            className="relative w-full max-w-sm bg-bg-card rounded-[32px] overflow-hidden shadow-2xl border border-border-base/50"
           >
             <div className="p-8 text-center">
               <div className={cn("w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-6", colors.soft)}>
@@ -69,13 +69,13 @@ const ConfirmModal: FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm, title
                 <button 
                   onClick={onClose}
                   disabled={isLoading}
-                  className="w-full py-4 rounded-2xl bg-slate-50 text-slate-500 text-[13px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
+                  className="w-full py-4 rounded-2xl bg-bg-base text-text-muted text-[13px] font-black uppercase tracking-widest hover:bg-bg-sidebar transition-all"
                 >
                   Cancel
                 </button>
               </div>
             </div>
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-slate-300 hover:text-slate-500 transition-colors">
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-text-muted/40 hover:text-text-muted transition-colors">
               <X className="w-5 h-5" />
             </button>
           </motion.div>
@@ -291,7 +291,7 @@ const PrivacySection: FC = () => {
                     disabled={updatingPrivacy || panicMode}
                     className={cn(
                       "px-5 py-2.5 rounded-2xl text-[12px] font-black uppercase tracking-wider transition-all w-full sm:w-auto",
-                      panicMode ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-500 text-white hover:bg-red-600 shadow-md active:scale-95"
+                      panicMode ? "bg-bg-base text-text-muted/40 cursor-not-allowed border border-border-base" : "bg-red-500 text-white hover:bg-red-600 shadow-md active:scale-95"
                     )}
                   >
                     {panicMode ? "Activated" : "Activate"}

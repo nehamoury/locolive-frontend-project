@@ -32,6 +32,7 @@ const UniversalCropModal: React.FC<UniversalCropModalProps> = ({ file, isOpen, o
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [pixelCrop, setPixelCrop] = useState<Area | null>(null);
     const [mediaUrl] = useState(() => URL.createObjectURL(file));
+    const isVideo = file.type.startsWith('video/');
 
     const selectedRatio = RATIOS.find(r => r.value === ratio) || RATIOS[0];
 
@@ -71,7 +72,7 @@ const UniversalCropModal: React.FC<UniversalCropModalProps> = ({ file, isOpen, o
                     </button>
                     
                     <div className="hidden md:flex flex-col items-center">
-                        <h3 className="text-xl font-black text-white italic tracking-tight uppercase">Crop Image</h3>
+                        <h3 className="text-xl font-black text-white italic tracking-tight uppercase">Crop {isVideo ? 'Video' : 'Image'}</h3>
                         <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.3em]">Precision Studio</p>
                     </div>
 
@@ -87,7 +88,8 @@ const UniversalCropModal: React.FC<UniversalCropModalProps> = ({ file, isOpen, o
                 <div className="relative w-full h-full flex flex-col items-center justify-center pt-20 pb-32">
                     <div className="relative w-full max-w-4xl h-full rounded-3xl overflow-hidden bg-zinc-950/50 shadow-2xl border border-white/5">
                         <Cropper
-                            image={mediaUrl}
+                            image={!isVideo ? mediaUrl : undefined}
+                            video={isVideo ? mediaUrl : undefined}
                             crop={crop}
                             zoom={zoom}
                             aspect={selectedRatio.aspect}

@@ -90,6 +90,8 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
             ));
 
             toast.success('Highlight created successfully!');
+            // Dispatch event to refresh profile
+            window.dispatchEvent(new CustomEvent('highlight_created'));
             onBack();
         } catch (error) {
             console.error('Failed to create highlight:', error);
@@ -186,7 +188,7 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
                                         <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
                                             <Calendar className="w-3 h-3 text-white/90" />
                                             <span className="text-[9px] font-black text-white/90 uppercase tracking-tighter">
-                                                {new Date(story.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                {story.created_at ? new Date(story.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Recently'}
                                             </span>
                                         </div>
                                     </div>
@@ -219,20 +221,30 @@ export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
                             animate={{ opacity: 1, scale: 1 }}
                             className="max-w-md mx-auto space-y-10 py-6"
                         >
-                            <div className="relative group mx-auto w-44 h-44">
-                                <div className="w-full h-full rounded-[56px] overflow-hidden border-[6px] border-white shadow-2xl bg-white ring-1 ring-black/5">
-                                    {selectedStories.length > 0 ? (
-                                        <img 
-                                            src={getMediaUrl(archivedStories.find(s => s.id === selectedStories[0])?.media_url, FALLBACKS.POST)}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <FolderPlus className="w-12 h-12 text-slate-100" />
-                                        </div>
-                                    )}
+                            <div 
+                                className="relative group mx-auto w-44 h-44 cursor-pointer"
+                                onClick={() => {
+                                    // Cycle through selected stories for cover
+                                    const currentIndex = selectedStories.indexOf(newHighlight.cover_url || selectedStories[0]);
+                                    const nextIndex = (currentIndex + 1) % selectedStories.length;
+                                    const nextStoryId = selectedStories[nextIndex];
+                                    const nextStory = archivedStories.find(s => s.id === nextStoryId);
+                                    if (nextStory) {
+                                        setNewHighlight(prev => ({ ...prev, cover_url: nextStory.media_url }));
+                                        toast.success('Cover image updated', { icon: '🖼️', duration: 1000 });
+                                    }
+                                }}
+                            >
+                                <div className="w-full h-full rounded-[56px] overflow-hidden border-[6px] border-white shadow-2xl bg-white ring-1 ring-black/5 group-hover:scale-105 transition-transform duration-500">
+                                    <img 
+                                        src={getMediaUrl(newHighlight.cover_url || archivedStories.find(s => s.id === selectedStories[0])?.media_url, FALLBACKS.POST)}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Change Cover</span>
+                                    </div>
                                 </div>
-                                <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-pink-500 shadow-xl">
+                                <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-pink-500 shadow-xl group-hover:rotate-12 transition-transform">
                                     <ImageIcon className="w-5 h-5" />
                                 </div>
                             </div>

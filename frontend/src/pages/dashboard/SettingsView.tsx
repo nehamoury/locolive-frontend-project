@@ -2,10 +2,11 @@ import { useState, type FC, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, User, Shield, Bell, Lock,
-  Palette,
+  Palette, Download,
   HelpCircle, ChevronRight, LogOut, Bookmark, Search
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { usePWA } from '../../hooks/usePWA';
 import { cn } from '../../utils/helpers';
 
 // Sub-sections
@@ -28,6 +29,7 @@ export type SettingsSection =
 
 const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
   const { logout } = useAuth();
+  const { isInstallable, installApp } = usePWA();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const initialSection = searchParams.get('section') as SettingsSection || 'account_info';
@@ -75,6 +77,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
       title: 'Support & About',
       items: [
         { id: 'help', label: 'Help & Support', desc: 'Help center and support', icon: <HelpCircle className="w-4 h-4" />, color: 'bg-green-100 text-green-600' },
+        ...(isInstallable ? [{ id: 'install', label: 'Install App', desc: 'Add Locolive to your home screen', icon: <Download className="w-4 h-4" />, color: 'bg-cyan-100 text-cyan-600', isInstall: true as const }] : []),
         { id: 'logout', label: 'Log Out', desc: 'Sign out from your account', icon: <LogOut className="w-4 h-4" />, color: 'bg-pink-100 text-pink-600', isLogout: true },
       ]
     }
@@ -126,7 +129,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
             >
               <ArrowLeft className="w-6 h-6 text-text-base" />
             </button>
-            <h1 className="text-xl font-black text-text-base tracking-tight">Settings and activity</h1>
+            <h1 className="text-xl font-bold text-text-base tracking-tight">Settings and activity</h1>
           </div>
 
           {/* Search Bar */}
@@ -139,7 +142,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
               placeholder="Search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-text-base placeholder:text-text-muted/60 outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500/30 transition-all shadow-sm"
+              className="w-full bg-bg-base/50 border border-border-base/50 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium text-text-base placeholder:text-text-muted/60 outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500/30 transition-all shadow-sm"
             />
           </div>
         </div>
@@ -148,14 +151,16 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
           {filteredMenuGroups.length > 0 ? (
             filteredMenuGroups.map((group) => (
               <div key={group.title} className="space-y-2">
-                <h3 className="px-4 text-[11px] font-black uppercase tracking-widest text-text-muted/60 mb-3">{group.title}</h3>
+                <h3 className="px-4 text-[11px] font-bold uppercase tracking-widest text-text-muted/60 mb-3">{group.title}</h3>
                 <div className="space-y-1">
-                  {group.items.map((item) => (
+                    {group.items.map((item: any) => (
                     <button
                       key={item.id}
                       onClick={() => {
                       if (item.isLogout) {
                         logout();
+                      } else if (item.isInstall) {
+                        installApp();
                       } else {
                         handleSectionChange(item.id as SettingsSection);
                       }
@@ -173,11 +178,11 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
                         </div>
                         <div className="text-left">
                           <div className="flex items-center gap-2">
-                            <span className={cn("text-[14px] font-black tracking-tight transition-colors", activeSection === item.id ? "text-pink-600" : "text-text-base")}>
+                            <span className={cn("text-[14px] font-bold tracking-tight transition-colors", activeSection === item.id ? "text-pink-600" : "text-text-base")}>
                               {item.label}
                             </span>
                           </div>
-                          <p className="text-[11px] text-text-muted font-bold leading-tight mt-0.5">{item.desc}</p>
+                          <p className="text-[11px] text-text-muted font-medium leading-tight mt-0.5">{item.desc}</p>
                         </div>
                       </div>
                       <ChevronRight className={cn("w-4 h-4 transition-all", activeSection === item.id ? "text-pink-500 translate-x-1" : "text-text-muted/40 group-hover:translate-x-1")} />
@@ -191,8 +196,8 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
               <div className="w-16 h-16 bg-bg-base rounded-full flex items-center justify-center mb-4">
                 <Search className="w-8 h-8 text-text-muted/20" />
               </div>
-              <h3 className="text-sm font-black text-text-base">No results found</h3>
-              <p className="text-xs text-text-muted font-bold mt-1">Try searching for something else</p>
+              <h3 className="text-sm font-bold text-text-base">No results found</h3>
+              <p className="text-xs text-text-muted font-medium mt-1">Try searching for something else</p>
             </div>
           )}
         </div>
@@ -214,7 +219,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
           >
             <ArrowLeft className="w-6 h-6 text-text-base" />
           </button>
-          <h2 className="text-lg font-black text-text-base uppercase tracking-tight">
+          <h2 className="text-lg font-bold text-text-base uppercase tracking-tight">
             {menuGroups.flatMap(g => g.items).find(i => i.id === activeSection)?.label || 'Settings'}
           </h2>
         </div>

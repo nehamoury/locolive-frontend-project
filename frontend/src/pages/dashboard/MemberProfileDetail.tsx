@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import Highlights from '../../components/profile/Highlights';
 import { getMediaUrl } from '../../utils/media';
+import { nullString } from '../../utils/string';
 
 interface MemberProfileDetailProps {
     userId: string;
@@ -281,7 +282,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                     <div className="mb-12">
                         <div className="flex items-center gap-3 mb-2">
                             <h1 className="text-[34px] font-black tracking-tighter text-gray-900 uppercase italic">
-                                {profile.full_name || profile.username}
+                                {nullString(profile.full_name) || profile.username}
                             </h1>
                             {profile.is_blocked && (
                                 <span className="px-3 py-1 bg-red-100 text-red-600 text-[10px] font-black uppercase rounded-full tracking-widest border border-red-200 shadow-sm">
@@ -304,7 +305,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                             </div>
                         </div>
                         <p className="text-[14px] leading-relaxed text-gray-500 max-w-xl font-medium border-l-4 border-gray-100 pl-6 py-1 italic">
-                            {profile.bio || "Hi! I'm using Locolive to discover amazing moments and cross paths with interesting people nearby. Let's connect!"}
+                            {nullString(profile.bio) || "Hi! I'm using Locolive to discover amazing moments and cross paths with interesting people nearby. Let's connect!"}
                         </p>
                     </div>
 

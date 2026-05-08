@@ -545,9 +545,10 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
                             : '';
                         const username = cluster.stories?.[0]?.username || 'User';
                         const icon = createStoryMarkerIcon(avatar, username, cluster.count ?? 0);
+                        const clusterId = cluster.user_id || cluster.id || cluster.geohash;
                         return (
                             <Marker
-                                key={`story-${cluster.geohash}`}
+                                key={`story-${clusterId}`}
                                 position={cluster.coords!}
                                 icon={icon}
                                 eventHandlers={{ click: () => setSelectedUser(cluster) }}

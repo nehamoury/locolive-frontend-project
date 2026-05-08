@@ -146,7 +146,7 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   const displayItems = getFilteredItems();
 
   return (
-    <div className="flex flex-col h-full bg-white/60 backdrop-blur-3xl w-full border-r border-gray-100 font-poppins overflow-hidden">
+    <div className="flex flex-col h-full bg-bg-card/40 backdrop-blur-3xl w-full border-r border-border-base font-poppins overflow-hidden">
 
       {/* Search Header */}
       <div className="px-6 py-8">
@@ -158,7 +158,7 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50/50 border border-gray-100 rounded-2xl py-3 pl-11 pr-4 text-xs font-bold text-gray-700 focus:outline-none focus:ring-4 focus:ring-pink-500/5 focus:border-pink-500/20 transition-all placeholder:text-gray-300"
+            className="w-full bg-bg-base/50 border border-border-base rounded-2xl py-3 pl-11 pr-4 text-xs font-bold text-text-base focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all placeholder:text-text-muted/50"
           />
         </div>
       </div>
@@ -167,7 +167,7 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
       <div className="px-6 mb-4">
         <button 
           onClick={() => setIsCreateModalOpen(true)}
-          className="w-full p-3 rounded-2xl bg-gradient-to-r from-sky-500/5 to-indigo-500/5 border border-sky-100/50 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all group"
+          className="w-full p-3 rounded-2xl bg-gradient-to-r from-sky-500/10 to-indigo-500/10 border border-sky-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all group"
         >
           <Plus className="w-4 h-4 text-sky-500" />
           <span className="text-[11px] font-black text-sky-600 uppercase tracking-widest">New Group</span>
@@ -215,12 +215,14 @@ const ChatItem = ({ conv, isSelected, onClick, onDelete }: ChatItemProps) => {
   return (
     <div
       onClick={onClick}
-      className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group relative cursor-pointer ${isSelected ? 'bg-white shadow-xl shadow-gray-200/50 border border-gray-100' : 'hover:bg-white/40'
+      className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group relative cursor-pointer ${isSelected 
+        ? 'bg-bg-card shadow-xl shadow-black/5 border border-border-base' 
+        : 'hover:bg-bg-base/40'
         }`}
     >
       <div className="shrink-0 relative">
-        <div className={`w-14 h-14 rounded-full overflow-hidden bg-gray-100 p-[2px] ${conv.isGroup ? 'bg-gradient-to-tr from-sky-500 to-indigo-500' : 'bg-gradient-to-tr from-pink-500 to-purple-500'}`}>
-          <div className="w-full h-full rounded-full bg-white overflow-hidden border-2 border-white">
+        <div className={`w-14 h-14 rounded-full overflow-hidden bg-bg-base p-[2px] ${conv.isGroup ? 'bg-gradient-to-tr from-sky-500 to-indigo-500' : 'bg-gradient-to-tr from-pink-500 to-purple-500'}`}>
+          <div className="w-full h-full rounded-full bg-bg-card overflow-hidden border-2 border-bg-card">
             {conv.avatar_url ? (
               <img src={getMediaUrl(conv.avatar_url)} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -229,22 +231,22 @@ const ChatItem = ({ conv, isSelected, onClick, onDelete }: ChatItemProps) => {
           </div>
         </div>
         {conv.unread_count > 0 ? (
-          <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-pink-500 border-2 border-white rounded-full flex items-center justify-center shadow-sm">
+          <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-pink-500 border-2 border-bg-card rounded-full flex items-center justify-center shadow-sm">
             <span className="text-[10px] font-black text-white leading-none">{conv.unread_count}</span>
           </div>
         ) : !conv.isGroup && !conv.is_blocked && (
-          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
+          <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-bg-card rounded-full shadow-sm" />
         )}
       </div>
 
       <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[14px] font-bold text-gray-900 truncate tracking-tight">{conv.full_name || `@${conv.username}`}</span>
-          <span className="text-[10px] font-medium text-gray-400 uppercase">{timeStr}</span>
+          <span className="text-[14px] font-bold text-text-base truncate tracking-tight">{conv.full_name || `@${conv.username}`}</span>
+          <span className="text-[10px] font-medium text-text-muted uppercase">{timeStr}</span>
         </div>
         <p className={`text-[12px] ${isSelected ? (conv.isGroup ? 'text-sky-500' : 'text-pink-500') + ' font-medium' : 'text-gray-400 font-normal'} truncate leading-relaxed`}>
           {conv.is_blocked ? (
-            <span className="text-red-500 font-black italic uppercase text-[10px]">Blocked</span>
+            <span className="text-red-500 font-black uppercase text-[10px]">Blocked</span>
           ) : conv.id === 'typing-id' ? (
             'Typing...'
           ) : (

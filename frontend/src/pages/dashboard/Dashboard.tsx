@@ -43,7 +43,7 @@ const MobileChatWrapper = ({ onUserSelect }: { onUserSelect: (id: string) => voi
   if (!userId) return <Navigate to="/dashboard/messages" replace />;
 
   return (
-    <div className="flex-1 h-full w-full">
+    <div className="flex-1 w-full h-[100dvh]">
       <ChatWindow
         receiverId={userId}
         isGroup={isGroup}
@@ -72,7 +72,7 @@ const MessageThreadWrapper = ({
 
   return (
     <>
-      <div className="flex-1 h-full w-full border-r border-gray-100">
+      <div className="flex-1 h-full w-full border-r border-border-base">
         <ChatWindow
           receiverId={userId}
           isGroup={isGroup}
@@ -86,7 +86,7 @@ const MessageThreadWrapper = ({
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 320, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            className="hidden lg:flex h-full shrink-0 bg-white overflow-y-auto no-scrollbar border-l border-gray-100"
+            className="hidden lg:flex h-full shrink-0 bg-bg-card overflow-y-auto no-scrollbar border-l border-border-base"
           >
             <ChatProfileSidebar
               userId={userId}
@@ -102,7 +102,7 @@ const MessageThreadWrapper = ({
 const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
   <button
     onClick={onClick}
-    className={`p-3 rounded-2xl transition-all duration-300 ${active ? 'bg-primary/10 text-primary scale-110' : 'text-slate-400 hover:text-primary active:scale-90'}`}
+    className={`p-3 rounded-2xl transition-all duration-300 ${active ? 'bg-primary/10 text-primary scale-110' : 'text-text-muted hover:text-primary active:scale-90'}`}
   >
     {icon}
   </button>
@@ -137,6 +137,18 @@ const Dashboard = () => {
   const crossingsCount = 0;
   const [refreshKey, setRefreshKey] = useState(0);
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
+  const [fullscreenOverlay, setFullscreenOverlay] = useState(false);
+
+  useEffect(() => {
+    const open = () => setFullscreenOverlay(true);
+    const close = () => setFullscreenOverlay(false);
+    window.addEventListener('highlight_viewer_open', open);
+    window.addEventListener('highlight_viewer_close', close);
+    return () => {
+      window.removeEventListener('highlight_viewer_open', open);
+      window.removeEventListener('highlight_viewer_close', close);
+    };
+  }, []);
 
   const handleActivatePanicMode = async () => {
     try {
@@ -255,10 +267,10 @@ const Dashboard = () => {
         <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
 
         <Route path="messages/*" element={
-          <div className="flex-1 flex flex-col h-full bg-bg-card md:rounded-[28px] overflow-hidden border border-border-base">
+          <div className="flex-1 flex flex-col h-full bg-bg-card/30 backdrop-blur-3xl md:rounded-[28px] overflow-hidden border border-border-base/50">
             <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border-base shrink-0">
-                <h2 className="text-[18px] font-black text-text-base tracking-tight">Messages</h2>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border-base/50 shrink-0">
+                <h2 className="text-[18px] font-black text-text-base tracking-tight uppercase">Messages</h2>
                 <div className="flex items-center gap-2">
                   <div className="flex -space-x-2">
                     <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-primary/20" />
@@ -291,12 +303,13 @@ const Dashboard = () => {
                       />
                     } />
                     <Route path="/" element={
-                      <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-gray-50/20">
-                        <div className="w-24 h-24 bg-white rounded-4xl shadow-2xl shadow-primary/5 flex items-center justify-center mb-6 border border-white/60">
-                          <MessageSquare className="w-10 h-10 text-primary/30" />
+                      <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-bg-base/5">
+                        <div className="w-24 h-24 bg-bg-card rounded-4xl shadow-2xl shadow-black/10 flex items-center justify-center mb-6 border border-border-base/40 relative">
+                          <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full" />
+                          <MessageSquare className="w-10 h-10 text-primary/50 relative z-10" />
                         </div>
-                        <h3 className="text-2xl font-black text-text-base mb-2 tracking-tight italic">Your Inbox</h3>
-                        <p className="max-w-xs text-[10px] font-black text-text-muted leading-relaxed uppercase tracking-[0.2em]">
+                        <h3 className="text-2xl font-black text-text-base mb-2 tracking-tight">Your Inbox</h3>
+                        <p className="max-w-xs text-[10px] font-black text-text-muted/60 leading-relaxed uppercase tracking-[0.3em]">
                           Select a conversation from the left to start a new journey
                         </p>
                       </div>
@@ -317,17 +330,19 @@ const Dashboard = () => {
     <div className="h-[100dvh] w-full bg-bg-base text-text-base font-body flex overflow-hidden p-0 md:gap-0 transition-colors duration-400">
 
       {/* 1. Left Sidebar - Desktop/Tablet */}
-      <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[24px] lg:rounded-[28px] shadow-soft relative shrink-0 border border-border-base transition-all duration-300 overflow-hidden z-[110]">
-        <Sidebar
-          user={user}
-          logout={logout}
-          unreadCount={totalUnreadCount}
-          unreadMessagesCount={unreadMessagesCount}
-          notificationPermission={notificationPermission}
-          requestPermission={requestPermission}
-          onCreatePost={() => setIsCreateModalOpen(true)}
-        />
-      </div>
+      {!fullscreenOverlay && (
+        <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[24px] lg:rounded-[28px] shadow-soft relative shrink-0 border border-border-base transition-all duration-300 overflow-hidden z-[110]">
+          <Sidebar
+            user={user}
+            logout={logout}
+            unreadCount={totalUnreadCount}
+            unreadMessagesCount={unreadMessagesCount}
+            notificationPermission={notificationPermission}
+            requestPermission={requestPermission}
+            onCreatePost={() => setIsCreateModalOpen(true)}
+          />
+        </div>
+      )}
 
 
       {/* 2. Main Desktop Structure */}
@@ -340,7 +355,7 @@ const Dashboard = () => {
           </main>
 
           {/* Right Sidebar Desktop */}
-          {showRightSidebar && !pathname.includes('messages') && !pathname.includes('reels') && (
+          {!fullscreenOverlay && showRightSidebar && !pathname.includes('messages') && !pathname.includes('reels') && (
             <div className="hidden xl:flex w-72 xl:w-80 shrink-0 h-full">
               <div className="w-full h-full bg-bg-sidebar border-l border-border-base overflow-hidden shadow-sm">
                 <RightSidebar
@@ -360,12 +375,12 @@ const Dashboard = () => {
 
 
         {/* Mobile Main Content Area - Scrollable */}
-        <div className={`flex-1 overflow-y-auto no-scrollbar ${pathname.includes('reels') ? 'pb-0' : 'pb-20'}`}>
+        <div className={`flex-1 overflow-y-auto no-scrollbar ${(pathname.includes('reels') || (pathname.includes('/dashboard/messages/') && pathname.split('/').length > 3)) ? 'pb-0' : 'pb-20'}`}>
           {/* Mobile Header - Only visible on Home page */}
           {pathname.endsWith('/home') && !isCreateModalOpen && (
             <div className="w-full pt-2 pb-2 px-3 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl relative z-[100] shrink-0">
               <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard/explore')}>
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-[0_4px_20px_rgba(255,59,142,0.15)] border border-primary/5">
+                <div className="w-10 h-10 rounded-full bg-bg-card flex items-center justify-center shadow-[0_4px_20px_rgba(255,59,142,0.15)] border border-primary/5">
                   <MapPin className="w-5.5 h-5.5 text-primary fill-primary/5" />
                 </div>
                 <span className="text-[24px] font-black tracking-tight text-primary font-brand">Locolive</span>
@@ -375,7 +390,7 @@ const Dashboard = () => {
                 {/* Messages Button */}
                 <button
                   onClick={() => navigate('/dashboard/messages')}
-                  className="relative p-2 text-slate-400 hover:text-primary active:scale-90 transition-all"
+                  className="relative p-2 text-text-muted hover:text-primary active:scale-90 transition-all"
                 >
                   <MessageSquare className="w-6 h-6 stroke-[2.2]" />
                   {unreadMessagesCount > 0 && (
@@ -388,7 +403,7 @@ const Dashboard = () => {
                 {/* Notifications Button */}
                 <button
                   onClick={() => navigate('/dashboard/notifications')}
-                  className="relative p-2 text-slate-400 hover:text-primary active:scale-90 transition-all"
+                  className="relative p-2 text-text-muted hover:text-primary active:scale-90 transition-all"
                 >
                   <Bell className="w-6 h-6 stroke-[2.2]" />
                   {totalUnreadCount > 0 && (
@@ -427,7 +442,7 @@ const Dashboard = () => {
             <Route path="profile/:id" element={<Profile />} />
             <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
             <Route path="messages/*" element={
-              <div className="flex-1 flex flex-col h-full bg-bg-card overflow-hidden">
+              <div className="flex-1 flex flex-col h-[100dvh] md:h-full bg-bg-card overflow-hidden">
                 <Routes>
                   <Route path=":userId" element={<MobileChatWrapper onUserSelect={handleUserSelect} />} />
                   <Route path="/" element={
@@ -443,8 +458,8 @@ const Dashboard = () => {
         <IOSInstallBanner />
 
         {/* Mobile Tab Bar */}
-        {!pathname.includes('reels') && (
-          <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-white/90 backdrop-blur-xl flex items-center justify-around z-[100] border-t border-slate-100 px-6 safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+        {!fullscreenOverlay && !pathname.includes('reels') && !(pathname.includes('messages') && pathname.split('/').length > 3) && (
+          <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-bg-sidebar/90 backdrop-blur-xl flex items-center justify-around z-[100] border-t border-border-base px-6 safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
             <MobileNavItem icon={<Home className="w-7 h-7" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
             <MobileNavItem icon={<Search className="w-7 h-7" />} active={pathname.includes('search')} onClick={() => navigate('/dashboard/search')} />
             
@@ -463,10 +478,10 @@ const Dashboard = () => {
             <MobileNavItem icon={<Clapperboard className="w-7 h-7" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
             <MobileNavItem
               icon={user?.avatar_url ? (
-                <div className={`w-8 h-8 rounded-full p-[1.5px] ${pathname.includes('profile') ? 'bg-primary' : 'bg-slate-200'}`}>
-                   <img
+                <div className={`w-8 h-8 rounded-full p-[1.5px] ${pathname.includes('profile') ? 'bg-primary' : 'bg-bg-card border border-border-base'}`}>
+                  <img
                     src={getMediaUrl(user.avatar_url)}
-                    className="w-full h-full rounded-full object-cover bg-white"
+                    className="w-full h-full rounded-full object-cover bg-bg-card"
                     alt=""
                   />
                 </div>
@@ -506,7 +521,7 @@ const Dashboard = () => {
         />
       )}
       {showPanicConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-950/20 backdrop-blur-xl p-6">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xl p-6">
           <div className="bg-bg-card rounded-[32px] p-8 max-w-sm w-full shadow-2xl border border-border-base text-center">
             <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-black text-text-base mb-2">Are you sure?</h2>

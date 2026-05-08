@@ -68,17 +68,21 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
                 </div>
               </div>
             ) : posts.length === 0 ? (
-              <div className="w-full flex flex-col items-center justify-center text-center py-20 bg-bg-card md:rounded-[32px] border border-border-base shadow-sm px-6">
-                <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center mb-5">
-                  <MapPin className="w-8 h-8 text-primary/50" />
+              <div className="w-full flex flex-col items-center justify-center text-center py-20 bg-bg-card/50 backdrop-blur-2xl md:rounded-[32px] border border-border-base/50 shadow-2xl px-6 relative overflow-hidden">
+                {/* Decorative Background Glows */}
+                <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/10 blur-[100px] rounded-full" />
+                <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-accent/10 blur-[100px] rounded-full" />
+
+                <div className="w-20 h-20 bg-brand-gradient rounded-3xl flex items-center justify-center mb-6 shadow-xl shadow-primary/20 relative z-10">
+                  <MapPin className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-[20px] font-black text-text-base mb-2 tracking-tight italic">Nothing here yet</h3>
-                <p className="text-text-muted max-w-xs mb-8 text-[13px] font-medium leading-relaxed">
-                  Follow more people around you to see their posts and stories.
+                <h3 className="text-[24px] font-black text-text-base mb-2 tracking-tight relative z-10">Start Your Journey</h3>
+                <p className="text-text-muted max-w-xs mb-10 text-[14px] font-medium leading-relaxed relative z-10">
+                  Follow people around you or explore nearby to see what's happening in your world.
                 </p>
                 <button
                   onClick={() => navigate('/dashboard/explore')}
-                  className="px-8 py-3 bg-brand-gradient text-white rounded-2xl font-bold text-[14px] shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="relative z-10 px-10 py-4 bg-brand-gradient text-white rounded-[20px] font-bold text-[15px] shadow-2xl shadow-primary/25 hover:scale-105 active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
                 >
                   Explore Nearby
                 </button>

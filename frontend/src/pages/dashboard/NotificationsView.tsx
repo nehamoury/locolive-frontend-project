@@ -99,7 +99,7 @@ const NotifCard = ({
       className={`flex items-start gap-3.5 px-5 py-4 transition-all group relative cursor-pointer
         ${!notif.is_read
           ? 'bg-primary/5 border-l-4 border-primary hover:bg-primary/10'
-          : 'bg-bg-base border-l-4 border-transparent hover:bg-bg-sidebar'
+          : 'bg-bg-base border-l-4 border-transparent hover:bg-bg-card'
         }`}
     >
       {/* Avatar */}
@@ -188,8 +188,8 @@ const NotifCard = ({
                 </button>
               </div>
             ) : (
-              <div className={`text-xs font-black uppercase tracking-widest px-1 py-1 flex items-center gap-2 ${status === 'accepted' ? 'text-green-500' : 'text-slate-400'}`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${status === 'accepted' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-slate-400'}`} />
+              <div className={`text-xs font-black uppercase tracking-widest px-1 py-1 flex items-center gap-2 ${status === 'accepted' ? 'text-green-500' : 'text-text-muted/60'}`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${status === 'accepted' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-text-muted/40'}`} />
                 {status === 'accepted' ? 'Accepted' : 'Declined'}
               </div>
             )}
@@ -229,11 +229,11 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
         <div className="flex items-center gap-2.5">
           <button 
             onClick={() => navigate(-1)}
-            className="md:hidden p-2 -ml-2 hover:bg-bg-sidebar rounded-full transition-colors text-text-muted hover:text-text-base"
+            className="md:hidden p-2 -ml-2 hover:bg-bg-card rounded-full transition-colors text-text-muted hover:text-text-base"
           >
             <ArrowLeft className="w-7 h-7" />
           </button>
-          <h1 className="text-xl font-black text-text-normal  uppercase leading-none">Notifications</h1>
+          <h1 className="text-xl font-black text-text-base uppercase leading-none">Notifications</h1>
           {unreadCount > 0 && (
             <span className="min-w-[20px] h-5 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center px-1.5">
               {unreadCount}
@@ -254,21 +254,21 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
       {loading ? (
         <div className="flex flex-col gap-0">
           {Array(6).fill(0).map((_, i) => (
-            <div key={i} className="flex items-start gap-3.5 px-5 py-4 animate-pulse border-b border-gray-50">
-              <div className="w-11 h-11 rounded-full bg-gray-100 shrink-0" />
+            <div key={i} className="flex items-start gap-3.5 px-5 py-4 animate-pulse border-b border-border-base/50">
+              <div className="w-11 h-11 rounded-full bg-bg-card shrink-0" />
               <div className="flex-1 space-y-2 pt-1">
-                <div className="h-3.5 bg-gray-100 rounded-lg w-3/4" />
-                <div className="h-3 bg-gray-100 rounded-lg w-1/4" />
+                <div className="h-3.5 bg-bg-card rounded-lg w-3/4" />
+                <div className="h-3 bg-bg-card rounded-lg w-1/4" />
               </div>
             </div>
           ))}
         </div>
       ) : notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-center px-8">
-          <div className="w-16 h-16 bg-bg-sidebar rounded-[24px] flex items-center justify-center mb-4">
+          <div className="w-16 h-16 bg-bg-card rounded-[24px] flex items-center justify-center mb-4">
             <Bell className="w-7 h-7 text-text-muted/10" />
           </div>
-          <h3 className="text-sm font-black text-text-muted/40 uppercase  tracking-widest">No notifications found</h3>
+          <h3 className="text-sm font-black text-text-muted/40 uppercase tracking-widest">No notifications found</h3>
         </div>
       ) : (
         <div className="divide-y divide-border-base">

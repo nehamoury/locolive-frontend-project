@@ -31,7 +31,7 @@ const AppearanceSection: FC = () => {
           {/* Compact Theme Selection */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center text-pink-500 shrink-0">
+              <div className="w-10 h-10 bg-pink-50 dark:bg-pink-500/10 rounded-xl flex items-center justify-center text-pink-500 shrink-0">
                 {theme === 'light' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </div>
               <div>
@@ -40,7 +40,7 @@ const AppearanceSection: FC = () => {
               </div>
             </div>
 
-            <div className="flex bg-bg-base/80 p-1 rounded-2xl border border-border-base/30 w-full sm:w-auto">
+            <div className="flex bg-bg-base/80 dark:bg-bg-base/40 p-1 rounded-2xl border border-border-base/30 w-full sm:w-auto">
               <button 
                 onClick={() => theme !== 'light' && toggleTheme()}
                 className={cn(
@@ -69,7 +69,7 @@ const AppearanceSection: FC = () => {
           {/* Language Selection as Dropdown */}
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-               <div className="w-10 h-10 bg-cyan-50 rounded-xl flex items-center justify-center text-cyan-600">
+               <div className="w-10 h-10 bg-cyan-50 dark:bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-600">
                 <Globe className="w-5 h-5" />
               </div>
               <div>

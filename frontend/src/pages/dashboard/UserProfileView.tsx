@@ -15,6 +15,7 @@ import {
 } from '../../hooks/useUserData';
 import { useQueryClient } from '@tanstack/react-query';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
+import { nullString } from '../../utils/string';
 
 interface UserProfileViewProps {
   userId: string;
@@ -297,7 +298,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
           {/* Name & Bio */}
           <div className="mb-8">
             <h1 className="text-3xl font-black tracking-tight italic text-text-base uppercase mb-1">
-              {profile?.full_name || profile?.username}
+              {nullString(profile?.full_name) || profile?.username}
             </h1>
             <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-wider mb-4">
               <span>@{profile?.username}</span>
@@ -307,9 +308,9 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                 <span className="text-text-muted">{distanceKm ? `${distanceKm.toFixed(1)}km away` : 'Locolive Community'}</span>
               </div>
             </div>
-            {profile?.bio && (
+            {nullString(profile?.bio) && (
               <p className="text-sm text-text-muted font-medium leading-relaxed max-w-md italic border-l-4 border-border-base pl-4 py-1">
-                {profile.bio}
+                {nullString(profile?.bio)}
               </p>
             )}
           </div>

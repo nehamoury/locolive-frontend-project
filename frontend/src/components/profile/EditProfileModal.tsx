@@ -138,24 +138,24 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose, initialD
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={onClose}
-                    className="absolute inset-0 bg-slate-900/40 dark:bg-bg-base/80 backdrop-blur-xl"
+                    className="absolute inset-0 bg-bg-base/40 backdrop-blur-xl"
                 />
                 
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="relative w-full max-w-2xl bg-white/90 dark:bg-bg-card/90 backdrop-blur-2xl rounded-[40px] border border-white/20 dark:border-white/5 shadow-2xl overflow-hidden"
+                    className="relative w-full max-w-2xl bg-bg-card/90 backdrop-blur-2xl rounded-[40px] border border-border-base/20 shadow-2xl overflow-hidden"
                 >
                     {/* Header */}
-                    <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                    <div className="p-8 border-b border-border-base/50 flex items-center justify-between">
                         <div>
-                            <h3 className="text-2xl font-black text-slate-800 dark:text-text-base tracking-tight">Edit Profile</h3>
-                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-1">Refine your identity</p>
+                            <h3 className="text-2xl font-black text-text-base tracking-tight">Edit Profile</h3>
+                            <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Refine your identity</p>
                         </div>
                         <button 
                             onClick={onClose}
-                            className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-pink-500 transition-all active:scale-95"
+                            className="p-3 rounded-2xl bg-bg-base text-text-muted hover:text-pink-500 transition-all active:scale-95"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -166,7 +166,7 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose, initialD
                         <div className="flex flex-col items-center gap-6">
                             <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                                 <div className="w-32 h-32 rounded-[40px] p-1 bg-gradient-to-tr from-pink-500 to-fuchsia-500 shadow-xl shadow-pink-500/20">
-                                    <div className="w-full h-full rounded-[38px] bg-white dark:bg-bg-card overflow-hidden relative">
+                                    <div className="w-full h-full rounded-[38px] bg-bg-card overflow-hidden relative">
                                         <img 
                                             src={image || (formData.avatar_url.startsWith('http') ? formData.avatar_url : `${BACKEND}${formData.avatar_url}`)} 
                                             alt="avatar" 
@@ -177,7 +177,7 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose, initialD
                                         </div>
                                     </div>
                                 </div>
-                                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white dark:bg-bg-card rounded-2xl shadow-lg border border-slate-100 dark:border-white/10 flex items-center justify-center text-pink-500 group-hover:scale-110 transition-transform">
+                                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-bg-card rounded-2xl shadow-lg border border-border-base/10 flex items-center justify-center text-pink-500 group-hover:scale-110 transition-transform">
                                     <Camera className="w-5 h-5" />
                                 </div>
                                 <input 
@@ -232,39 +232,39 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose, initialD
                         {/* Input Fields */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted/60 ml-4 flex items-center gap-2">
                                     <User className="w-3 h-3" /> Full Name
                                 </label>
                                 <input 
                                     type="text"
                                     value={formData.full_name}
                                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                                    className="w-full px-6 py-4 rounded-[20px] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 focus:border-pink-500/50 outline-none transition-all font-bold text-slate-700 dark:text-text-base shadow-sm"
+                                    className="w-full px-6 py-4 rounded-[20px] bg-bg-base/50 border border-border-base/50 focus:border-pink-500/50 outline-none transition-all font-bold text-text-base shadow-sm"
                                     placeholder="Enter full name"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted/60 ml-4 flex items-center gap-2">
                                     <AtSign className="w-3 h-3" /> Username
                                 </label>
                                 <input 
                                     type="text"
                                     value={formData.username}
                                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                    className="w-full px-6 py-4 rounded-[20px] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 focus:border-pink-500/50 outline-none transition-all font-bold text-slate-700 dark:text-text-base shadow-sm"
+                                    className="w-full px-6 py-4 rounded-[20px] bg-bg-base/50 border border-border-base/50 focus:border-pink-500/50 outline-none transition-all font-bold text-text-base shadow-sm"
                                     placeholder="Username"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-4 flex items-center gap-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted/60 ml-4 flex items-center gap-2">
                                 <AlignLeft className="w-3 h-3" /> Bio
                             </label>
                             <textarea 
                                 value={formData.bio}
                                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                                className="w-full px-6 py-4 rounded-[28px] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 focus:border-pink-500/50 outline-none transition-all font-bold text-slate-700 dark:text-text-base shadow-sm resize-none"
+                                className="w-full px-6 py-4 rounded-[28px] bg-bg-base/50 border border-border-base/50 focus:border-pink-500/50 outline-none transition-all font-bold text-text-base shadow-sm resize-none"
                                 rows={4}
                                 placeholder="Tell the world about yourself..."
                             />
@@ -275,7 +275,7 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose, initialD
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="flex-1 py-4 rounded-2xl bg-slate-50 dark:bg-white/5 text-xs font-black uppercase tracking-widest text-slate-500 transition-all active:scale-95 border border-slate-100 dark:border-white/5"
+                                className="flex-1 py-4 rounded-2xl bg-bg-base text-xs font-black uppercase tracking-widest text-text-muted transition-all active:scale-95 border border-border-base"
                             >
                                 Cancel
                             </button>

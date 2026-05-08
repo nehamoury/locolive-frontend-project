@@ -133,8 +133,8 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
   const renderResults = () => (
     <div className="flex flex-col space-y-2">
       {error ? (
-        <div className="flex flex-col items-center justify-center py-12 px-6 text-center bg-red-50 dark:bg-red-950/10 rounded-3xl border border-red-100 dark:border-red-900/20">
-          <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-3">
+        <div className="flex flex-col items-center justify-center py-12 px-6 text-center bg-red-500/10 rounded-3xl border border-red-500/20">
+          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mb-3">
             <AlertCircle className="w-6 h-6 text-red-500" />
           </div>
           <div className="text-red-500 font-black text-sm mb-1 ">Oops!</div>
@@ -145,10 +145,10 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
           <button
             key={user.id}
             onClick={() => handleUserClick(user)}
-            className="w-full flex items-center gap-4 p-3.5 rounded-[22px] hover:bg-white dark:hover:bg-bg-base hover:shadow-xl hover:-translate-y-0.5 border border-transparent hover:border-border-base transition-all group"
+            className="w-full flex items-center gap-4 p-3.5 rounded-[22px] hover:bg-bg-base hover:shadow-xl hover:-translate-y-0.5 border border-transparent hover:border-border-base transition-all group"
           >
             <div className="w-14 h-14 rounded-2xl p-[2.5px] bg-brand-gradient flex-shrink-0 group-hover:rotate-3 transition-transform duration-300">
-              <div className="w-full h-full rounded-[14px] bg-white dark:bg-bg-sidebar overflow-hidden border border-white/20">
+              <div className="w-full h-full rounded-[14px] bg-bg-card overflow-hidden border border-white/20">
                 <img
                   src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))}
                   alt={user.username}
@@ -179,7 +179,7 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
         ))
       ) : query.trim().length >= 2 && !isLoading ? (
         <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-bg-base/30 rounded-[32px] border border-dashed border-border-base/50">
-          <div className="w-20 h-20 bg-white dark:bg-bg-sidebar rounded-3xl flex items-center justify-center mb-5 shadow-sm border border-border-base/50">
+          <div className="w-20 h-20 bg-bg-card rounded-3xl flex items-center justify-center mb-5 shadow-sm border border-border-base/50">
             <User className="w-9 h-9 text-text-muted/20" />
           </div>
           <div className="text-text-base font-black text-lg mb-2 ">No matches found</div>
@@ -209,7 +209,7 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -450, opacity: 0 }}
               transition={{ type: 'spring', damping: 32, stiffness: 250 }}
-              className="fixed top-0 bottom-0 left-0 w-[420px] bg-white dark:bg-bg-sidebar backdrop-blur-3xl border-r border-border-base/50 shadow-[30px_0_90px_rgba(0,0,0,0.15)] z-[130] flex flex-col pt-8 overflow-hidden"
+              className="fixed top-0 bottom-0 left-0 w-[420px] bg-bg-card backdrop-blur-3xl border-r border-border-base/50 shadow-[30px_0_90px_rgba(0,0,0,0.15)] z-[130] flex flex-col pt-8 overflow-hidden"
             >
               {/* Decorative Gradient Blob */}
               <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
@@ -232,7 +232,7 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
 
                 <div className="relative group">
                   <div className="absolute -inset-0.5 bg-brand-gradient rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition-opacity" />
-                  <div className="relative flex items-center bg-white dark:bg-bg-base/80 border border-border-base rounded-2xl transition-all focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5">
+                  <div className="relative flex items-center bg-bg-base border border-border-base rounded-2xl transition-all focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5">
                     <div className="absolute left-4 text-primary/60 group-focus-within:text-primary transition-colors">
                       {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5 stroke-[2.5]" />}
                     </div>
@@ -289,10 +289,10 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
                             <div
                               key={item.id}
                               onClick={() => { setQuery(item.term); performSearch(item.term); }}
-                              className="flex items-center justify-between group cursor-pointer p-3.5 rounded-[20px] bg-bg-base/30 hover:bg-white dark:hover:bg-bg-base border border-transparent hover:border-border-base hover:shadow-xl transition-all"
+                              className="flex items-center justify-between group cursor-pointer p-3.5 rounded-[20px] bg-bg-base/30 hover:bg-bg-base border border-transparent hover:border-border-base hover:shadow-xl transition-all"
                             >
                               <div className="flex items-center gap-3.5">
-                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-bg-sidebar flex items-center justify-center text-text-muted group-hover:text-primary group-hover:scale-110 transition-all shadow-sm border border-border-base/50">
+                                <div className="w-10 h-10 rounded-xl bg-bg-card flex items-center justify-center text-text-muted group-hover:text-primary group-hover:scale-110 transition-all shadow-sm border border-border-base/50">
                                   <Search className="w-4 h-4" />
                                 </div>
                                 <span className="text-[14px] font-bold text-text-muted group-hover:text-text-base transition-colors">{item.term}</span>
@@ -350,7 +350,7 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className={`absolute ${mode === 'navbar' ? 'top-14 left-0 right-0' : 'top-FULL left-2 right-2 mt-2'} bg-white/95 dark:bg-bg-sidebar/95 backdrop-blur-xl border border-border-base/50 rounded-2xl shadow-2xl z-[120] overflow-hidden max-h-96 overflow-y-auto no-scrollbar`}
+            className={`absolute ${mode === 'navbar' ? 'top-14 left-0 right-0' : 'top-FULL left-2 right-2 mt-2'} bg-bg-card/95 backdrop-blur-xl border border-border-base/50 rounded-2xl shadow-2xl z-[120] overflow-hidden max-h-96 overflow-y-auto no-scrollbar`}
           >
             <div className="p-2">
               {renderResults()}

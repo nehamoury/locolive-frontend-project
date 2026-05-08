@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
-/* Force Light Theme */
+/* Theme Variables */
 :root {
   --color-bg-base: #FFF5F7;
   --color-bg-sidebar: #ffffff;
@@ -25,6 +25,24 @@
   --pastel-pink-gradient: linear-gradient(135deg, #FF4B91 0%, #FF80B5 100%);
   --pastel-border: #FFDFE8;
   --soft-shadow: 0 10px 30px -10px rgba(255, 77, 151, 0.15);
+}
+
+.dark {
+  --color-bg-base: #0F0913;
+  --color-bg-sidebar: #1A111F;
+  --color-bg-card: #1A111F;
+  --color-text-base: #F5F5F7;
+  --color-text-muted: #9E8E9F;
+  --color-border-base: #2D1F33;
+  --glass-bg: rgba(26, 17, 31, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-input-bg: rgba(26, 17, 31, 0.95);
+  --glass-input-border: rgba(255, 0, 110, 0.2);
+  
+  /* Dark Mode Specifics */
+  --pastel-pink: #1A111F;
+  --pastel-border: #2D1F33;
+  --soft-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
 }
 
 @theme {
