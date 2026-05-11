@@ -68,7 +68,7 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
       {/* Featured Stories Row */}
       <section>
         <div className="flex items-center justify-between mb-6 px-2">
-          <h3 className="text-[12px] font-black text-text-muted uppercase tracking-[3px] flex items-center gap-2 italic">
+          <h3 className="text-[12px] font-black text-text-muted uppercase tracking-[3px] flex items-center gap-2">
             Live Moments <Sparkles className="w-4 h-4 text-purple-500" />
           </h3>
         </div>
@@ -110,7 +110,7 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
       {/* Nearby Discoveries Grid */}
       <section>
         <div className="flex items-center justify-between mb-8 px-2">
-          <h3 className="text-[12px] font-black text-text-muted uppercase tracking-[3px] flex items-center gap-2 italic">
+          <h3 className="text-[12px] font-black text-text-muted uppercase tracking-[3px] flex items-center gap-2">
             Nearby Discoveries <Users className="w-4 h-4 text-pink-500" />
           </h3>
         </div>
@@ -136,7 +136,7 @@ export const ExploreAllFeed: React.FC<ExploreAllFeedProps> = ({
       {/* Recent Crossings Section */}
       <section className="pb-12">
         <div className="flex items-center justify-between mb-8 px-2">
-          <h3 className="text-[12px] font-black text-text-muted uppercase tracking-[3px] flex items-center gap-2 italic">
+          <h3 className="text-[12px] font-black text-text-muted uppercase tracking-[3px] flex items-center gap-2">
             Recent Crossings <Footprints className="w-4 h-4 text-primary" />
           </h3>
         </div>

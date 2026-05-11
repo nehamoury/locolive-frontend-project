@@ -8,6 +8,10 @@ export interface UserConnection {
   full_name: string;
   avatar_url: string;
   last_active_at: string | null;
+  you_follow?: boolean;
+  follows_you?: boolean;
+  is_mutual?: boolean;
+  requested?: boolean;
 }
 
 export interface UserPost {
@@ -64,6 +68,9 @@ export interface UserProfile {
   connection_status: 'none' | 'pending' | 'accepted' | 'self' | 'blocked';
   is_blocked: boolean;
   requested?: boolean;
+  you_follow: boolean;
+  follows_you: boolean;
+  is_mutual: boolean;
 }
 
 // --- Query Keys (CRITICAL: Always include userId) ---

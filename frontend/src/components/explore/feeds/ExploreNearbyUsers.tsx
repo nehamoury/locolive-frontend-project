@@ -34,7 +34,7 @@ export const ExploreNearbyUsers: React.FC<ExploreNearbyUsersProps> = ({
             <Users className="w-6 h-6 text-pink-500" />
           </div>
           <div>
-            <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-base">Nearby Now</h2>
+            <h2 className="text-xl font-black uppercase tracking-tighter text-text-base">Nearby Now</h2>
             <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{users.length} people in your area</p>
           </div>
         </div>

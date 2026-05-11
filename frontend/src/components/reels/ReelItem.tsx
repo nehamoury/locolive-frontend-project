@@ -9,6 +9,8 @@ import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import ReelOptionsBottomSheet from './ReelOptionsBottomSheet';
 import ShareModal from '../share/ShareModal';
 import { nullString } from '../../utils/string';
+import { toast } from 'react-hot-toast';
+import ConfirmationModal from '../ui/ConfirmationModal';
 
 interface Reel {
   id: string;
@@ -52,6 +54,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
   const [isPlaying, setIsPlaying] = useState(true);
   const [showPlayAnim, setShowPlayAnim] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(isActive);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -242,12 +245,12 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
   const handleDelete = async () => {
     try {
       await api.delete(`/reels/${reel.id}`);
-      window.alert('Reel deleted successfully.');
+      toast.success('Reel deleted successfully.');
       // Refresh or navigate back
       window.location.reload();
     } catch (err) {
       console.error('Delete failed:', err);
-      window.alert('Failed to delete reel.');
+      toast.error('Failed to delete reel.');
     }
   };
 
@@ -421,12 +424,21 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
         onClose={() => setIsOptionsOpen(false)}
         isOwner={reel.user_id === currentUserID}
         onDelete={() => {
-          if (window.confirm('Are you sure you want to delete this reel?')) {
-            handleDelete();
-            setIsOptionsOpen(false);
-          }
+          setIsOptionsOpen(false);
+          setShowDeleteConfirm(true);
         }}
         username={reel.username}
+        userId={reel.user_id}
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Delete Reel"
+        message="Are you sure you want to permanently delete this reel? This action cannot be undone."
+        confirmText="Delete"
+        type="danger"
       />
 
       <ShareModal

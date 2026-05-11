@@ -14,6 +14,7 @@ import {
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import toast from 'react-hot-toast';
+import ConfirmationModal from '../ui/ConfirmationModal';
 
 interface ChatProfileSidebarProps {
   userId: string;
@@ -57,6 +58,7 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
   const [expandedSections, setExpandedSections] = useState<string[]>(['general', 'media']);
   const [sharedMedia, setSharedMedia] = useState<SharedMediaItem[]>([]);
   const [isMuted, setIsMuted] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -92,8 +94,12 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
 
   const handleBlockAction = async () => {
     if (!profile) return;
+    setShowBlockConfirm(true);
+  };
+
+  const confirmBlock = async () => {
+    if (!profile) return;
     const action = profile.is_blocked ? 'unblock' : 'block';
-    if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
     
     try {
       if (profile.is_blocked) {
@@ -107,6 +113,8 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
     } catch (err) {
       toast.error(`Failed to ${action} user`);
       console.error(err);
+    } finally {
+      setShowBlockConfirm(false);
     }
   };
 
@@ -266,6 +274,16 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
            )}
         </SidebarSection>
       </div>
+
+      <ConfirmationModal
+        isOpen={showBlockConfirm}
+        onClose={() => setShowBlockConfirm(false)}
+        onConfirm={confirmBlock}
+        title={profile.is_blocked ? "Unblock User" : "Block User"}
+        message={`Are you sure you want to ${profile.is_blocked ? 'unblock' : 'block'} ${profile.full_name || profile.username}?`}
+        confirmText={profile.is_blocked ? "Unblock" : "Block"}
+        type={profile.is_blocked ? "info" : "danger"}
+      />
     </div>
   );
 };

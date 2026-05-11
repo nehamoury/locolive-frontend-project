@@ -267,20 +267,10 @@ const Dashboard = () => {
         <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
 
         <Route path="messages/*" element={
-          <div className="flex-1 flex flex-col h-full bg-bg-card/30 backdrop-blur-3xl md:rounded-[28px] overflow-hidden border border-border-base/50">
+          <div className="flex-1 flex flex-col h-full bg-white md:rounded-[32px] overflow-hidden border border-border-base/40 shadow-sm">
             <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border-base/50 shrink-0">
-                <h2 className="text-[18px] font-black text-text-base tracking-tight uppercase">Messages</h2>
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-primary/20" />
-                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-accent/20" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-1 overflow-hidden relative z-10">
-                <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-95 shrink-0 bg-transparent ${pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages'
+              <div className="flex flex-1 overflow-hidden relative z-10 bg-white">
+                <div className={`h-full border-r border-border-base/30 w-full md:w-[340px] lg:w-[380px] shrink-0 bg-white/40 ${pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages'
                   ? 'hidden md:flex'
                   : 'flex'
                   }`}>
@@ -290,7 +280,7 @@ const Dashboard = () => {
                   />
                 </div>
 
-                <div className={`flex-1 flex overflow-hidden ${!(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages')
+                <div className={`flex-1 flex overflow-hidden bg-white ${!(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages')
                   ? 'hidden md:flex'
                   : 'flex'
                   }`}>
@@ -442,7 +432,7 @@ const Dashboard = () => {
             <Route path="profile/:id" element={<Profile />} />
             <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
             <Route path="messages/*" element={
-              <div className="flex-1 flex flex-col h-[100dvh] md:h-full bg-bg-card overflow-hidden">
+              <div className="flex-1 flex flex-col h-full bg-bg-card overflow-hidden">
                 <Routes>
                   <Route path=":userId" element={<MobileChatWrapper onUserSelect={handleUserSelect} />} />
                   <Route path="/" element={

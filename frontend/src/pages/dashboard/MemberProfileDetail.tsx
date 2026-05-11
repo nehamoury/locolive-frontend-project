@@ -124,7 +124,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                 <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mb-6 border border-gray-100">
                     <Users className="w-8 h-8 text-gray-300" />
                 </div>
-                <h3 className="text-xl font-black text-gray-900 uppercase italic">User Not Found</h3>
+                <h3 className="text-xl font-black text-gray-900 uppercase">User Not Found</h3>
                 <p className="text-xs font-bold text-gray-400 max-w-[240px] mt-2 leading-relaxed">This profile is no longer available or you may have been blocked.</p>
                 <button onClick={onBack} className="mt-8 px-10 py-3.5 bg-gray-900 text-white text-[11px] font-black uppercase rounded-[20px] shadow-xl">Go Back</button>
             </div>
@@ -143,7 +143,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                     <div className="w-24 h-24 bg-pink-50 rounded-[40px] flex items-center justify-center mb-8 border border-pink-100">
                         <Lock className="w-10 h-10 text-pink-500" />
                     </div>
-                    <h3 className="text-2xl font-black text-gray-900 mb-3 uppercase italic tracking-tight">Private Account</h3>
+                    <h3 className="text-2xl font-black text-gray-900 mb-3 uppercase tracking-tight">Private Account</h3>
                     <p className="text-sm text-gray-400 font-bold max-w-[300px] leading-relaxed mb-10">Follow this account to see their photos, videos and moments on Locolive.</p>
                     <button 
                         onClick={handleFollow}
@@ -235,7 +235,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                                     {profile.avatar_url ? (
                                         <img src={getMediaUrl(profile.avatar_url)} className="w-full h-full rounded-[32px] object-cover" alt="" />
                                     ) : (
-                                        <div className="w-full h-full rounded-[32px] bg-gray-50 flex items-center justify-center text-4xl font-black text-gray-300 italic">
+                                        <div className="w-full h-full rounded-[32px] bg-gray-50 flex items-center justify-center text-4xl font-black text-gray-300">
                                             {profile.username?.charAt(0).toUpperCase()}
                                         </div>
                                     )}
@@ -291,7 +291,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                             )}
                             <ShieldCheck className="w-6 h-6 text-blue-500 shrink-0" />
                         </div>
-                        <div className="flex items-center gap-3 text-pink-500 font-black text-[11px] uppercase tracking-[0.2em] italic mb-6">
+                        <div className="flex items-center gap-3 text-pink-500 font-black text-[11px] uppercase tracking-[0.2em] mb-6">
                             <span>@{profile.username}</span>
                             <span className="w-1.5 h-1.5 bg-gray-200 rounded-full shrink-0" />
                             <div className="flex items-center gap-1.5 font-bold text-gray-400">
@@ -304,7 +304,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                                 <span>{userId}</span>
                             </div>
                         </div>
-                        <p className="text-[14px] leading-relaxed text-gray-500 max-w-xl font-medium border-l-4 border-gray-100 pl-6 py-1 italic">
+                        <p className="text-[14px] leading-relaxed text-gray-500 max-w-xl font-medium border-l-4 border-gray-100 pl-6 py-1">
                             {nullString(profile.bio) || "Hi! I'm using Locolive to discover amazing moments and cross paths with interesting people nearby. Let's connect!"}
                         </p>
                     </div>
@@ -358,7 +358,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                                 }`}
                             >
                                 {tab.icon}
-                                <span className="text-[11px] font-black uppercase tracking-[0.2em] italic">{tab.label}</span>
+                                <span className="text-[11px] font-black uppercase tracking-[0.2em]">{tab.label}</span>
                                 {activeTab === tab.id && (
                                     <motion.div layoutId="tabUnderlineDetail" className="absolute bottom-0 left-0 right-0 h-1 bg-brand-gradient rounded-t-full" />
                                 )}

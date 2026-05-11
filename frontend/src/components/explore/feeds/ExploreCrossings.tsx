@@ -35,7 +35,7 @@ export const ExploreCrossings: React.FC<ExploreCrossingsProps> = ({
             <Footprints className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-base">Path Crossings</h2>
+            <h2 className="text-xl font-black uppercase tracking-tighter text-text-base">Path Crossings</h2>
             <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Discover who you've met</p>
           </div>
         </div>
@@ -88,7 +88,7 @@ export const ExploreCrossings: React.FC<ExploreCrossingsProps> = ({
                               className="w-full h-full object-cover" 
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center font-black text-text-muted/20 text-xl italic">
+                            <div className="w-full h-full flex items-center justify-center font-black text-text-muted/20 text-xl">
                               {(crossing.full_name || crossing.username).charAt(0).toUpperCase()}
                             </div>
                           )}

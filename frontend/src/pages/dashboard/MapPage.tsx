@@ -57,7 +57,7 @@ const createStoryMarkerIcon = (avatarUrl: string, username: string, count: numbe
     const initial = username ? username.charAt(0).toUpperCase() : '?';
     const imgHtml = avatarUrl
         ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;" />`
-        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:white;font-style:italic;">${initial}</div>`;
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:white;">${initial}</div>`;
     const badgeHtml = count > 1 
         ? `<div class="marker-badge" style="width:24px;height:24px;font-size:12px;top:-6px;right:-6px;">${count}</div>` 
         : '';
@@ -71,7 +71,7 @@ const createStoryMarkerIcon = (avatarUrl: string, username: string, count: numbe
                     ${badgeHtml}
                 </div>
                 <div style="background:var(--bg-card);backdrop-filter:blur(8px);padding:4px 12px;border-radius:12px;border:2px solid var(--color-primary);box-shadow:0 10px 20px -5px rgba(var(--color-primary-rgb),0.3);transform:translateY(-8px);">
-                    <span style="font-size:11px;font-weight:900;color:var(--text-base);text-transform:uppercase;font-style:italic;letter-spacing:-0.5px;white-space:nowrap;">@${username}</span>
+                    <span style="font-size:11px;font-weight:900;color:var(--text-base);text-transform:uppercase;letter-spacing:-0.5px;white-space:nowrap;">@${username}</span>
                 </div>
             </div>
         `,
@@ -85,7 +85,7 @@ const createOtherUserIcon = (avatarUrl: string, username: string) => {
     const initial = username ? username.charAt(0).toUpperCase() : '?';
     const imgHtml = avatarUrl
         ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;" />`
-        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:white;font-style:italic;background:linear-gradient(45deg, #10b981, #3b82f6);">${initial}</div>`;
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:white;background:linear-gradient(45deg, #10b981, #3b82f6);">${initial}</div>`;
 
     return new L.DivIcon({
         html: `
@@ -97,7 +97,7 @@ const createOtherUserIcon = (avatarUrl: string, username: string) => {
                     <div style="position:absolute;bottom:0px;right:0px;width:18px;height:18px;background:#10b981;border-radius:50%;border:4px solid var(--bg-card);"></div>
                 </div>
                 <div style="background:var(--bg-card);backdrop-filter:blur(8px);padding:3px 10px;border-radius:10px;border:2px solid #10b981;box-shadow:0 10px 15px -3px rgba(16,185,129,0.3);transform:translateY(-4px);">
-                    <span style="font-size:10px;font-weight:900;color:var(--text-base);text-transform:uppercase;font-style:italic;letter-spacing:-0.5px;white-space:nowrap;">${username}</span>
+                    <span style="font-size:10px;font-weight:900;color:var(--text-base);text-transform:uppercase;letter-spacing:-0.5px;white-space:nowrap;">${username}</span>
                 </div>
             </div>
         `,

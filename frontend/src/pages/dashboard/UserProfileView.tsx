@@ -16,6 +16,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import { nullString } from '../../utils/string';
+import ConfirmationModal from '../../components/ui/ConfirmationModal';
 
 interface UserProfileViewProps {
   userId: string;
@@ -29,6 +30,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
   const [activeTab, setActiveTab] = useState<'stories' | 'posts' | 'reels' | 'history'>('stories');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any>(null);
 
   // --- CORE RULE: viewer vs target ---
@@ -85,25 +87,29 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
   const handleBlockAction = async () => {
     if (!profile) return;
+    setShowBlockConfirm(true);
+  };
+
+  const confirmBlock = async () => {
+    if (!profile) return;
     const action = profile.is_blocked ? 'unblock' : 'block';
-    if (!window.confirm(`Are you sure you want to ${action} ${profile.full_name || profile.username}?`)) return;
 
     setBlocking(true);
     try {
       if (profile.is_blocked) {
-        await api.delete(`/privacy/block/${userId}`);
+        await api.delete(`/users/block/${userId}`);
         import('react-hot-toast').then(({ toast }) => toast.success('User unblocked successfully'));
       } else {
-        await api.post('/privacy/block', { user_id: userId });
+        await api.post('/users/block', { user_id: userId });
         import('react-hot-toast').then(({ toast }) => toast.success('User blocked successfully'));
       }
-      // Invalidate profile query to refresh data
       queryClient.invalidateQueries({ queryKey: ['users', 'profile', userId] });
     } catch (err) {
       import('react-hot-toast').then(({ toast }) => toast.error(`Failed to ${action} user`));
     } finally {
       setBlocking(false);
       setShowMoreMenu(false);
+      setShowBlockConfirm(false);
     }
   };
 
@@ -155,7 +161,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               <Lock className="w-10 h-10" />
             </div>
           </div>
-          <h3 className="text-2xl font-black text-text-base mb-3 italic tracking-tight uppercase">This Account is Private</h3>
+          <h3 className="text-2xl font-black text-text-base mb-3 tracking-tight uppercase">This Account is Private</h3>
           <p className="text-sm text-text-muted font-bold max-w-[300px] leading-relaxed mb-10">Follow this account to see their photos, videos and moments on Locolive.</p>
           
           <button 
@@ -251,7 +257,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                     {profile?.avatar_url ? (
                       <img src={getMediaUrl(profile.avatar_url, FALLBACKS.AVATAR(profile.username))} className="w-full h-full object-cover" alt="" />
                     ) : (
-                      <span className="text-4xl font-black text-primary italic">{avatarLetter}</span>
+                      <span className="text-4xl font-black text-primary">{avatarLetter}</span>
                     )}
                   </div>
                 </div>
@@ -267,23 +273,41 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                 >
                   {blocking ? 'Unblocking...' : 'Unblock'}
                 </button>
-              ) : profile?.connection_status === 'accepted' ? (
+              ) : profile?.is_mutual ? (
+                <button
+                  disabled
+                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-purple-50 text-purple-600 border border-purple-100 cursor-default flex items-center gap-2"
+                >
+                  <Users className="w-3 h-3" />
+                  Connected
+                </button>
+              ) : profile?.you_follow ? (
                 <button
                   disabled
                   className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-500 border border-pink-100 cursor-default"
                 >
                   Following
                 </button>
+              ) : profile?.connection_status === 'pending' || profile?.requested ? (
+                <button
+                  disabled
+                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-bg-sidebar text-text-muted cursor-not-allowed"
+                >
+                  Requested
+                </button>
+              ) : profile?.follows_you ? (
+                <button
+                  onClick={handleFollow}
+                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-primary text-white shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all cursor-pointer"
+                >
+                  Follow Back
+                </button>
               ) : (
                 <button
                   onClick={handleFollow}
-                  disabled={profile?.connection_status === 'pending' || profile?.requested}
-                  className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 cursor-pointer
-                    ${(profile?.connection_status === 'pending' || profile?.requested)
-                      ? 'bg-bg-sidebar text-text-muted cursor-not-allowed'
-                      : 'bg-text-base text-bg-base shadow-black/10'}`}
+                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-text-base text-bg-base shadow-xl shadow-black/10 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
-                  {profile?.connection_status === 'pending' || profile?.requested ? 'Requested' : 'Follow'}
+                  Follow
                 </button>
               )}
               <button 
@@ -297,7 +321,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
           {/* Name & Bio */}
           <div className="mb-8">
-            <h1 className="text-3xl font-black tracking-tight italic text-text-base uppercase mb-1">
+            <h1 className="text-3xl font-black tracking-tight text-text-base uppercase mb-1">
               {nullString(profile?.full_name) || profile?.username}
             </h1>
             <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-wider mb-4">
@@ -309,7 +333,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               </div>
             </div>
             {nullString(profile?.bio) && (
-              <p className="text-sm text-text-muted font-medium leading-relaxed max-w-md italic border-l-4 border-border-base pl-4 py-1">
+              <p className="text-sm text-text-muted font-medium leading-relaxed max-w-md border-l-4 border-border-base pl-4 py-1">
                 {nullString(profile?.bio)}
               </p>
             )}
@@ -524,6 +548,18 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
           </motion.div>
         )}
       </AnimatePresence>
+
+      {profile && (
+        <ConfirmationModal
+          isOpen={showBlockConfirm}
+          onClose={() => setShowBlockConfirm(false)}
+          onConfirm={confirmBlock}
+          title={profile.is_blocked ? "Unblock User" : "Block User"}
+          message={`Are you sure you want to ${profile.is_blocked ? 'unblock' : 'block'} ${profile.full_name || profile.username}?`}
+          confirmText={profile.is_blocked ? "Unblock" : "Block"}
+          type={profile.is_blocked ? "info" : "danger"}
+        />
+      )}
     </motion.div>
   );
 };
@@ -534,7 +570,7 @@ const QuickStat = ({ label, value, icon }: { label: string; value: number | stri
   <div className="flex flex-col items-center justify-center">
     <div className="flex items-center gap-1.5 mb-0.5">
        <span className="text-text-muted/20">{icon}</span>
-       <span className="text-xl font-black text-text-base italic tracking-tight">{value}</span>
+       <span className="text-xl font-black text-text-base tracking-tight">{value}</span>
     </div>
     <span className="text-[9px] font-black uppercase tracking-widest text-text-muted/40">{label}</span>
   </div>
@@ -543,7 +579,7 @@ const QuickStat = ({ label, value, icon }: { label: string; value: number | stri
 const EmptyState = ({ label, icon }: { label: string; icon: React.ReactNode }) => (
   <div className="flex flex-col items-center justify-center py-24 text-center">
     <div className="text-3xl mb-4 text-text-muted/20">{icon}</div>
-    <p className="text-xs font-black uppercase tracking-widest text-text-muted/20 italic">{label}</p>
+    <p className="text-xs font-black uppercase tracking-widest text-text-muted/20">{label}</p>
   </div>
 );
 

@@ -8,6 +8,7 @@ import { useSound } from '../../context/SoundContext';
 import { nullString } from '../../utils/string';
 import { CommentsModal, ReportModal } from '../ui';
 import ShareModal from '../share/ShareModal';
+import ConfirmationModal from '../ui/ConfirmationModal';
 
 interface PostCardProps {
   post: any;
@@ -38,6 +39,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isTextOnly = post.media_type === 'text' || (!(post.media_url || post.video_url)) || post.media_url === 'text';
   const isOwner = currentUserID && post.user_id === currentUserID;
   const { isMuted, toggleMute } = useSound();
@@ -128,13 +130,18 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Delete this post?')) return;
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
     try {
       await api.delete(`/posts/${post.id}`);
       onDelete?.(post.id);
     } catch (err) {
       console.error('Failed to delete post', err);
+    } finally {
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -378,6 +385,16 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
         title={`post by @${post.username}`}
         contentId={post.id}
         contentType="post"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Delete Post"
+        message="Are you sure you want to permanently delete this post? This action cannot be undone."
+        confirmText="Delete"
+        type="danger"
       />
     </motion.div>
   );

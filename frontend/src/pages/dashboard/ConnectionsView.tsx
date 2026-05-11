@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
+import ConfirmationModal from '../../components/ui/ConfirmationModal';
 import {
   useUserProfile,
   useUserFollowers,
@@ -60,6 +61,7 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', o
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<'followers' | 'following'>(tabParam || initialTab);
+  const [removeConfirm, setRemoveConfirm] = useState<{ id: string; isPending: boolean } | null>(null);
   const targetUserId = searchParams.get('userId') || searchParams.get('u');
 
   // --- CORE RULE: Always distinguish viewer vs target ---
@@ -139,21 +141,29 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', o
         queryClient.invalidateQueries({ queryKey: ['users', 'followers'] });
       } else if (action === 'remove') {
         const isPending = sentRequests?.some((r: any) => (r.target_id === userId || r.id === userId));
-        if (isPending) {
-          if (!window.confirm('Cancel this follow request?')) return;
-        } else {
-          if (!window.confirm('Remove this person from your following?')) return;
-        }
-        await api.delete(`/connections/${userId}`);
-        // Invalidate relevant queries
-        queryClient.invalidateQueries({ queryKey: ['users', 'followers'] });
-        queryClient.invalidateQueries({ queryKey: ['users', 'following'] });
-        refetchSent();
+        setRemoveConfirm({ id: userId, isPending: !!isPending });
+        return;
       }
       // Dispatch event to refresh profile data across the app
       window.dispatchEvent(new Event('connectionsUpdated'));
     } catch (err) {
       console.error(`Failed to ${action} request:`, err);
+    }
+  };
+
+  const confirmRemove = async () => {
+    if (!removeConfirm) return;
+    const { id } = removeConfirm;
+    try {
+      await api.delete(`/connections/${id}`);
+      queryClient.invalidateQueries({ queryKey: ['users', 'followers'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'following'] });
+      refetchSent();
+      window.dispatchEvent(new Event('connectionsUpdated'));
+    } catch (err) {
+      console.error('Failed to remove connection:', err);
+    } finally {
+      setRemoveConfirm(null);
     }
   };
 
@@ -289,6 +299,7 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', o
                             showActions={isViewingSelf}
                             onMessage={() => onMessage?.(user.id)}
                             onRemove={() => handleRequest(user.id, 'remove')}
+                            onFollow={() => handleRequest(user.id, 'send')}
                             onView={() => onUserSelect?.(user.id)}
                           />
                         ))}
@@ -354,6 +365,16 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'followers', o
           </section>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={!!removeConfirm}
+        onClose={() => setRemoveConfirm(null)}
+        onConfirm={confirmRemove}
+        title={removeConfirm?.isPending ? "Cancel Request" : "Remove Connection"}
+        message={removeConfirm?.isPending ? "Are you sure you want to cancel this follow request?" : "Are you sure you want to remove this person from your following?"}
+        confirmText={removeConfirm?.isPending ? "Cancel Request" : "Remove"}
+        type="danger"
+      />
     </div>
   );
 };
@@ -440,7 +461,7 @@ const SuggestionCard = ({ user, onConnect, onDismiss, onView }: any) => {
 };
 
 
-const FollowingCard = ({ user, onMessage, onRemove, onView, showActions }: any) => {
+const FollowingCard = ({ user, onMessage, onRemove, onFollow, onView, showActions }: any) => {
   const isPending = user.status === 'pending';
 
   return (
@@ -464,14 +485,44 @@ const FollowingCard = ({ user, onMessage, onRemove, onView, showActions }: any) 
           <div className="flex flex-col">
             <h4 className="font-black text-text-base text-[13.5px] md:text-[15px] tracking-tight truncate">@{user.username}</h4>
             <div className="flex items-center gap-2">
-              <span className={`text-[8.5px] font-bold uppercase tracking-tight ${isPending ? 'text-amber-500/70' : 'text-emerald-500'}`}>
-                {isPending ? 'Request Pending' : 'Connected'}
+              <span className={`text-[8.5px] font-bold uppercase tracking-tight ${
+                isPending 
+                  ? 'text-amber-500/70' 
+                  : user.is_mutual 
+                    ? 'text-emerald-500' 
+                    : user.requested
+                      ? 'text-amber-500'
+                      : user.follows_you 
+                        ? 'text-primary' 
+                        : 'text-text-muted/60'
+              }`}>
+                {isPending 
+                  ? 'Request Pending' 
+                  : user.is_mutual 
+                    ? 'Connected' 
+                    : user.requested
+                      ? 'Requested'
+                      : user.follows_you 
+                        ? 'Follows You' 
+                        : 'Following'}
               </span>
             </div>
           </div>
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
+        {showActions && !isPending && !user.you_follow && (
+          <button
+            onClick={onFollow}
+            disabled={user.requested}
+            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all
+              ${user.requested 
+                ? 'bg-bg-sidebar text-text-muted cursor-not-allowed border border-border-base' 
+                : 'bg-primary text-white hover:shadow-lg'}`}
+          >
+            {user.requested ? 'Requested' : 'Follow Back'}
+          </button>
+        )}
         {showActions && !isPending && (
           <button
             onClick={onMessage}

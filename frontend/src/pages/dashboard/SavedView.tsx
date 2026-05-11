@@ -166,7 +166,7 @@ const SavedView: FC<SavedViewProps> = ({ isSettingsView }) => {
                                         </div>
                                     )}
                                     {nullString(item.caption) && (
-                                        <p className="text-[10px] font-bold text-center line-clamp-3 mt-2 px-2 opacity-90 italic">
+                                        <p className="text-[10px] font-bold text-center line-clamp-3 mt-2 px-2 opacity-90">
                                             {nullString(item.caption)}
                                         </p>
                                     )}

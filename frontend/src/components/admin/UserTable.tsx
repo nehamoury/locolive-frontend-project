@@ -1,4 +1,4 @@
-import { Eye, Ban, Trash2, Shield, MoreHorizontal, UserCheck, ShieldAlert } from 'lucide-react';
+import { Eye, Ban, Trash2, Shield, MoreHorizontal, UserCheck, ShieldAlert, ShieldCheck, ShieldOff } from 'lucide-react';
 import type { AdminUser } from '../../types/admin';
 import { nullString } from '../../utils/string';
 
@@ -143,6 +143,24 @@ export function UserTable({ users, isLoading, onView, onAction }: UserTableProps
                         <Shield className="w-4 h-4 text-orange-500" />
                         Revoke All Sessions
                       </button>
+
+                      {user.role !== 'admin' ? (
+                        <button
+                          onClick={() => onAction?.(user.id, 'promote_admin')}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-green-500" />
+                          Promote to Admin
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onAction?.(user.id, 'demote_user')}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                        >
+                          <ShieldOff className="w-4 h-4 text-red-500" />
+                          Demote to User
+                        </button>
+                      )}
                       
                       <div className="h-px bg-gray-50 my-1.5 mx-2" />
                       

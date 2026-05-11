@@ -44,8 +44,12 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
   const fetchReels = useCallback(async () => {
     setLoading(true);
     try {
+      const userIdParam = searchParams.get('userId');
       let endpoint = '/reels/feed';
-      if (feedType === 'nearby') {
+      
+      if (userIdParam) {
+        endpoint = userIdParam === user?.id ? '/reels/me' : `/users/${userIdParam}/reels`;
+      } else if (feedType === 'nearby') {
         const storedPos = localStorage.getItem('lastPosition');
         let lat = 0, lng = 0;
         if (storedPos) {
@@ -55,6 +59,7 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
         }
         endpoint = `/reels/nearby?lat=${lat}&lng=${lng}`;
       }
+      
       const { data } = await api.get(endpoint);
       setReels(data.reels || []);
     } catch (err) {
@@ -63,7 +68,7 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
     } finally {
       setLoading(false);
     }
-  }, [feedType]);
+  }, [feedType, searchParams, user?.id]);
 
   useEffect(() => {
     fetchReels();

@@ -60,7 +60,7 @@ export const ExploreStoriesFeed: React.FC<ExploreStoriesFeedProps> = ({
             <PlayCircle className="w-6 h-6 text-purple-500" />
           </div>
           <div>
-            <h2 className="text-xl font-black italic uppercase tracking-tighter text-text-base">Live Stories</h2>
+            <h2 className="text-xl font-black uppercase tracking-tighter text-text-base">Live Stories</h2>
             <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{totalStoriesCount} stories from {nearbyUserStories.length} users near you</p>
           </div>
         </div>

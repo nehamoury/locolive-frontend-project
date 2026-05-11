@@ -562,7 +562,7 @@ export const Profile: FC<ProfileProps> = () => {
                                         {reels.map((reel) => (
                                             <div
                                                 key={reel.id}
-                                                onClick={() => setSelectedPost({ ...reel, media_url: reel.video_url, media_type: 'video' })}
+                                                onClick={() => navigate(`/dashboard/reels?userId=${userId}&id=${reel.id}`)}
                                                 className="aspect-[9/16] bg-black relative group cursor-pointer overflow-hidden shadow-sm hover:opacity-90 transition-all"
                                             >
                                                 <video

@@ -409,6 +409,7 @@ export const useNotifications = () => {
               body: data.content || 'You have a new message on Locolive',
               tag: 'new-message'
             });
+            window.dispatchEvent(new CustomEvent('notifications_updated'));
             return;
           }
 

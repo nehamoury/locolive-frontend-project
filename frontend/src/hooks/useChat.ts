@@ -22,6 +22,7 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [online, setOnline] = useState(false);
+  const [isForbidden, setIsForbidden] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -42,7 +43,8 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
       const response = await api.get(endpoint, {
         params: !isGroup ? { user_id: targetUserId } : {}
       });
-      setMessages(response.data || []);
+      const responseData = response.data.data || response.data;
+      setMessages(Array.isArray(responseData) ? responseData : []);
       
       if (!isGroup) {
         // Mark messages as read since we just opened the chat
@@ -54,6 +56,7 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
       if (status === 403) {
         console.warn('Chat history forbidden: Not connected to user');
         setMessages([]);
+        setIsForbidden(true);
       } else {
         console.error('Failed to fetch chat history or mark read:', err);
       }
@@ -202,6 +205,7 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
     sendTyping,
     isTyping,
     online,
+    isForbidden,
     refreshHistory: fetchHistory
   };
 };

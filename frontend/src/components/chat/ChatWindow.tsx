@@ -6,7 +6,13 @@ import {
   Smile,
   MessageCircle,
   ShieldAlert,
-  Slash
+  Slash,
+  MoreVertical,
+  Volume2,
+  VolumeX,
+  User,
+  Trash2,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../../hooks/useChat';
@@ -16,12 +22,15 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 import { cn } from '../../utils/helpers';
 import SharedContentCard from './SharedContentCard';
+import ConfirmationModal from '../ui/ConfirmationModal';
+import toast from 'react-hot-toast';
 
 interface ChatWindowProps {
   receiverId: string;
   isGroup?: boolean;
   onBack?: () => void;
   onToggleProfile?: () => void;
+  onViewProfile?: (userId: string) => void;
 }
 
 interface Recipient {
@@ -31,6 +40,8 @@ interface Recipient {
   is_group?: boolean;
   is_online?: boolean;
   is_blocked?: boolean;
+  is_blocked_by_me?: boolean;
+  i_am_blocked?: boolean;
 }
 
 interface ApiError {
@@ -39,15 +50,16 @@ interface ApiError {
   };
 }
 
-const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: ChatWindowProps) => {
+const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onViewProfile }: ChatWindowProps) => {
   const { user } = useAuth();
-  const { messages, sendMessage, sendTyping, isTyping } = useChat(receiverId, isGroup);
+  const { messages, sendMessage, sendTyping, isTyping, isForbidden } = useChat(receiverId, isGroup);
   const { playSendSound } = useNotifications();
   const [content, setContent] = useState('');
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [loadingRecipient, setLoadingRecipient] = useState(true);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [icebreakers, setIcebreakers] = useState<string[]>([]);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -57,6 +69,16 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [shouldDeleteChatOnBlock, setShouldDeleteChatOnBlock] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const isScrolledUp = scrollHeight - scrollTop - clientHeight > 300;
+    setShowScrollButton(isScrolledUp);
+  };
 
   useEffect(() => {
     const fetchRecipient = async () => {
@@ -71,13 +93,15 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
         const res = await api.get(endpoint);
         if (isGroup) {
           setRecipient({
-            full_name: res.data.name,
+            full_name: res.data.data.name,
             username: 'group',
             avatar_url: '',
             is_group: true
           });
         } else {
-          setRecipient(res.data);
+          // Robust check for both formats: {data: {user}} or just {user}
+          const recipientData = res.data.data || res.data;
+          setRecipient(recipientData);
         }
       } catch (err: unknown) {
         const status = (err as ApiError).response?.status;
@@ -113,6 +137,59 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
     sendMessage(content);
     playSendSound();
     setContent('');
+  };
+
+  const handleMute = () => {
+    setIsMuted(!isMuted);
+    toast.success(isMuted ? 'Notifications unmuted' : 'Notifications muted for this chat');
+    setShowMoreMenu(false);
+  };
+
+  const handleBlockAction = () => {
+    setShowBlockConfirm(true);
+    setShowMoreMenu(false);
+  };
+
+  const confirmBlock = async () => {
+    if (!recipient) return;
+    const action = recipient.is_blocked ? 'unblock' : 'block';
+
+    try {
+      if (recipient.is_blocked) {
+        await api.delete(`/users/block/${receiverId}`);
+        toast.success('User unblocked');
+      } else {
+        await api.post('/users/block', { user_id: receiverId });
+        
+        if (shouldDeleteChatOnBlock) {
+          await api.delete(`/messages/clear?user_id=${receiverId}`);
+          toast.success('User blocked and chat cleared');
+          window.location.reload(); // Refresh to update ChatList and state
+        } else {
+          toast.success('User blocked');
+        }
+      }
+      // Refresh recipient data
+      const res = await api.get(isGroup ? `/groups/${receiverId}` : `/users/${receiverId}`);
+      setRecipient(isGroup ? { ...recipient, full_name: res.data.name } : res.data);
+    } catch (err) {
+      toast.error(`Failed to ${action} user`);
+    } finally {
+      setShowBlockConfirm(false);
+      setShouldDeleteChatOnBlock(false);
+    }
+  };
+
+  const handleClearChat = async () => {
+    if (!window.confirm('Are you sure you want to clear all messages in this chat?')) return;
+    try {
+      await api.delete(`/messages/clear?user_id=${receiverId}`);
+      toast.success('Chat cleared');
+      window.location.reload(); // Simplest way to refresh message list
+    } catch (err) {
+      toast.error('Failed to clear chat');
+    }
+    setShowMoreMenu(false);
   };
 
   const handleSend = (e: React.FormEvent) => {
@@ -157,86 +234,164 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-base/20 flex-1 relative overflow-hidden font-poppins overscroll-none">
+    <div className="flex flex-col h-[100dvh] md:h-[100dvh] bg-bg-base/20 flex-1 relative overflow-hidden font-poppins overscroll-contain">
 
       {/* Chat Header */}
-      <header className="h-[60px] md:h-[80px] px-4 md:px-8 flex items-center justify-between bg-bg-card/60 backdrop-blur-md border-b border-border-base/50 sticky top-0 z-20">
-        <div className="flex items-center gap-2 md:gap-4">
+      <header className="h-[65px] md:h-[75px] px-4 md:px-6 flex items-center justify-between bg-white border-b border-gray-100 shrink-0 z-20">
+        <div className="flex items-center gap-3 md:gap-4">
           {onBack && (
-            <button onClick={onBack} className="md:hidden p-1.5 bg-gray-50/50 rounded-xl text-gray-500 active:scale-90 transition-all">
+            <button onClick={onBack} className="md:hidden p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
 
-          <div className="flex items-center gap-2.5 md:gap-3 cursor-pointer group" onClick={onToggleProfile}>
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={onToggleProfile}>
             <div className="relative shrink-0">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full p-[1.5px] bg-gradient-to-tr from-pink-500 to-purple-500">
-                <div className="w-full h-full rounded-full bg-white overflow-hidden border-2 border-white flex items-center justify-center">
-                  <img 
-                    src={getMediaUrl(recipient?.avatar_url, FALLBACKS.AVATAR(recipient?.username || 'user'))} 
-                    alt="" 
-                    className="w-full h-full object-cover" 
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = FALLBACKS.AVATAR(recipient?.username || 'user');
-                    }}
-                  />
-                </div>
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full overflow-hidden bg-gray-100">
+                <img
+                  src={getMediaUrl(recipient?.avatar_url, FALLBACKS.AVATAR(recipient?.username || 'user'))}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = FALLBACKS.AVATAR(recipient?.username || 'user');
+                  }}
+                />
               </div>
-              {recipient?.is_online && !recipient?.is_blocked && (
-                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
+              {!isGroup && !recipient?.is_blocked && (
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
               )}
             </div>
-            <div className="flex flex-col min-w-0 max-w-[150px] xs:max-w-[200px]">
-              <h3 className="text-[15px] font-black text-text-base leading-tight group-hover:text-primary transition-colors truncate">
+            <div className="flex flex-col">
+              <h2 className="text-[15px] md:text-[16px] font-bold text-gray-900 leading-tight">
                 {loadingRecipient ? (
-                  <div className="w-24 h-4 bg-bg-card animate-pulse rounded" />
+                  <div className="w-24 h-4 bg-gray-100 animate-pulse rounded" />
                 ) : (
                   recipient?.full_name || recipient?.username || 'Locolive User'
                 )}
-              </h3>
-              <div className="flex items-center gap-2">
-                {loadingRecipient ? (
-                  <div className="w-16 h-3 bg-gray-50 animate-pulse rounded" />
-                ) : (
-                  <>
-                    <span className="text-[10px] font-bold text-gray-400 tracking-tighter">
-                      @{recipient?.username || 'user'}
-                    </span>
-                    {recipient?.is_blocked ? (
-                      <span className="text-[10px] font-black text-red-500 uppercase flex items-center gap-1 italic">
-                        <Slash className="w-2.5 h-2.5" /> Blocked
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
-                        <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /> Online
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
+              </h2>
+              <span className="text-[12px] font-medium text-emerald-500">
+                {isTyping ? 'typing...' : 'online'}
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Info icon removed as per user request */}
+        <div className="flex items-center gap-1 md:gap-2 relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMoreMenu(!showMoreMenu);
+            }}
+            className={cn(
+              "p-2 rounded-full transition-all active:scale-90 relative z-50",
+              showMoreMenu ? "bg-primary/10 text-primary" : "hover:bg-gray-100 text-text-muted"
+            )}
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+
+          <AnimatePresence>
+            {showMoreMenu && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-40 bg-black/5"
+                  onClick={() => setShowMoreMenu(false)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  className="absolute right-0 mt-2 w-64 bg-white border border-border-base rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] z-50 overflow-hidden py-2"
+                  style={{ top: '100%' }}
+                >
+                  <button
+                    onClick={() => {
+                      if (onViewProfile) onViewProfile(receiverId);
+                      else onToggleProfile?.();
+                      setShowMoreMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-base hover:bg-gray-50 transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+                      <User className="w-4 h-4 text-gray-400 group-hover:text-primary" />
+                    </div>
+                    View Profile
+                  </button>
+
+                  <button
+                    onClick={handleMute}
+                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-base hover:bg-gray-50 transition-colors group"
+                  >
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                      isMuted ? "bg-emerald-50 text-emerald-500" : "bg-gray-100 text-gray-400 group-hover:bg-amber-50 group-hover:text-amber-500"
+                    )}>
+                      {isMuted ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                    </div>
+                    {isMuted ? 'Unmute Notifications' : 'Mute Notifications'}
+                  </button>
+
+                  <div className="h-px bg-border-base/50 my-1 mx-4" />
+
+                  <button
+                    onClick={handleBlockAction}
+                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-red-500 hover:bg-red-50 transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center transition-colors">
+                      <Slash className="w-4 h-4 text-red-500" />
+                    </div>
+                    {recipient?.is_blocked ? 'Unblock User' : 'Block User'}
+                  </button>
+
+                  <button
+                    onClick={handleClearChat}
+                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-muted hover:bg-gray-50 transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition-colors">
+                      <Trash2 className="w-4 h-4 text-gray-400" />
+                    </div>
+                    Clear Chat
+                  </button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-8 space-y-6 md:space-y-8 bg-transparent min-h-0">
+      <div
+        onScroll={handleScroll}
+        className="flex-grow flex-shrink overflow-y-auto no-scrollbar touch-pan-y overscroll-contain px-4 md:px-12 py-6 md:py-10 space-y-4 bg-[#FFF5F7] min-h-0 relative"
+      >
         <div className="flex justify-center mb-4">
-          <div className="flex items-center gap-2 bg-primary/5 border border-primary/10 px-4 py-2 rounded-2xl shadow-sm">
-            <ShieldAlert className="w-3.5 h-3.5 text-primary" />
-            <span className="text-[11px] font-bold text-primary/80 leading-none text-center uppercase tracking-wider">
+          <div className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-2 rounded-2xl shadow-sm">
+            <ShieldAlert className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-[11px] font-bold text-gray-500 leading-none text-center uppercase tracking-wider">
               End-to-End Secure Chat
             </span>
           </div>
         </div>
 
         <AnimatePresence>
-          {messages.length === 0 && !isTyping ? (
+          {isForbidden ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-10 md:py-20 opacity-60">
+              <div className="w-16 h-16 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-4 border border-gray-100">
+                <Slash className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-sm font-black text-gray-800 uppercase tracking-tight mb-2">Conversation Unavailable</h3>
+              <p className="text-[12px] font-bold text-gray-500 max-w-[240px]">
+                {recipient?.is_blocked_by_me 
+                  ? "You have blocked this user. Unblock them to start chatting again."
+                  : "You cannot message this user or view their profile history."
+                }
+              </p>
+            </div>
+          ) : messages.length === 0 && !isTyping ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-10 md:py-20 opacity-40">
               <MessageCircle className="w-12 h-12 text-gray-300 mb-4" />
               <h3 className="text-sm font-medium text-gray-800 uppercase">No messages yet</h3>
@@ -250,66 +405,73 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
 
                 return (
                   <motion.div
+                    layout
                     key={msg.id || idx}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                    className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse self-end' : 'flex-row self-start'}`}
                   >
-                    <div className="flex items-center gap-2 mb-2 px-1">
-                      <span className="text-[11px] font-medium text-gray-900 tracking-tight">{senderName}</span>
-                      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                      </span>
-                    </div>
+                    {!isMe && (
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0 mb-1">
+                        <img
+                          src={getMediaUrl(senderAvatar, FALLBACKS.AVATAR(senderName || 'user'))}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = FALLBACKS.AVATAR(senderName || 'user');
+                          }}
+                        />
+                      </div>
+                    )}
 
-                    <div className={`flex gap-3 w-full ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                      {!isMe && (
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 shrink-0 mt-auto mb-1 border border-gray-100">
-                          <img 
-                            src={getMediaUrl(senderAvatar, FALLBACKS.AVATAR(senderName || 'user'))} 
-                            alt="" 
-                            className="w-full h-full object-cover" 
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = FALLBACKS.AVATAR(senderName || 'user');
-                            }}
-                          />
-                        </div>
-                      )}
+                    <div className="flex flex-col max-w-[85%] md:max-w-[70%] relative">
+                      <div className={`
+                        relative px-4 py-2 shadow-sm
+                        ${isMe
+                          ? 'bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-[18px] rounded-br-none'
+                          : 'bg-white text-gray-800 rounded-[18px] rounded-bl-none border border-gray-100'}
+                      `}>
+                        {/* Tail/Triangle */}
+                        <div className={`
+                          absolute bottom-0 w-3 h-4 
+                          ${isMe
+                            ? '-right-1.5 bg-rose-500 [clip-path:polygon(0_0,0%_100%,100%_100%)]'
+                            : '-left-1.5 bg-white [clip-path:polygon(100%_0,0%_100%,100%_100%)]'}
+                        `} />
 
-                      <div className="flex flex-col">
+                        {!isMe && isGroup && (
+                          <span className="text-[12px] font-bold text-pink-500 block mb-1">
+                            {senderName}
+                          </span>
+                        )}
+
                         {msg.content.startsWith('[SHARE:') ? (() => {
                           const parts = msg.content.slice(7, -1).split(':');
                           const type = parts[0] as 'POST' | 'REEL';
                           const id = parts[1];
                           return <SharedContentCard type={type} id={id} isMe={isMe} />;
                         })() : (
-                          <div className={`
-                            px-4 py-3 text-[14px] font-medium leading-relaxed max-w-[85vw] md:max-w-md
-                            ${isMe
-                              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-[20px] rounded-br-sm shadow-lg shadow-pink-500/10'
-                              : 'bg-white border border-gray-100 text-gray-800 rounded-[20px] rounded-tl-sm shadow-sm'}
-                          `}>
-                            {msg.content.split(/(https?:\/\/[^\s]+)/g).map((part, i) => 
-                              part.match(/https?:\/\/[^\s]+/) ? (
-                                <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline font-bold decoration-2 underline-offset-2 hover:opacity-80">
-                                  {part}
-                                </a>
-                              ) : part
-                            )}
+                          <div className="flex flex-wrap items-end gap-2">
+                            <p className="text-[14px] md:text-[15px] font-medium leading-relaxed min-w-[20px]">
+                              {msg.content}
+                            </p>
+                            <div className="flex items-center gap-1 ml-auto mt-1 opacity-70">
+                              <span className="text-[9px] font-bold uppercase tracking-tighter">
+                                {new Date(msg.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
+                              </span>
+                              {isMe && (
+                                <CheckCheck className={`w-3 h-3 ${msg.is_read ? 'text-white' : 'text-white/40'}`} />
+                              )}
+                            </div>
                           </div>
                         )}
-                        <span className={`text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest ${isMe ? 'text-right' : 'text-left'} flex items-center gap-1 justify-end`}>
-                          {new Date(msg.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                          {isMe && (
-                            <CheckCheck className={cn("w-3.5 h-3.5", msg.is_read ? "text-pink-500" : "text-gray-300")} />
-                          )}
-                        </span>
                       </div>
                     </div>
                   </motion.div>
                 );
               })}
+              <div ref={messagesEndRef} />
             </>
           )}
         </AnimatePresence>
@@ -321,6 +483,21 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
         )}
 
         <div ref={messagesEndRef} className="h-4" />
+
+        {/* Scroll to Bottom Button */}
+        <AnimatePresence>
+          {showScrollButton && (
+            <motion.button
+              initial={{ opacity: 0, y: 10, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.8 }}
+              onClick={scrollToBottom}
+              className="absolute bottom-6 right-6 p-3 bg-white shadow-xl border border-gray-100 rounded-full text-primary active:scale-90 transition-all z-30"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Icebreakers UI */}
@@ -349,11 +526,11 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
       </AnimatePresence>
 
       {/* Input Area */}
-      <div className="px-4 md:px-6 pb-safe pt-2 bg-bg-base/40 sticky bottom-0 z-30">
+      <div className="px-2 md:px-6 pb-safe pt-2 bg-[#FFF5F7] sticky bottom-1 z-30">
         {recipient?.is_blocked ? (
           <div className="max-w-4xl mx-auto flex items-center justify-center p-4 bg-red-500/10 border border-red-500/20 rounded-2xl shadow-sm mb-2">
             <span className="text-[11px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2">
-              <Slash className="w-4 h-4" /> You have blocked this user. Unblock to send messages.
+              <Slash className="w-4 h-4" /> You have blocked this user. Unblock to send messages or interact.
             </span>
           </div>
         ) : (
@@ -379,8 +556,8 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className={`w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-all shadow-xl ${content.trim()
-                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-pink-500/30'
-                    : 'bg-gray-100 text-gray-300 shadow-none'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-pink-500/30'
+                  : 'bg-gray-100 text-gray-300 shadow-none'
                   }`}
               >
                 <Send className="w-4 h-4 fill-white" />
@@ -389,6 +566,31 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
           </form>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={showBlockConfirm}
+        onClose={() => {
+          setShowBlockConfirm(false);
+          setShouldDeleteChatOnBlock(false);
+        }}
+        onConfirm={confirmBlock}
+        title={recipient?.is_blocked ? "Unblock User" : "Block User"}
+        message={`Are you sure you want to ${recipient?.is_blocked ? 'unblock' : 'block'} ${recipient?.full_name || recipient?.username}?`}
+        confirmText={recipient?.is_blocked ? "Unblock" : "Block"}
+        type={recipient?.is_blocked ? "info" : "danger"}
+      >
+        {!recipient?.is_blocked && (
+          <div 
+            onClick={() => setShouldDeleteChatOnBlock(!shouldDeleteChatOnBlock)}
+            className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all border border-gray-100"
+          >
+            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${shouldDeleteChatOnBlock ? 'bg-pink-500 border-pink-500' : 'bg-white border-gray-300'}`}>
+              {shouldDeleteChatOnBlock && <CheckCheck className="w-3.5 h-3.5 text-white" />}
+            </div>
+            <span className="text-[11px] font-bold text-gray-600">Also delete chat history</span>
+          </div>
+        )}
+      </ConfirmationModal>
     </div>
   );
 };

@@ -270,7 +270,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
             className={`
               ${isSidebar 
                 ? 'relative h-full w-[380px] bg-bg-card border-l border-border-base flex flex-col overflow-hidden z-[9999]' 
-                : 'fixed bottom-0 left-0 right-0 md:bottom-10 md:left-1/2 md:-translate-x-1/2 w-full md:max-w-lg h-[85vh] h-[85dvh] md:h-[600px] bg-bg-card border-t md:border border-border-base rounded-t-[32px] md:rounded-[32px] shadow-2xl z-[9999] flex flex-col overflow-hidden overscroll-contain'
+                : 'fixed bottom-0 left-0 right-0 md:bottom-10 md:left-1/2 md:-translate-x-1/2 w-full md:max-w-lg h-[90dvh] md:h-[600px] bg-bg-card border-t md:border border-border-base rounded-t-[32px] md:rounded-[32px] shadow-2xl z-[9999] flex flex-col overflow-hidden overscroll-contain'
               }
             `}
           >
@@ -287,7 +287,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
               </button>
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+            <div ref={scrollRef} className="flex-grow flex-shrink overflow-y-auto p-4 space-y-4 no-scrollbar touch-pan-y overscroll-contain">
               {comments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                   <MessageCircle className="w-12 h-12 mb-2" />
@@ -367,12 +367,15 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
                 <div className="relative flex-1">
                   <input
                     ref={inputRef}
+                    id="comment-input"
+                    name="comment"
                     type="text"
                     value={newComment}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
+                    autoComplete="off"
                     placeholder="Add a comment... (@ to mention)"
-                    className="w-full bg-bg-sidebar/50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="w-full bg-bg-sidebar/50 border border-border-base/50 rounded-2xl px-5 py-3.5 text-[16px] md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                   {showMentions && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">

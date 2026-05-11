@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { BACKEND } from '../../utils/config';
+import { useNavigate } from 'react-router-dom';
+import ConfirmationModal from '../ui/ConfirmationModal';
 
 interface Story {
   id: string;
@@ -48,6 +50,7 @@ function timeLeft(dateStr?: string) {
 }
 
 const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserID, onDelete }: StoryViewerProps) => {
+  const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -57,6 +60,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
   const [sendingReply, setSendingReply] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [flyingEmoji, setFlyingEmoji] = useState<{id: number, emoji: string} | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -137,9 +141,12 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this story?')) return;
-    
+  const handleDelete = () => {
+    setPaused(true);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
     setMenuOpen(false);
     try {
       setPaused(true);
@@ -166,8 +173,10 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
       setPaused(false);
     } catch (err: any) {
       console.error('Delete failed:', err);
-      alert(err.response?.data?.error || 'Failed to delete story');
+      toast.error(err.response?.data?.error || 'Failed to delete story');
       setPaused(false);
+    } finally {
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -293,7 +302,13 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
             </div>
 
             <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-3">
+              <div 
+                className="flex items-center gap-3 cursor-pointer group/user" 
+                onClick={() => {
+                  onClose();
+                  navigate(`/dashboard/user/${story.user_id}`);
+                }}
+              >
                 <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-purple-600">
                   <div className="w-full h-full rounded-full border-2 border-transparent overflow-hidden">
                     {story.avatar_url ? (
@@ -303,14 +318,14 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
                         className="w-full h-full object-cover" 
                       />
                     ) : (
-                      <div className="w-full h-full bg-gray-800 flex items-center justify-center font-bold text-white text-sm italic">
+                      <div className="w-full h-full bg-gray-800 flex items-center justify-center font-bold text-white text-sm">
                         {story.username.charAt(0).toUpperCase()}
                       </div>
                     )}
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-white font-black text-base tracking-tight italic">
+                  <h4 className="text-white font-black text-base tracking-tight">
                     {story.full_name || story.username}
                   </h4>
                   <div className="flex items-center gap-2">
@@ -381,9 +396,12 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
                         </button>
                     </div>
                     )}
-                    <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
-                    <Flag className="w-4 h-4" /> Report Story
-                    </button>
+                    
+                    {!isOwn && (
+                      <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+                        <Flag className="w-4 h-4" /> Report Story
+                      </button>
+                    )}
                 </motion.div>
             )}
           </AnimatePresence>
@@ -392,7 +410,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
           <div className="absolute bottom-0 inset-x-0 p-8 space-y-6 z-[100]">
             {story.caption && (
                <div className="max-w-[85%]">
-                 <p className="text-white text-lg font-black leading-tight tracking-tight italic drop-shadow-xl">{story.caption}</p>
+                 <p className="text-white text-lg font-black leading-tight tracking-tight drop-shadow-xl">{story.caption}</p>
                </div>
             )}
 
@@ -464,6 +482,19 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
           )}
         </AnimatePresence>
       </motion.div>
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setPaused(false);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete Story"
+        message="Are you sure you want to permanently delete this story? This will remove it for all viewers."
+        confirmText="Delete"
+        type="danger"
+      />
     </AnimatePresence>
   );
 };

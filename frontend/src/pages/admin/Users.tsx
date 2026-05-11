@@ -16,8 +16,13 @@ export function Users() {
   const actionMutation = useAdminUserAction();
 
   const handleAction = async (userId: string, action: string) => {
-    if (window.confirm(`Are you sure you want to perform ${action} on this user?`)) {
+    if (!window.confirm(`Are you sure you want to perform ${action} on this user?`)) return;
+
+    try {
       await actionMutation.mutateAsync({ userId, action });
+    } catch (err: any) {
+      const message = err?.response?.data?.error || err?.message || 'Action failed';
+      alert(`Failed to ${action}: ${message}`);
     }
   };
 

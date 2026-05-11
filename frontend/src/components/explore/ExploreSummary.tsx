@@ -67,7 +67,7 @@ const StatCard = ({ icon, label, value, loading }: { icon: any, label: string, v
           {loading ? (
             <Loader2 className="w-4 h-4 text-text-muted animate-spin mt-1" />
           ) : (
-            <span className="text-2xl font-black italic text-text-base">{value}</span>
+            <span className="text-2xl font-black text-text-base">{value}</span>
           )}
         </div>
       </div>

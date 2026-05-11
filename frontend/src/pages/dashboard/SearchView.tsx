@@ -177,7 +177,7 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
                         onClick={async (e) => { 
                           e.stopPropagation(); 
                           try {
-                            await api.delete(`/privacy/block/${user.id}`);
+                            await api.delete(`/users/block/${user.id}`);
                             setResults(prev => prev.map(u => u.id === user.id ? { ...u, connection_status: 'none', is_blocked: false } : u));
                           } catch (err) {
                             console.error('Failed to unblock:', err);

@@ -86,7 +86,7 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
 
             {/* ── Username & Identity ─────────────────────────── */}
             <div className="flex items-center gap-1.5 mb-6">
-              <h1 className="text-2xl font-black tracking-tight text-slate-900 italic">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 {displayProfile?.username || 'neha630'}
               </h1>
               <BadgeCheck className="w-6 h-6 text-sky-500 fill-sky-500/10" />
@@ -130,7 +130,7 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
 
             {/* ── Bio Section ────────────────────────────────── */}
             <div className="text-center mb-10">
-              <p className="text-base font-bold text-slate-700 tracking-tight italic">
+              <p className="text-base font-bold text-slate-700 tracking-tight">
                 {nullString(displayProfile?.bio) || 'neha'}
               </p>
             </div>
