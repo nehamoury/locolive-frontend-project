@@ -14,7 +14,7 @@ dist-ssr
 .env
 .env.*
 !.env.example
-!.env.production
+# .env.production is intentionally NOT tracked — see .env.production.example
 
 # Editor directories and files
 .vscode/*

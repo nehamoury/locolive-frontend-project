@@ -113,7 +113,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="h-full bg-bg-base flex flex-col md:flex-row overflow-hidden relative">
+    <div className="md:h-full bg-bg-sidebar md:bg-bg-base flex flex-col md:flex-row md:overflow-hidden relative">
 
       {/* ── Left Sidebar: Menu ── */}
       <div className={cn(
@@ -205,7 +205,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
 
       {/* ── Right Content Area ── */}
       <div className={cn(
-        "flex-1 h-full overflow-y-auto no-scrollbar transition-all duration-300 bg-bg-base",
+        "flex-1 md:h-full md:overflow-y-auto no-scrollbar transition-all duration-300 bg-bg-base",
         showDetail ? "flex flex-col" : "hidden md:flex flex-col"
       )}>
         {/* Mobile Sub-page Header */}

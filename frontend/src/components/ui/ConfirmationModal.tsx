@@ -82,7 +82,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[280px] bg-white rounded-[40px] shadow-[0_30px_70px_rgba(0,0,0,0.1)] overflow-hidden border border-border-base"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[280px] bg-bg-card rounded-[40px] shadow-[0_30px_70px_rgba(0,0,0,0.1)] overflow-hidden border border-border-base"
           >
             {/* Header with Icon */}
             <div className="pt-8 pb-4 px-6 flex flex-col items-center text-center">

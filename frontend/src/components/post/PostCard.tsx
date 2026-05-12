@@ -356,12 +356,22 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
         </div>
 
         {/* Save (Bookmark) */}
-        <button 
+        <motion.button 
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9 }}
           onClick={handleSave}
-          className={`p-2 rounded-full transition-all cursor-pointer ${saved ? 'text-primary' : 'text-text-muted hover:text-primary'}`}
+          className={`p-2.5 rounded-full transition-all cursor-pointer relative group
+            ${saved ? 'text-primary' : 'text-text-muted'}
+            hover:bg-primary/5
+          `}
         >
-          <Bookmark className={`w-6 h-6 sm:w-5 sm:h-5 ${saved ? 'fill-current' : 'stroke-current'}`} />
-        </button>
+          {/* Subtle glow on hover */}
+          <div className="absolute inset-0 rounded-full bg-primary/0 group-hover:bg-primary/10 transition-colors" />
+          
+          <Bookmark 
+            className={`w-6 h-6 sm:w-5 sm:h-5 transition-all duration-300 ${saved ? 'fill-current' : 'stroke-current'}`} 
+          />
+        </motion.button>
       </div>
 
       {/* Modals */}

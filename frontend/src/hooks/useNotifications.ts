@@ -168,6 +168,30 @@ export const useNotifications = () => {
     }
   };
 
+  const deleteNotification = async (id: string) => {
+    try {
+      await api.delete(`/notifications/${id}`);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      setUnreadCount(prev => notifications.find(n => n.id === id && !n.is_read) ? prev - 1 : prev);
+      toast.success('Notification deleted');
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
+      toast.error('Failed to delete notification');
+    }
+  };
+
+  const deleteAllNotifications = async () => {
+    try {
+      await api.delete('/notifications');
+      setNotifications([]);
+      setUnreadCount(0);
+      toast.success('All notifications cleared');
+    } catch (err) {
+      console.error('Failed to clear notifications:', err);
+      toast.error('Failed to clear notifications');
+    }
+  };
+
   const fetchUnreadMessagesCount = useCallback(async () => {
     try {
       const res = await api.get('/messages/unread-count');
@@ -419,8 +443,18 @@ export const useNotifications = () => {
             if (notifId && seenNotifIds.current.has(notifId)) return;
             if (notifId) seenNotifIds.current.add(notifId);
 
+            // Extract related user ID for deduplication
+            const relUserId = typeof notif.related_user_id === 'string'
+              ? notif.related_user_id
+              : (notif.related_user_id?.UUID || notif.related_user_id?.uuid || '');
+
+            // Use crossing + related_user as the dedup key so the same person's crossing only shows once
+            const crossingDedup = `crossing_${relUserId}`;
+            if (seenNotifIds.current.has(crossingDedup)) return;
+            seenNotifIds.current.add(crossingDedup);
+
             toast(notif.message, {
-              id: notifId,
+              id: crossingDedup, // prevents duplicate toasts for same person
               icon: '📍',
               style: {
                 borderRadius: '20px',
@@ -437,11 +471,22 @@ export const useNotifications = () => {
             });
 
             setNotifications(prev => {
-              const key = `${notif.type}_${notif.message}`;
-              const exists = prev.some(n => `${n.type}_${n.message}` === key);
-              if (exists) return prev;
+              // Deduplicate by related_user_id — only keep the latest crossing per person
+              const existingIdx = prev.findIndex(n => {
+                if (n.type !== 'crossing_detected') return false;
+                const existRelId = typeof n.related_user_id === 'string'
+                  ? n.related_user_id
+                  : (n.related_user_id?.UUID || n.related_user_id?.uuid || '');
+                return existRelId && existRelId === relUserId;
+              });
 
-              const newList = [notif, ...prev];
+              let newList;
+              if (existingIdx >= 0) {
+                // Replace the old crossing notification with the new one
+                newList = [notif, ...prev.filter((_, idx) => idx !== existingIdx)];
+              } else {
+                newList = [notif, ...prev];
+              }
               setUnreadCount(newList.filter(n => !n.is_read).length);
               return newList;
             });
@@ -581,6 +626,8 @@ export const useNotifications = () => {
       fetchPendingRequestsCount();
     },
     markRead,
-    markAllRead
+    markAllRead,
+    deleteNotification,
+    deleteAllNotifications
   };
 };

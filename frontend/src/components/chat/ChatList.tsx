@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../context/AuthContext';
 import { Search, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { getMediaUrl } from '../../utils/media';
@@ -167,7 +167,7 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   const displayItems = getFilteredItems();
 
   return (
-    <div className="flex flex-col h-full bg-white w-full border-r border-border-base font-poppins overflow-hidden">
+    <div className="flex flex-col h-full bg-transparent md:bg-white w-full border-r border-border-base font-poppins overflow-hidden">
 
       {/* Search Header */}
       <div className="px-5 py-4 space-y-4 shrink-0">
@@ -184,32 +184,32 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
         </div>
 
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-pink-500 transition-colors" />
           <input
             type="text"
             placeholder="Search or start a new chat"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-100 border-none rounded-xl py-2.5 pl-12 pr-4 text-[14px] font-medium text-text-base focus:outline-none focus:ring-0 transition-all placeholder:text-gray-500"
+            className="w-full bg-white border border-border-base/50 rounded-2xl py-3 pl-12 pr-4 text-[14px] font-medium text-text-base focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500/30 transition-all shadow-sm placeholder:text-gray-400"
           />
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
           <button
             onClick={() => setActiveFilter('all')}
-            className={`px-4 py-1.5 rounded-full text-[13px] font-bold shrink-0 transition-colors ${activeFilter === 'all' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`px-5 py-2 rounded-xl text-[13px] font-black uppercase tracking-wider shrink-0 transition-all border ${activeFilter === 'all' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white text-text-muted border-border-base/50 hover:bg-pink-50'}`}
           >
             All
           </button>
           <button
             onClick={() => setActiveFilter('unread')}
-            className={`px-4 py-1.5 rounded-full text-[13px] font-bold shrink-0 transition-colors ${activeFilter === 'unread' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`px-5 py-2 rounded-xl text-[13px] font-black uppercase tracking-wider shrink-0 transition-all border ${activeFilter === 'unread' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white text-text-muted border-border-base/50 hover:bg-pink-50'}`}
           >
             Unread
           </button>
           <button
             onClick={() => setActiveFilter('groups')}
-            className={`px-4 py-1.5 rounded-full text-[13px] font-bold shrink-0 transition-colors ${activeFilter === 'groups' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`px-5 py-2 rounded-xl text-[13px] font-black uppercase tracking-wider shrink-0 transition-all border ${activeFilter === 'groups' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white text-text-muted border-border-base/50 hover:bg-pink-50'}`}
           >
             Groups
           </button>

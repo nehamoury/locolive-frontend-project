@@ -1,11 +1,12 @@
 import React, { useState, useEffect, type FC } from 'react';
-import { Heart, UserPlus, MapPin, Bell, Eye, MessageCircle, ThumbsUp, ArrowLeft } from 'lucide-react';
+import { Heart, UserPlus, MapPin, Bell, Eye, MessageCircle, ThumbsUp, ArrowLeft, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useNotifications } from '../../hooks/useNotifications';
 import { BACKEND } from '../../utils/config';
 import { toast } from 'react-hot-toast';
 import { nullString } from '../../utils/string';
+import ConfirmationModal from '../../components/ui/ConfirmationModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ const getTypeConfig = (type: string): { emoji: string; color: string; bg: string
       return { emoji: '👁️', color: 'text-indigo-500', bg: 'bg-indigo-500/10', icon: <Eye className="w-4 h-4 text-indigo-500" /> };
     case 'comment':
     case 'reel_commented':
+    case 'comment_mention':
       return { emoji: '💬', color: 'text-orange-500', bg: 'bg-orange-500/10', icon: <MessageCircle className="w-4 h-4 text-orange-500" /> };
     default:
       return { emoji: '🔔', color: 'text-text-muted', bg: 'bg-border-base', icon: <Bell className="w-4 h-4 text-text-muted" /> };
@@ -85,18 +87,20 @@ const parseMessage = (notif: Notification): React.ReactNode => {
 const NotifCard = ({
   notif,
   onRead,
+  onDelete,
 }: {
   notif: Notification;
   onRead: (id: string) => void;
+  onDelete: (id: string) => void;
 }) => {
-  const [status, setStatus] = useState<null | 'accepted' | 'declined'>(null);
+  const [status, setStatus] = useState<null | 'accepted' | 'declined' | 'connecting'>(null);
   const cfg = getTypeConfig(notif.type);
   const initial = (notif.actor_full_name || notif.actor_username || '?').charAt(0).toUpperCase();
 
   return (
     <div
       onClick={() => !notif.is_read && onRead(notif.id)}
-      className={`flex items-start gap-3.5 px-5 py-4 transition-all group relative cursor-pointer
+      className={`flex items-start gap-3 sm:gap-4 px-4 sm:px-6 py-4 md:py-5 transition-all group relative cursor-pointer
         ${!notif.is_read
           ? 'bg-primary/5 border-l-4 border-primary hover:bg-primary/10'
           : 'bg-bg-base border-l-4 border-transparent hover:bg-bg-card'
@@ -122,16 +126,31 @@ const NotifCard = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 pr-6">
-        {nullString(notif.title) && (
-          <h4 className="text-[13px] font-bold text-text-base uppercase tracking-tight mb-0.5 leading-none">
-            {nullString(notif.title)}
-          </h4>
-        )}
-        <p className="text-sm text-text-muted leading-snug">
-          {parseMessage(notif)}
-        </p>
-        <p className="text-[11px] text-text-muted/40 mt-1 font-medium">{timeAgo(notif.created_at)}</p>
+      <div className="flex-1 min-w-0 pr-4 sm:pr-8">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            {nullString(notif.title) && (
+              <h4 className="text-[13px] font-bold text-text-base uppercase tracking-tight mb-0.5 leading-none">
+                {nullString(notif.title)}
+              </h4>
+            )}
+            <p className="text-sm text-text-muted leading-snug">
+              {parseMessage(notif)}
+            </p>
+            <p className="text-[11px] text-text-muted/40 mt-1 font-medium">{timeAgo(notif.created_at)}</p>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(notif.id);
+            }}
+            className="p-2 text-text-muted/20 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all md:opacity-0 md:group-hover:opacity-100 shrink-0"
+            title="Delete notification"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
 
         {/* Inline Actions for Connection Requests */}
         {(notif.type === 'connection_request' || notif.type === 'follow') && notif.related_user_id && (
@@ -171,7 +190,7 @@ const NotifCard = ({
                       toast.error('Invalid request ID');
                       return;
                     }
-                    api.post('/connections/update', { requester_id: reqId, status: 'blocked' }) // Assume 'blocked' is declined
+                    api.post('/connections/update', { requester_id: reqId, status: 'blocked' })
                       .then(() => {
                         toast.success('Connection request declined');
                         setStatus('declined');
@@ -195,6 +214,83 @@ const NotifCard = ({
             )}
           </div>
         )}
+
+        {/* Inline Connect Button for Crossing Suggestions (only for non-connected users) */}
+        {(notif.type === 'crossing_detected') && notif.related_user_id && (() => {
+          const title = nullString(notif.title || '').toLowerCase();
+          const isAlreadyConnected = title.includes('crossed again') || title.includes('again');
+          const isSuggestion = title.includes('suggestion') || title.includes('path crossed');
+
+          // Already connected — show a subtle "Connected" badge
+          if (isAlreadyConnected && !isSuggestion) {
+            return (
+              <div className="mt-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-100">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Connected
+                </span>
+              </div>
+            );
+          }
+
+          // Not connected — show the Connect button
+          return (
+            <div className="mt-3">
+              {!status ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rawId = notif.related_user_id;
+                      const targetId = typeof rawId === 'string' ? rawId : (rawId?.UUID || rawId?.uuid || rawId?.String || rawId?.string || null);
+                      if (!targetId) {
+                        toast.error('Invalid user ID');
+                        return;
+                      }
+                      setStatus('connecting');
+                      api.post('/connections/request', { target_user_id: targetId })
+                        .then((res) => {
+                          const data = res.data?.data || res.data;
+                          if (data?.status === 'accepted') {
+                            toast.success('Connected! 🤝');
+                          } else {
+                            toast.success('Follow request sent! ✨');
+                          }
+                          setStatus('accepted');
+                          onRead(notif.id);
+                        })
+                        .catch(err => {
+                          console.error('Failed to send connection request:', err);
+                          const msg = err.response?.data?.error || err.response?.data?.data?.message;
+                          if (msg?.includes('already')) {
+                            toast.success('Already connected!');
+                            setStatus('accepted');
+                          } else {
+                            toast.error(msg || 'Failed to send request');
+                            setStatus(null);
+                          }
+                        });
+                    }}
+                    className="px-5 py-1.5 bg-primary text-white rounded-full text-xs font-bold transition-all shadow-sm shadow-primary/20 active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    Connect
+                  </button>
+                </div>
+              ) : status === 'connecting' ? (
+                <div className="text-xs font-bold text-text-muted/60 flex items-center gap-2 px-1 py-1">
+                  <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  Sending...
+                </div>
+              ) : (
+                <div className="text-xs font-black uppercase tracking-widest px-1 py-1 flex items-center gap-2 text-green-500">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                  Request Sent
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Unread dot */}
@@ -213,11 +309,11 @@ interface NotificationsViewProps {
 
 const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
   const navigate = useNavigate();
-  const { notifications, markRead, markAllRead, unreadCount } = useNotifications();
-  const [loading, setLoading] = useState(false); // Notifications come from hook now
+  const { notifications, markRead, markAllRead, unreadCount, deleteNotification, deleteAllNotifications } = useNotifications();
+  const [loading, setLoading] = useState(false);
+  const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
 
   useEffect(() => {
-    // Hook handles initial fetch, we just ensure it's fresh
     setLoading(false);
   }, []);
 
@@ -231,23 +327,33 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
             onClick={() => navigate(-1)}
             className="md:hidden p-2 -ml-2 hover:bg-bg-card rounded-full transition-colors text-text-muted hover:text-text-base"
           >
-            <ArrowLeft className="w-7 h-7" />
+            <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-black text-text-base uppercase leading-none">Notifications</h1>
+          <h1 className="text-lg md:text-xl font-black text-text-base uppercase leading-none">Notifications</h1>
           {unreadCount > 0 && (
             <span className="min-w-[20px] h-5 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center px-1.5">
               {unreadCount}
             </span>
           )}
         </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllRead}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-base text-[10px] font-black uppercase tracking-widest text-text-muted/40 hover:text-primary transition-all cursor-pointer"
-          >
-            Marked All
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllRead}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-base text-[10px] font-black uppercase tracking-widest text-text-muted/40 hover:text-primary transition-all cursor-pointer"
+            >
+              Marked All
+            </button>
+          )}
+          {notifications.length > 0 && (
+            <button
+              onClick={() => setShowClearAllConfirm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-base text-[10px] font-black uppercase tracking-widest text-text-muted/40 hover:text-red-500 transition-all cursor-pointer"
+            >
+              Clear All
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Body */}
@@ -276,6 +382,7 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
             <NotifCard
               key={`notification-${notif.id || idx}`}
               notif={notif}
+              onDelete={deleteNotification}
               onRead={(id) => {
                 const actorId = typeof notif.related_user_id === 'string'
                   ? notif.related_user_id
@@ -292,6 +399,21 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
           ))}
         </div>
       )}
+
+      {/* Clear All Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showClearAllConfirm}
+        onClose={() => setShowClearAllConfirm(false)}
+        onConfirm={() => {
+          deleteAllNotifications();
+          setShowClearAllConfirm(false);
+        }}
+        title="Clear All Notifications"
+        message="Are you sure you want to permanently delete all your notifications? This action cannot be undone."
+        confirmText="Clear All"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 };

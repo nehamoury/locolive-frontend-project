@@ -317,7 +317,7 @@ const Dashboard = () => {
   }, [stories, loadingStories, currentGeoPos, pathname, showChatProfile, totalUnreadCount, unreadMessagesCount]);
 
   return (
-    <div className="h-[100dvh] w-full bg-bg-base text-text-base font-body flex overflow-hidden p-0 md:gap-0 transition-colors duration-400">
+    <div className="h-[100dvh] w-full bg-bg-base text-text-base font-body flex overflow-hidden p-0 transition-colors duration-400">
 
       {/* 1. Left Sidebar - Desktop/Tablet */}
       {!fullscreenOverlay && (
@@ -365,10 +365,10 @@ const Dashboard = () => {
 
 
         {/* Mobile Main Content Area - Scrollable */}
-        <div className={`flex-1 overflow-y-auto no-scrollbar ${(pathname.includes('reels') || (pathname.includes('/dashboard/messages/') && pathname.split('/').length > 3)) ? 'pb-0' : 'pb-20'}`}>
+        <div className={`flex-1 overflow-y-auto no-scrollbar overscroll-contain ${(pathname.includes('reels') || (pathname.includes('/dashboard/messages/') && pathname.split('/').length > 3)) ? 'pb-0' : 'pb-[75px]'}`}>
           {/* Mobile Header - Only visible on Home page */}
           {pathname.endsWith('/home') && !isCreateModalOpen && (
-            <div className="w-full pt-2 pb-2 px-3 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl relative z-[100] shrink-0">
+            <div className="w-full pt-4 pb-2 px-4 flex items-center justify-between bg-bg-base/80 backdrop-blur-xl relative z-[100] shrink-0">
               <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard/explore')}>
                 <div className="w-10 h-10 rounded-full bg-bg-card flex items-center justify-center shadow-[0_4px_20px_rgba(255,59,142,0.15)] border border-primary/5">
                   <MapPin className="w-5.5 h-5.5 text-primary fill-primary/5" />
@@ -432,7 +432,7 @@ const Dashboard = () => {
             <Route path="profile/:id" element={<Profile />} />
             <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(-1)} />} />
             <Route path="messages/*" element={
-              <div className="flex-1 flex flex-col h-full bg-bg-card overflow-hidden">
+              <div className="flex-1 flex flex-col h-full bg-bg-base md:bg-bg-card overflow-hidden">
                 <Routes>
                   <Route path=":userId" element={<MobileChatWrapper onUserSelect={handleUserSelect} />} />
                   <Route path="/" element={
@@ -449,10 +449,10 @@ const Dashboard = () => {
 
         {/* Mobile Tab Bar */}
         {!fullscreenOverlay && !pathname.includes('reels') && !(pathname.includes('messages') && pathname.split('/').length > 3) && (
-          <nav className="fixed bottom-0 left-0 right-0 h-[72px] bg-bg-sidebar/90 backdrop-blur-xl flex items-center justify-around z-[100] border-t border-border-base px-6 safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)]">
+          <nav className="fixed bottom-0 left-0 right-0 h-[75px] bg-bg-sidebar flex items-center justify-around z-[100] border-t border-border-base px-4 safe-area-bottom shadow-[0_-8px_30px_rgba(0,0,0,0.04)]">
             <MobileNavItem icon={<Home className="w-7 h-7" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
             <MobileNavItem icon={<Search className="w-7 h-7" />} active={pathname.includes('search')} onClick={() => navigate('/dashboard/search')} />
-            
+
             {/* Center Add Button with Pink Glow */}
             <div className="relative -mt-10">
               <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 animate-pulse" />

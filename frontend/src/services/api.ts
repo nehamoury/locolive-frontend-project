@@ -136,16 +136,12 @@ api.interceptors.response.use(
                 localStorage.setItem('refresh_token', data.refresh_token);
               }
               
-              // Sync Zustand store if it exists
-              try {
-                const { useAuthStore } = await import('../store/useAuthStore');
-                const store = useAuthStore.getState();
-                if (store.user) {
-                  store.login(newToken, store.user, store.requiresProfileCompletion);
-                }
-              } catch (e) {
-                console.error('Failed to sync auth store after refresh', e);
-              }
+			  // Sync Zustand store if it exists
+			  const { useAuthStore } = await import('../store/useAuthStore');
+			  const store = useAuthStore.getState();
+			  if (store.user) {
+				store.login(newToken, store.user, store.requiresProfileCompletion);
+			  }
             }
           }).finally(() => {
             isRefreshing = false;

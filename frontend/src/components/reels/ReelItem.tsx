@@ -397,13 +397,34 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
           {/* Save */}
           <div className="flex flex-col items-center gap-0.5">
             <motion.button
-              whileHover={{ scale: 1.1 }}
+              whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.9 }}
               onClick={handleSave}
               aria-label={saved ? "Unsave" : "Save"}
-              className="flex items-center justify-center w-10 h-10 transition-all duration-300"
+              className={`flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300 relative group
+                ${saved ? 'text-primary' : 'text-white'}
+                hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.2)]
+              `}
             >
-              <Bookmark className={`w-8 h-8 ${saved ? 'fill-white text-white' : 'text-white'}`} />
+              {/* Background glow for premium feel */}
+              <div className={`absolute inset-0 rounded-full transition-opacity duration-300 opacity-0 group-hover:opacity-100 border border-white/20`} />
+              
+              <Bookmark 
+                className={`w-7 h-7 transition-all duration-300 ${saved ? 'fill-primary text-primary filter drop-shadow-[0_0_8px_rgba(255,0,110,0.5)]' : 'text-white'}`} 
+              />
+
+              {/* Save Success Animation */}
+              <AnimatePresence>
+                {saved && (
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: [1, 1.5, 1], opacity: [0, 1, 0] }}
+                    className="absolute pointer-events-none"
+                  >
+                    <div className="w-12 h-12 rounded-full border-2 border-primary" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.button>
           </div>
         </div>

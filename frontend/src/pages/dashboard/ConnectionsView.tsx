@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC } from 'react';
+import React, { useState, useEffect, type FC } from 'react';
 import {
   X,
   Users,
@@ -463,6 +463,23 @@ const SuggestionCard = ({ user, onConnect, onDismiss, onView }: any) => {
 
 const FollowingCard = ({ user, onMessage, onRemove, onFollow, onView, showActions }: any) => {
   const isPending = user.status === 'pending';
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followDone, setFollowDone] = useState(false);
+
+  const handleFollowClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!onFollow || followLoading || followDone) return;
+    setFollowLoading(true);
+    try {
+      await onFollow();
+      setFollowDone(true);
+    } catch (err) {
+      console.error('Follow back failed:', err);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -488,7 +505,7 @@ const FollowingCard = ({ user, onMessage, onRemove, onFollow, onView, showAction
               <span className={`text-[8.5px] font-bold uppercase tracking-tight ${
                 isPending 
                   ? 'text-amber-500/70' 
-                  : user.is_mutual 
+                  : (user.is_mutual || followDone)
                     ? 'text-emerald-500' 
                     : user.requested
                       ? 'text-amber-500'
@@ -498,7 +515,7 @@ const FollowingCard = ({ user, onMessage, onRemove, onFollow, onView, showAction
               }`}>
                 {isPending 
                   ? 'Request Pending' 
-                  : user.is_mutual 
+                  : (user.is_mutual || followDone)
                     ? 'Connected' 
                     : user.requested
                       ? 'Requested'
@@ -511,17 +528,24 @@ const FollowingCard = ({ user, onMessage, onRemove, onFollow, onView, showAction
         </div>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        {showActions && !isPending && !user.you_follow && (
+        {showActions && !isPending && !user.you_follow && !followDone && (
           <button
-            onClick={onFollow}
-            disabled={user.requested}
-            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all
+            onClick={handleFollowClick}
+            disabled={user.requested || followLoading}
+            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer
               ${user.requested 
                 ? 'bg-bg-sidebar text-text-muted cursor-not-allowed border border-border-base' 
-                : 'bg-primary text-white hover:shadow-lg'}`}
+                : followLoading
+                  ? 'bg-primary/60 text-white cursor-wait'
+                  : 'bg-primary text-white hover:shadow-lg active:scale-95'}`}
           >
-            {user.requested ? 'Requested' : 'Follow Back'}
+            {followLoading ? 'Sending...' : user.requested ? 'Requested' : 'Follow Back'}
           </button>
+        )}
+        {showActions && !isPending && followDone && (
+          <span className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+            Connected
+          </span>
         )}
         {showActions && !isPending && (
           <button

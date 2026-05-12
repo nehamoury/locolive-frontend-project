@@ -25,7 +25,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, title }) => {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[280px] md:max-w-md bg-white border border-border-base rounded-[40px] shadow-[0_30px_70px_rgba(0,0,0,0.05)] z-[201] overflow-hidden"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[280px] md:max-w-md bg-bg-card border border-border-base rounded-[40px] shadow-[0_30px_70px_rgba(0,0,0,0.05)] z-[201] overflow-hidden"
           >
             <div className="flex items-center justify-between p-7 pb-2">
               {title ? (

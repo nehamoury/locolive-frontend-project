@@ -156,8 +156,16 @@ const ReelsSidebar: React.FC<ComponentProps> = ({ reel, onLike, onSave, onShare 
               <span className="text-[14px] font-black">{reel.shares_count}</span>
             </button>
           </div>
-          <button onClick={() => onSave(reel.id)} className={`p-2 rounded-xl transition-all ${reel.is_saved ? 'text-yellow-500 bg-yellow-500/10 scale-110' : 'text-text-base hover:text-yellow-500 hover:bg-yellow-500/5'} cursor-pointer`}>
-            <Bookmark className={`w-5 h-5 ${reel.is_saved ? 'fill-current' : ''}`} />
+          <button 
+            onClick={() => onSave(reel.id)} 
+            className={`p-2.5 rounded-xl transition-all duration-300 relative group
+              ${reel.is_saved 
+                ? 'text-yellow-500 bg-yellow-500/10 scale-110 shadow-[0_0_15px_rgba(234,179,8,0.2)]' 
+                : 'text-text-base hover:text-yellow-500 hover:bg-yellow-500/5'} 
+              cursor-pointer active:scale-90
+            `}
+          >
+            <Bookmark className={`w-5 h-5 transition-all duration-300 ${reel.is_saved ? 'fill-current filter drop-shadow-[0_0_5px_rgba(234,179,8,0.4)]' : ''}`} />
           </button>
         </div>
 
