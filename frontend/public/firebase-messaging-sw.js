@@ -2,7 +2,7 @@ importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js')
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA8bMKnBj7G6lDYwINs8aQDY1T3d74LrXk",
+  apiKey: "REPLACE_WITH_YOUR_FIREBASE_API_KEY",
   authDomain: "locolive-project.firebaseapp.com",
   projectId: "locolive-project",
   storageBucket: "locolive-project.firebasestorage.app",
