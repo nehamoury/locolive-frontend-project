@@ -68,7 +68,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack }) => {
             </div>
             <h2 className="text-2xl font-bold text-text-base mb-3">Check your email</h2>
             <p className="text-text-muted text-sm mb-8 leading-relaxed">
-              If an account exists for <span className="text-text-base font-bold">{email}</span>, you will receive a reset link shortly.
+              If an account exists for <span className="text-text-base font-bold">{email}</span>, you will receive a reset link at your registered email address shortly.
             </p>
             <Button onClick={onBack} variant="secondary" className="w-full h-14 rounded-2xl">
               Return to Login
@@ -79,7 +79,7 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack }) => {
             <div className="mb-10 text-left">
               <h2 className="text-3xl font-bold text-text-base mb-2 tracking-tight">Forgot password?</h2>
               <p className="text-text-muted text-sm font-medium leading-relaxed">
-                Enter your email address and we'll send you a link to reset your password.
+                Enter your email or username and we'll send a link to your registered email address.
               </p>
             </div>
 
@@ -95,11 +95,11 @@ const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack }) => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Email Address</label>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Email or Username</label>
                 <div className="relative">
                   <Input
-                    placeholder="you@example.com"
-                    type="email"
+                    placeholder="you@example.com or username"
+                    type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

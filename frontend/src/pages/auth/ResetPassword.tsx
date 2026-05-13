@@ -33,7 +33,11 @@ const ResetPassword: React.FC = () => {
         await authService.verifyResetToken(token);
       } catch (err: any) {
         console.error('Token Verification Error:', err);
-        setError('This reset link is invalid or has expired.');
+        if (err.response?.status === 429) {
+          setError('Too many requests. Please wait a minute and refresh the page.');
+        } else {
+          setError(err.response?.data?.error || 'This reset link is invalid or has expired.');
+        }
       } finally {
         setIsVerifying(false);
       }
