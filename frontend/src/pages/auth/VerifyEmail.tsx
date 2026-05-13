@@ -22,7 +22,7 @@ const VerifyEmail: React.FC = () => {
 
     const verify = async () => {
       try {
-        const res = await api.post('/auth/verify-email', { token });
+        const res = await api.post('auth/verify-email', { token });
         updateUser(res.data.user);
         setStatus('success');
         toast.success('Email verified successfully!');

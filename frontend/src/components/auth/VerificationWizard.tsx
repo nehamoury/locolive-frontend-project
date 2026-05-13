@@ -2,19 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import api from '../../services/api';
-import { sendPhoneOTP, verifyPhoneOTP, resetFirebaseAuth } from '../../services/firebase';
 import { toast } from 'react-hot-toast';
-import { Mail, Phone, ShieldCheck, RefreshCw, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Mail, ShieldCheck, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const VerificationWizard: React.FC = () => {
   const { user, updateUser, logout } = useAuthStore();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState<'email' | 'phone' | 'success'>(
-    user?.is_email_verified ? 'phone' : 'email'
+  const [step, setStep] = useState<'otp' | 'success'>(
+    user?.is_active ? 'success' : 'otp'
   );
   const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [timer, setTimer] = useState(0);
@@ -26,6 +26,9 @@ const VerificationWizard: React.FC = () => {
     }
     if (user.is_active) {
       navigate('/');
+    }
+    if (user?.email) {
+      setEmail(user.email);
     }
   }, [user, navigate]);
 
@@ -39,82 +42,34 @@ const VerificationWizard: React.FC = () => {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Clean up Firebase Auth on unmount
-  useEffect(() => {
-    return () => resetFirebaseAuth();
-  }, []);
-
-  const handleResendEmail = async () => {
+  const handleResendOTP = async () => {
     setResending(true);
     try {
-      await api.post('/auth/resend-email');
-      toast.success('Verification email sent!');
+      await api.post('auth/resend-email');
+      toast.success('Verification code sent to your email!');
       setTimer(60);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to resend email');
+      toast.error(err.response?.data?.error || 'Failed to resend code');
     } finally {
       setResending(false);
     }
   };
 
-  const handleSendOTP = async () => {
-    if (!user?.phone) {
-      toast.error('Phone number not found');
-      return;
-    }
-    setResending(true);
-    try {
-      await sendPhoneOTP(user.phone);
-      toast.success('OTP sent to your phone!');
-      setTimer(60);
-    } catch (err: any) {
-      toast.error('Failed to send OTP. Please try again.');
-      console.error(err);
-    } finally {
-      setResending(false);
-    }
-  };
-
-  const handleVerifyPhone = async (e: React.FormEvent) => {
+  const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.length !== 6) {
-      toast.error('Please enter a 6-digit OTP');
+      toast.error('Please enter the 6-digit code');
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Verify with Firebase and get ID Token
-      const firebaseToken = await verifyPhoneOTP(otp);
-      
-      // 2. Send Firebase Token to our backend
-      const res = await api.post('/auth/verify-firebase-phone', { 
-        firebase_token: firebaseToken 
-      });
-      
+      const res = await api.post('/auth/verify-otp', { email, otp });
       updateUser(res.data.user);
-      toast.success('Phone verified successfully!');
+      toast.success('Account verified successfully!');
       setStep('success');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || err.message || 'Invalid OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkEmailStatus = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/profile/me');
-      updateUser(res.data);
-      if (res.data.is_email_verified) {
-        toast.success('Email verified!');
-        setStep('phone');
-      } else {
-        toast.error('Email not yet verified. Please check your inbox.');
-      }
-    } catch (err) {
-      toast.error('Failed to check status');
+      toast.error(err.response?.data?.error || 'Invalid or expired code');
     } finally {
       setLoading(false);
     }
@@ -122,11 +77,7 @@ const VerificationWizard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0F0F13] flex flex-col items-center justify-center p-4">
-      {/* Firebase reCAPTCHA Container (Hidden) */}
-      <div id="recaptcha-container"></div>
-
       <div className="max-w-md w-full bg-[#1A1A23] rounded-3xl p-8 border border-white/5 shadow-2xl relative overflow-hidden">
-        {/* Glow Effects */}
         <div className="absolute -top-24 -left-24 w-48 h-48 bg-pink-500/10 blur-[100px] rounded-full" />
         <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-blue-500/10 blur-[100px] rounded-full" />
 
@@ -143,58 +94,19 @@ const VerificationWizard: React.FC = () => {
             <ShieldCheck className="w-10 h-10 text-white" />
           </div>
           
-          <h1 className="text-3xl font-bold text-white mb-2">Identity Verification</h1>
-          <p className="text-gray-400 mb-8">Secure your account by verifying your identity</p>
-
-          <div className="flex items-center gap-4 mb-10">
-            <div className={`w-3 h-3 rounded-full ${step === 'email' ? 'bg-pink-500 ring-4 ring-pink-500/20' : 'bg-green-500'}`} />
-            <div className={`h-[2px] w-8 ${step === 'email' ? 'bg-gray-700' : 'bg-green-500'}`} />
-            <div className={`w-3 h-3 rounded-full ${step === 'phone' ? 'bg-pink-500 ring-4 ring-pink-500/20' : step === 'success' ? 'bg-green-500' : 'bg-gray-700'}`} />
-            <div className={`h-[2px] w-8 ${step === 'success' ? 'bg-green-500' : 'bg-gray-700'}`} />
-            <div className={`w-3 h-3 rounded-full ${step === 'success' ? 'bg-green-500 ring-4 ring-green-500/20' : 'bg-gray-700'}`} />
-          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Verify Your Account</h1>
+          <p className="text-gray-400 mb-8">Enter the verification code sent to your email</p>
 
           <AnimatePresence mode="wait">
-            {step === 'email' && (
-              <motion.div key="email" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full">
-                <div className="bg-white/5 rounded-2xl p-6 mb-6 text-left border border-white/5">
+            {step === 'otp' && (
+              <motion.div key="otp" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+                <form onSubmit={handleVerifyOTP} className="bg-white/5 rounded-2xl p-6 mb-6 border border-white/5">
                   <div className="flex items-center gap-3 mb-4">
                     <Mail className="text-pink-500 w-5 h-5" />
                     <span className="text-white font-medium">Email Verification</span>
                   </div>
-                  <p className="text-gray-400 text-sm mb-4 leading-relaxed">
-                    We've sent a verification link to <span className="text-white font-semibold">{user?.email}</span>. 
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={checkEmailStatus}
-                      disabled={loading}
-                      className="w-full bg-white text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors disabled:opacity-50"
-                    >
-                      {loading ? <RefreshCw className="animate-spin w-5 h-5" /> : 'I\'ve Verified My Email'}
-                      {!loading && <ChevronRight className="w-5 h-5" />}
-                    </button>
-                    <button
-                      onClick={handleResendEmail}
-                      disabled={resending || timer > 0}
-                      className="text-gray-500 text-sm hover:text-white transition-colors py-2"
-                    >
-                      {timer > 0 ? `Resend email in ${timer}s` : 'Didn\'t get the email? Resend'}
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 'phone' && (
-              <motion.div key="phone" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full">
-                <form onSubmit={handleVerifyPhone} className="bg-white/5 rounded-2xl p-6 mb-6 text-left border border-white/5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Phone className="text-blue-500 w-5 h-5" />
-                    <span className="text-white font-medium">Phone Verification (Firebase)</span>
-                  </div>
                   <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                    Enter the code sent to <span className="text-white font-semibold">{user?.phone}</span>
+                    We sent a 6-digit code to <span className="text-white font-semibold">{email}</span>
                   </p>
                   
                   <div className="relative mb-6">
@@ -213,16 +125,16 @@ const VerificationWizard: React.FC = () => {
                     disabled={loading || otp.length !== 6}
                     className="w-full bg-gradient-to-r from-pink-500 to-violet-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-pink-500/20 transition-all disabled:opacity-50"
                   >
-                    {loading ? <RefreshCw className="animate-spin w-5 h-5" /> : 'Verify OTP'}
+                    {loading ? <RefreshCw className="animate-spin w-5 h-5" /> : 'Verify & Activate'}
                   </button>
 
                   <button
                     type="button"
-                    onClick={handleSendOTP}
+                    onClick={handleResendOTP}
                     disabled={resending || timer > 0}
                     className="w-full text-gray-500 text-sm hover:text-white transition-colors py-4 text-center"
                   >
-                    {timer > 0 ? `Resend OTP in ${timer}s` : 'Send OTP via SMS'}
+                    {timer > 0 ? `Resend code in ${timer}s` : 'Didn\'t get the code? Resend'}
                   </button>
                 </form>
               </motion.div>
@@ -253,11 +165,6 @@ const VerificationWizard: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
-      
-      <div className="mt-8 flex items-center gap-2 text-gray-600 text-sm">
-        <ShieldCheck className="w-4 h-4" />
-        <span>Secured by Firebase Phone Authentication</span>
       </div>
     </div>
   );

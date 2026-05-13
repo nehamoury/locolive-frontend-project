@@ -84,7 +84,7 @@ const VerifyPhone: React.FC<VerifyPhoneProps> = ({ onBack, phoneNumber: initialP
       const firebaseToken = await verifyPhoneOTP(otpCode);
 
       // Send Firebase token to backend for verification
-      await api.post('/auth/verify-firebase-phone', {
+      await api.post('auth/verify-firebase-phone', {
         firebase_token: firebaseToken,
       });
 
