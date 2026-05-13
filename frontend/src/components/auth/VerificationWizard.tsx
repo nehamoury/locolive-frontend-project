@@ -64,7 +64,7 @@ const VerificationWizard: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await api.post('/auth/verify-otp', { email, otp });
+      const res = await api.post('auth/verify-otp', { email, otp });
       updateUser(res.data.user);
       toast.success('Account verified successfully!');
       setStep('success');

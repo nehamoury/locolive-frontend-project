@@ -29,8 +29,8 @@ const FINAL_URL = (RAW_URL && !isLocalIP(RAW_URL))
 
 const BASE_HOST = FINAL_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
 
-// The axios baseURL — always ends with /api (no trailing slash)
-export const API_BASE_URL = `${BASE_HOST}/api`;
+// The axios baseURL — always ends with /api/
+export const API_BASE_URL = `${BASE_HOST}/api/`;
 
 // The host-only URL — used for media/upload file construction and WebSocket
 export const HOST_URL = BASE_HOST;
