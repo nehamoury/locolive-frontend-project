@@ -129,11 +129,7 @@ function AppContent() {
 
           <Route 
             path="/reset-password" 
-            element={
-              <PublicRoute>
-                <ResetPassword />
-              </PublicRoute>
-            } 
+            element={<ResetPassword />} 
           />
           <Route 
             path="/verify-email" 
