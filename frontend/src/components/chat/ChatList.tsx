@@ -167,18 +167,18 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   const displayItems = getFilteredItems();
 
   return (
-    <div className="flex flex-col h-full bg-transparent md:bg-white w-full border-r border-border-base font-poppins overflow-hidden">
+    <div className="flex flex-col h-full bg-transparent md:bg-white dark:md:bg-bg-base w-full border-r border-border-base dark:border-border-base/50 font-poppins overflow-hidden">
 
       {/* Search Header */}
       <div className="px-5 py-4 space-y-4 shrink-0">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-black text-text-base tracking-tight">Chats</h1>
+          <h1 className="text-2xl font-black text-text-base dark:text-text-base tracking-tight">Chats</h1>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-bg-card rounded-full transition-colors"
             >
-              <Plus className="w-5 h-5 text-text-base" />
+              <Plus className="w-5 h-5 text-text-base dark:text-text-base" />
             </button>
           </div>
         </div>
@@ -190,26 +190,26 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
             placeholder="Search or start a new chat"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-border-base/50 rounded-2xl py-3 pl-12 pr-4 text-[14px] font-medium text-text-base focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500/30 transition-all shadow-sm placeholder:text-gray-400"
+            className="w-full bg-white dark:bg-bg-card border border-border-base/50 dark:border-border-base/30 rounded-2xl py-3 pl-12 pr-4 text-[14px] font-medium text-text-base dark:text-text-base focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500/30 transition-all shadow-sm placeholder:text-gray-400"
           />
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
           <button
             onClick={() => setActiveFilter('all')}
-            className={`px-5 py-2 rounded-xl text-[13px] font-black uppercase tracking-wider shrink-0 transition-all border ${activeFilter === 'all' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white text-text-muted border-border-base/50 hover:bg-pink-50'}`}
+            className={`px-5 py-2 rounded-xl text-[13px] font-semibold capitalize tracking-tight shrink-0 transition-all border ${activeFilter === 'all' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white dark:bg-bg-card text-text-muted dark:text-text-muted border-border-base/50 dark:border-border-base/20 hover:bg-pink-50 dark:hover:bg-pink-500/10'}`}
           >
             All
           </button>
           <button
             onClick={() => setActiveFilter('unread')}
-            className={`px-5 py-2 rounded-xl text-[13px] font-black uppercase tracking-wider shrink-0 transition-all border ${activeFilter === 'unread' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white text-text-muted border-border-base/50 hover:bg-pink-50'}`}
+            className={`px-5 py-2 rounded-xl text-[13px] font-semibold capitalize tracking-tight shrink-0 transition-all border ${activeFilter === 'unread' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white dark:bg-bg-card text-text-muted dark:text-text-muted border-border-base/50 dark:border-border-base/20 hover:bg-pink-50 dark:hover:bg-pink-500/10'}`}
           >
             Unread
           </button>
           <button
             onClick={() => setActiveFilter('groups')}
-            className={`px-5 py-2 rounded-xl text-[13px] font-black uppercase tracking-wider shrink-0 transition-all border ${activeFilter === 'groups' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white text-text-muted border-border-base/50 hover:bg-pink-50'}`}
+            className={`px-5 py-2 rounded-xl text-[13px] font-semibold capitalize tracking-tight shrink-0 transition-all border ${activeFilter === 'groups' ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white dark:bg-bg-card text-text-muted dark:text-text-muted border-border-base/50 dark:border-border-base/20 hover:bg-pink-50 dark:hover:bg-pink-500/10'}`}
           >
             Groups
           </button>
@@ -268,37 +268,37 @@ const ChatItem = ({ conv, isSelected, onClick, onDelete }: ChatItemProps) => {
   return (
     <div
       onClick={onClick}
-      className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group relative cursor-pointer border-b border-gray-100/50 ${isSelected
-        ? 'bg-gray-100 shadow-none'
-        : 'hover:bg-gray-50/80'
+      className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group relative cursor-pointer border-b border-gray-100/50 dark:border-border-base/10 ${isSelected
+        ? 'bg-gray-100 dark:bg-bg-card shadow-none'
+        : 'hover:bg-gray-50/80 dark:hover:bg-bg-card/50'
         }`}
     >
       <div className="shrink-0 relative">
-        <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 p-0.5">
-          <div className="w-full h-full rounded-full bg-white overflow-hidden">
+        <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 dark:bg-bg-card p-0.5">
+          <div className="w-full h-full rounded-full bg-white dark:bg-bg-base overflow-hidden">
             {conv.avatar_url ? (
               <img src={getMediaUrl(conv.avatar_url)} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center font-bold text-gray-400 uppercase text-lg">{initial}</div>
+              <div className="w-full h-full flex items-center justify-center font-bold text-gray-400 dark:text-text-muted uppercase text-lg">{initial}</div>
             )}
           </div>
         </div>
         {conv.unread_count > 0 ? (
-          <div className="absolute bottom-1 right-0 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center shadow-sm">
+          <div className="absolute bottom-1 right-0 w-5 h-5 bg-emerald-500 border-2 border-white dark:border-bg-base rounded-full flex items-center justify-center shadow-sm">
             <span className="text-[10px] font-black text-white leading-none">{conv.unread_count}</span>
           </div>
         ) : !conv.isGroup && !conv.is_blocked && (
-          <div className="absolute bottom-1 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
+          <div className="absolute bottom-1 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-bg-base rounded-full shadow-sm" />
         )}
       </div>
 
       <div className="flex-1 min-w-0 text-left py-1">
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[16px] font-bold text-gray-900 truncate tracking-tight">{conv.full_name || `@${conv.username}`}</span>
-          <span className="text-[12px] font-medium text-gray-500">{timeStr}</span>
+          <span className="text-[16px] font-bold text-gray-900 dark:text-text-base truncate tracking-tight">{conv.full_name || `@${conv.username}`}</span>
+          <span className="text-[12px] font-medium text-gray-500 dark:text-text-muted">{timeStr}</span>
         </div>
         <div className="flex items-center justify-between">
-          <p className={`text-[13px] ${conv.unread_count > 0 ? 'text-gray-900 font-semibold' : 'text-gray-500 font-normal'} truncate leading-relaxed flex-1`}>
+          <p className={`text-[13px] ${conv.unread_count > 0 ? 'text-gray-900 dark:text-text-base font-semibold' : 'text-gray-500 dark:text-text-muted font-normal'} truncate leading-relaxed flex-1`}>
             {conv.is_blocked ? (
               <span className="text-red-500 font-bold text-[11px]">Blocked</span>
             ) : conv.id === 'typing-id' ? (

@@ -234,20 +234,20 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] md:h-[100dvh] bg-bg-base/20 flex-1 relative overflow-hidden font-poppins overscroll-contain">
+    <div className="flex flex-col h-[100dvh] md:h-[100dvh] bg-bg-base/20 dark:bg-bg-base flex-1 relative overflow-hidden font-poppins overscroll-contain">
 
       {/* Chat Header */}
-      <header className="h-[65px] md:h-[75px] px-4 md:px-6 flex items-center justify-between bg-bg-base md:bg-white border-b border-gray-100 shrink-0 z-20">
+      <header className="h-[65px] md:h-[75px] px-4 md:px-6 flex items-center justify-between bg-bg-base md:bg-white dark:bg-bg-base border-b border-gray-100 dark:border-border-base/20 shrink-0 z-20">
         <div className="flex items-center gap-3 md:gap-4">
           {onBack && (
-            <button onClick={onBack} className="md:hidden -ml-2 p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors">
+            <button onClick={onBack} className="md:hidden -ml-2 p-2 hover:bg-gray-100 dark:hover:bg-bg-card rounded-full text-gray-600 dark:text-text-muted transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
 
           <div className="flex items-center gap-3 cursor-pointer group" onClick={onToggleProfile}>
             <div className="relative shrink-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full overflow-hidden bg-gray-100">
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full overflow-hidden bg-gray-100 dark:bg-bg-card">
                 <img
                   src={getMediaUrl(recipient?.avatar_url, FALLBACKS.AVATAR(recipient?.username || 'user'))}
                   alt=""
@@ -259,13 +259,13 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
                 />
               </div>
               {!isGroup && !recipient?.is_blocked && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-bg-base rounded-full" />
               )}
             </div>
             <div className="flex flex-col">
-              <h2 className="text-[15px] md:text-[16px] font-bold text-gray-900 leading-tight">
+              <h2 className="text-[15px] md:text-[16px] font-bold text-gray-900 dark:text-text-base leading-tight">
                 {loadingRecipient ? (
-                  <div className="w-24 h-4 bg-gray-100 animate-pulse rounded" />
+                  <div className="w-24 h-4 bg-gray-100 dark:bg-bg-card animate-pulse rounded" />
                 ) : (
                   recipient?.full_name || recipient?.username || 'Locolive User'
                 )}
@@ -285,7 +285,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
             }}
             className={cn(
               "p-2 rounded-full transition-all active:scale-90 relative z-50",
-              showMoreMenu ? "bg-primary/10 text-primary" : "hover:bg-gray-100 text-text-muted"
+              showMoreMenu ? "bg-primary/10 text-primary" : "hover:bg-gray-100 dark:hover:bg-bg-card text-text-muted"
             )}
           >
             <MoreVertical className="w-5 h-5" />
@@ -305,7 +305,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  className="absolute right-0 mt-2 w-64 bg-white border border-border-base rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] z-50 overflow-hidden py-2"
+                  className="absolute right-0 mt-2 w-64 bg-white dark:bg-bg-card border border-border-base dark:border-border-base/30 rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] z-50 overflow-hidden py-2"
                   style={{ top: '100%' }}
                 >
                   <button
@@ -314,21 +314,21 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
                       else onToggleProfile?.();
                       setShowMoreMenu(false);
                     }}
-                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-base hover:bg-gray-50 transition-colors group"
+                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-base dark:text-text-base hover:bg-gray-50 dark:hover:bg-bg-base transition-colors group"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-primary/20 flex items-center justify-center transition-colors">
-                      <User className="w-4 h-4 text-gray-400 group-hover:text-primary" />
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-bg-base group-hover:bg-primary/20 flex items-center justify-center transition-colors">
+                      <User className="w-4 h-4 text-gray-400 dark:text-text-muted group-hover:text-primary" />
                     </div>
                     View Profile
                   </button>
 
                   <button
                     onClick={handleMute}
-                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-base hover:bg-gray-50 transition-colors group"
+                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-base dark:text-text-base hover:bg-gray-50 dark:hover:bg-bg-base transition-colors group"
                   >
                     <div className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                      isMuted ? "bg-emerald-50 text-emerald-500" : "bg-gray-100 text-gray-400 group-hover:bg-amber-50 group-hover:text-amber-500"
+                      isMuted ? "bg-emerald-50 text-emerald-500" : "bg-gray-100 dark:bg-bg-base text-gray-400 dark:text-text-muted group-hover:bg-amber-50 group-hover:text-amber-500"
                     )}>
                       {isMuted ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                     </div>
@@ -349,10 +349,10 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
 
                   <button
                     onClick={handleClearChat}
-                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-muted hover:bg-gray-50 transition-colors group"
+                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-muted dark:text-text-muted hover:bg-gray-50 dark:hover:bg-bg-base transition-colors group"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition-colors">
-                      <Trash2 className="w-4 h-4 text-gray-400" />
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-bg-base flex items-center justify-center transition-colors">
+                      <Trash2 className="w-4 h-4 text-gray-400 dark:text-text-muted" />
                     </div>
                     Clear Chat
                   </button>
@@ -366,12 +366,12 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
       {/* Messages */}
       <div
         onScroll={handleScroll}
-        className="flex-grow flex-shrink overflow-y-auto no-scrollbar touch-pan-y overscroll-contain px-4 md:px-12 py-6 md:py-10 space-y-4 bg-bg-base md:bg-white min-h-0 relative"
+        className="flex-grow flex-shrink overflow-y-auto no-scrollbar touch-pan-y overscroll-contain px-4 md:px-12 py-6 md:py-10 space-y-4 bg-bg-base md:bg-white dark:bg-bg-base min-h-0 relative"
       >
         <div className="flex justify-center mb-4">
-          <div className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-2 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-2 bg-white dark:bg-bg-card border border-gray-100 dark:border-border-base/20 px-4 py-2 rounded-2xl shadow-sm">
             <ShieldAlert className="w-3.5 h-3.5 text-gray-400" />
-            <span className="text-[11px] font-bold text-gray-500 leading-none text-center uppercase tracking-wider">
+            <span className="text-[11px] font-bold text-gray-500 dark:text-text-muted leading-none text-center uppercase tracking-wider">
               End-to-End Secure Chat
             </span>
           </div>
@@ -380,11 +380,11 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
         <AnimatePresence>
           {isForbidden ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-10 md:py-20 opacity-60">
-              <div className="w-16 h-16 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-4 border border-gray-100">
+              <div className="w-16 h-16 bg-white dark:bg-bg-card rounded-3xl shadow-sm flex items-center justify-center mb-4 border border-gray-100 dark:border-border-base/20">
                 <Slash className="w-8 h-8 text-red-500" />
               </div>
-              <h3 className="text-sm font-black text-gray-800 uppercase tracking-tight mb-2">Conversation Unavailable</h3>
-              <p className="text-[12px] font-bold text-gray-500 max-w-[240px]">
+              <h3 className="text-sm font-black text-gray-800 dark:text-text-base uppercase tracking-tight mb-2">Conversation Unavailable</h3>
+              <p className="text-[12px] font-bold text-gray-500 dark:text-text-muted max-w-[240px]">
                 {recipient?.is_blocked_by_me 
                   ? "You have blocked this user. Unblock them to start chatting again."
                   : "You cannot message this user or view their profile history."
@@ -393,8 +393,8 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
             </div>
           ) : messages.length === 0 && !isTyping ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-10 md:py-20 opacity-40">
-              <MessageCircle className="w-12 h-12 text-gray-300 mb-4" />
-              <h3 className="text-sm font-medium text-gray-800 uppercase">No messages yet</h3>
+              <MessageCircle className="w-12 h-12 text-gray-300 dark:text-text-muted mb-4" />
+              <h3 className="text-sm font-medium text-gray-800 dark:text-text-base uppercase">No messages yet</h3>
             </div>
           ) : (
             <>
@@ -430,14 +430,14 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
                         relative px-4 py-2 shadow-sm
                         ${isMe
                           ? 'bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-[18px] rounded-br-none'
-                          : 'bg-white text-gray-800 rounded-[18px] rounded-bl-none border border-gray-100'}
+                          : 'bg-white dark:bg-bg-card text-gray-800 dark:text-text-base rounded-[18px] rounded-bl-none border border-gray-100 dark:border-border-base/20'}
                       `}>
                         {/* Tail/Triangle */}
                         <div className={`
                           absolute bottom-0 w-3 h-4 
                           ${isMe
                             ? '-right-1.5 bg-rose-500 [clip-path:polygon(0_0,0%_100%,100%_100%)]'
-                            : '-left-1.5 bg-white [clip-path:polygon(100%_0,0%_100%,100%_100%)]'}
+                            : '-left-1.5 bg-white dark:bg-bg-card [clip-path:polygon(100%_0,0%_100%,100%_100%)]'}
                         `} />
 
                         {!isMe && isGroup && (
@@ -492,7 +492,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.8 }}
               onClick={scrollToBottom}
-              className="absolute bottom-6 right-6 p-3 bg-white shadow-xl border border-gray-100 rounded-full text-primary active:scale-90 transition-all z-30"
+              className="absolute bottom-6 right-6 p-3 bg-white dark:bg-bg-card shadow-xl border border-gray-100 dark:border-border-base/20 rounded-full text-primary active:scale-90 transition-all z-30"
             >
               <ChevronDown className="w-5 h-5" />
             </motion.button>
@@ -516,7 +516,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
                   sendMessage(text);
                   setIcebreakers([]);
                 }}
-                className="px-4 py-1.5 bg-white border border-pink-100 text-pink-600 text-[11px] font-bold rounded-full whitespace-nowrap shadow-sm active:scale-95"
+                className="px-4 py-1.5 bg-white dark:bg-bg-card border border-pink-100 dark:border-pink-500/20 text-pink-600 dark:text-pink-400 text-[11px] font-bold rounded-full whitespace-nowrap shadow-sm active:scale-95"
               >
                 {text}
               </button>
@@ -526,7 +526,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
       </AnimatePresence>
 
       {/* Input Area */}
-      <div className="px-2 md:px-6 pb-safe pt-2 bg-[#FFF5F7] sticky bottom-0 z-30">
+      <div className="px-2 md:px-6 pb-safe pt-2 bg-[#FFF5F7] dark:bg-bg-base sticky bottom-0 z-30">
         {recipient?.is_blocked ? (
           <div className="max-w-4xl mx-auto flex items-center justify-center p-4 bg-red-500/10 border border-red-500/20 rounded-2xl shadow-sm mb-2">
             <span className="text-[11px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2">
@@ -543,7 +543,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 min-w-0 bg-transparent py-2.5 text-[14px] font-semibold text-text-base outline-none placeholder:font-medium placeholder:text-text-muted"
+              className="flex-1 min-w-0 bg-transparent py-2.5 text-[14px] font-semibold text-text-base dark:text-text-base outline-none placeholder:font-medium placeholder:text-text-muted"
             />
 
             <div className="flex items-center gap-1 shrink-0">
