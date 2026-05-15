@@ -120,11 +120,7 @@ function AppContent() {
 
           <Route 
             path="/forgot-password" 
-            element={
-              <PublicRoute>
-                <ForgotPassword onBack={() => navigate('/login')} />
-              </PublicRoute>
-            } 
+            element={<ForgotPassword onBack={() => navigate('/login')} />} 
           />
 
           <Route 

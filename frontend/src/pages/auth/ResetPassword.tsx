@@ -15,6 +15,7 @@ const ResetPassword: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [tokenError, setTokenError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     password: '',
@@ -34,9 +35,9 @@ const ResetPassword: React.FC = () => {
       } catch (err: any) {
         console.error('Token Verification Error:', err);
         if (err.response?.status === 429) {
-          setError('Too many requests. Please wait a minute and refresh the page.');
+          setTokenError('Too many requests. Please wait a minute and refresh the page.');
         } else {
-          setError(err.response?.data?.error || 'This reset link is invalid or has expired.');
+          setTokenError(err.response?.data?.error || 'This reset link is invalid or has expired.');
         }
       } finally {
         setIsVerifying(false);
@@ -115,13 +116,13 @@ const ResetPassword: React.FC = () => {
               Go to Login
             </Button>
           </div>
-        ) : error ? (
+        ) : tokenError ? (
           <div className="text-center py-4">
             <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertCircle className="w-10 h-10 text-red-500" />
             </div>
             <h2 className="text-2xl font-bold text-text-base mb-3">Invalid Link</h2>
-            <p className="text-text-muted text-sm mb-8 leading-relaxed">{error}</p>
+            <p className="text-text-muted text-sm mb-8 leading-relaxed">{tokenError}</p>
             <Button onClick={() => navigate('/login')} variant="secondary" className="w-full h-14 rounded-2xl">
               Back to Login
             </Button>
@@ -134,6 +135,16 @@ const ResetPassword: React.FC = () => {
                 Choose a strong password to protect your account.
               </p>
             </div>
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold text-center"
+              >
+                {error}
+              </motion.div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">

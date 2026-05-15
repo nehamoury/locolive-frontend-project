@@ -1,463 +1,538 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  Eye, 
+  EyeOff, 
+  Lock, 
+  Mail, 
+  Phone, 
+  User, 
+  Check, 
+  Zap,
+  AtSign,
+  MapPin
+} from 'lucide-react';
 import { SEOHead } from '../../components/ui/SEOHead';
-import { ArrowRight, ArrowLeft, Mail, Lock, AtSign, User, Eye, EyeOff, Check, Zap, Phone, Footprints } from 'lucide-react';
-import api from '../../services/api';
+import { authService } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
-import logo from '../../assets/WhatsApp Image 2026-04-28 at 4.00.46 PM.png';
-
-declare global {
-  interface Window {
-    google: any;
-  }
-}
-
 
 interface SignupProps {
   onToggle: () => void;
   onBack?: () => void;
 }
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 
-interface FormData {
-  email: string;
-  password: string;
-  username: string;
-  full_name: string;
-  phone: string;
-  avatar?: File;
-  ghostMode: boolean;
-  allowCrossings: boolean;
-}
+const SESSION_KEY = 'signup_session_id';
 
-const STEP_LABELS = ['Account', 'Profile', 'Privacy'];
-
-const Stepper = ({ step }: { step: Step }) => (
-  <div className="flex items-center gap-2 mb-8">
-    {STEP_LABELS.map((label, idx) => {
-      const num = idx + 1;
-      const done = num < step;
-      const active = num === step;
-      return (
-        <React.Fragment key={label}>
-          {idx > 0 && (
-            <div className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${done ? 'bg-primary' : 'bg-primary/10'}`} />
-          )}
-          <div className="flex items-center gap-1.5 font-sans">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${done ? 'bg-primary border-primary text-white' : active ? 'bg-primary border-primary text-white' : 'bg-transparent border-border-base text-text-muted/40'}`}>
-              {done ? <Check className="w-3.5 h-3.5" /> : num}
-            </div>
-            <span className={`text-xs font-semibold hidden sm:block ${active ? 'text-text-base' : done ? 'text-text-muted' : 'text-text-muted/40'}`}>{label}</span>
+const Stepper = ({ step }: { step: Step }) => {
+  const steps = [1, 2, 3, 4];
+  return (
+    <div className="flex items-center justify-center gap-2 mb-8">
+      {steps.map((s) => (
+        <React.Fragment key={s}>
+          <div 
+            className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-300 ${
+              s === step 
+                ? 'bg-primary border-primary text-white scale-110 shadow-lg shadow-primary/20' 
+                : s < step 
+                  ? 'bg-primary border-primary text-white' 
+                  : 'bg-transparent border-border-base text-text-muted/40'
+            }`}
+          >
+            {s < step ? <Check className="w-3.5 h-3.5" /> : s}
           </div>
+          {s < 4 && (
+            <div className={`w-8 h-[2px] rounded-full transition-all duration-500 ${s < step ? 'bg-primary' : 'bg-border-base'}`} />
+          )}
         </React.Fragment>
-      );
-    })}
-  </div>
-);
+      ))}
+    </div>
+  );
+};
 
 const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [step, setStep] = useState<Step>(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [sessionId, setSessionId] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailOTP, setEmailOTP] = useState('');
+  const [emailToken, setEmailToken] = useState('');
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  
+  const [phone, setPhone] = useState('');
+  const [phoneOTP, setPhoneOTP] = useState('');
+  const [phoneToken, setPhoneToken] = useState('');
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  
-  // Username Check States
-  const [usernameStatus, setUsernameStatus] = useState<'idle'|'checking'|'available'|'taken'|'invalid'|'error'>('idle');
-  const [usernameMsg, setUsernameMsg] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  
-  // Email Check States
-  const [emailStatus, setEmailStatus] = useState<'idle'|'checking'|'available'|'taken'|'invalid'|'error'>('idle');
-  const [emailMsg, setEmailMsg] = useState('');
 
-  // Phone Check States
-  const [phoneStatus, setPhoneStatus] = useState<'idle'|'checking'|'available'|'taken'|'invalid'|'error'>('idle');
-  const [phoneMsg, setPhoneMsg] = useState('');
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { login, setRequiresProfileCompletion } = useAuth();
+  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'error'>('idle');
+  const [usernameMessage, setUsernameMessage] = useState('');
+  const bootstrappedRef = useRef(false);
 
-  const handleGoogleSignup = () => {
-    if (!window.google) return;
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      scope: 'openid email profile',
-      callback: async (tokenResponse: any) => {
-        if (!tokenResponse?.access_token) return;
-        setIsLoading(true);
-        setError('');
-        try {
-          const res = await api.post('/auth/google', {
-            access_token: tokenResponse.access_token,
-          });
-          const { access_token, user } = res.data;
-          if (access_token && user) {
-            login(access_token, user, true);
-            setRequiresProfileCompletion(true);
-            navigate('/complete-profile');
-          }
-        } catch (err: any) {
-          setError(err.response?.data?.error || 'Google signup failed.');
-        } finally {
-          setIsLoading(false);
-        }
-      },
-    });
-    client.requestAccessToken();
-  };
-
-  const [form, setForm] = useState<FormData>({
-    email: '',
-    password: '',
-    username: '',
-    full_name: '',
-    phone: '',
-    ghostMode: false,
-    allowCrossings: true,
+  const generateUUID = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
   });
 
-  const set = (key: keyof FormData, value: any) => setForm(prev => ({ ...prev, [key]: value }));
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    set('avatar', file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
+  const extractSessionId = (responseData: any): string => {
+    if (!responseData) return '';
+    // Handle all possible wrapper shapes
+    const inner = responseData.data || responseData;
+    return inner.signup_session_id || inner.signupSessionId || '';
   };
 
-  React.useEffect(() => {
-    if (!form.username) {
+  useEffect(() => {
+    if (bootstrappedRef.current) return;
+    bootstrappedRef.current = true;
+
+    const boot = async () => {
+      try {
+        const existing = localStorage.getItem(SESSION_KEY) || '';
+        const res = await authService.startPreverify(existing || undefined);
+
+        const sid = extractSessionId(res.data);
+        if (sid) {
+          setSessionId(sid);
+          localStorage.setItem(SESSION_KEY, sid);
+          return;
+        }
+      } catch {
+        // fall through to local fallback
+      }
+      // Fallback: generate locally if backend didn't return one
+      const fallback = generateUUID();
+      setSessionId(fallback);
+      localStorage.setItem(SESSION_KEY, fallback);
+    };
+    void boot();
+  }, []);
+
+  useEffect(() => {
+    if (!username.trim()) {
       setUsernameStatus('idle');
-      setUsernameMsg('');
-      setSuggestions([]);
+      setUsernameMessage('');
       return;
     }
-    if (form.username.length < 3) {
+    if (username.trim().length < 3) {
       setUsernameStatus('invalid');
-      setUsernameMsg('Min 3 chars required');
-      setSuggestions([]);
+      setUsernameMessage('Username must be at least 3 characters');
       return;
     }
 
     setUsernameStatus('checking');
     const timer = setTimeout(async () => {
       try {
-        const res = await api.get(`/users/check-username?username=${encodeURIComponent(form.username)}`);
+        const api = await import('../../services/api');
+        const res = await api.default.get(`/users/check-username?username=${encodeURIComponent(username.trim())}`);
         if (res.data.available) {
           setUsernameStatus('available');
-          setUsernameMsg('Username is available');
-          setSuggestions([]);
+          setUsernameMessage('Username available');
         } else {
           setUsernameStatus('taken');
-          setUsernameMsg('Username is taken');
-          if (res.data.suggestions) setSuggestions(res.data.suggestions);
+          setUsernameMessage('Username already taken');
         }
-      } catch (err: any) {
+      } catch {
         setUsernameStatus('error');
-        setUsernameMsg(err.response?.data?.error || 'Error checking username');
-        setSuggestions([]);
+        setUsernameMessage('Unable to check username right now');
       }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [form.username]);
+    }, 400);
 
-  React.useEffect(() => {
-    if (!form.email) {
-      setEmailStatus('idle');
-      setEmailMsg('');
+    return () => clearTimeout(timer);
+  }, [username]);
+
+  const sendEmailOTP = async () => {
+    if (!sessionId) {
+      setError('Session expired. Please refresh the page.');
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      setEmailStatus('invalid');
-      setEmailMsg('Invalid email format');
+    if (!email.trim() || !emailRegex.test(email)) {
+      setError('Please enter a valid email address');
       return;
     }
-
-    setEmailStatus('checking');
-    const timer = setTimeout(async () => {
-      try {
-        const res = await api.get(`/users/check-email?email=${encodeURIComponent(form.email)}`);
-        if (res.data.available) {
-          setEmailStatus('available');
-          setEmailMsg('Email is available');
-        } else {
-          setEmailStatus('taken');
-          setEmailMsg(res.data.message || 'Email is unavailable');
-        }
-      } catch (err: any) {
-        setEmailStatus('error');
-        setEmailMsg(err.response?.data?.error || 'Error checking email');
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [form.email]);
-
-  React.useEffect(() => {
-    if (!form.phone) {
-      setPhoneStatus('idle');
-      setPhoneMsg('');
-      return;
-    }
-    if (form.phone.length !== 10) {
-      setPhoneStatus('invalid');
-      setPhoneMsg('Phone must be 10 digits');
-      return;
-    }
-
-    setPhoneStatus('checking');
-    const timer = setTimeout(async () => {
-      try {
-        const res = await api.get(`/users/check-phone?phone=${encodeURIComponent(form.phone)}`);
-        if (res.data.available) {
-          setPhoneStatus('available');
-          setPhoneMsg('Phone number is available');
-        } else {
-          setPhoneStatus('taken');
-          setPhoneMsg(res.data.message || 'Phone number is already registered');
-        }
-      } catch (err: any) {
-        setPhoneStatus('error');
-        setPhoneMsg(err.response?.data?.error || 'Error checking phone');
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [form.phone]);
-
-  const handleStep1 = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (emailStatus !== 'available') { setError('Please provide a valid and available email.'); return; }
-    if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-    setError('');
-    setStep(2);
-  };
-
-  const handleStep2 = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.username.trim() || !form.full_name.trim()) { setError('Please fill in all fields.'); return; }
-    if (usernameStatus !== 'available') { setError('Please choose a valid and available username.'); return; }
-    if (form.phone && phoneStatus !== 'available') { setError('Please provide a valid and available phone number.'); return; }
-    setError('');
-    setStep(3);
-  };
-
-  const handleFinalSubmit = async () => {
-    setIsLoading(true);
+    setLoading(true);
     setError('');
     try {
-      // Phone is mandatory for validation — ensure 10-digit fallback
-      let uniquePhone = form.phone;
-      if (!uniquePhone || uniquePhone.length !== 10) {
-        // Generate unique 10-digit number from email hash
-        let phoneHash = 0;
-        for (let i = 0; i < form.email.length; i++) {
-          phoneHash = ((phoneHash << 5) - phoneHash + form.email.charCodeAt(i)) | 0;
-        }
-        uniquePhone = String(Math.abs(phoneHash) % 9000000000 + 1000000000);
-      }
-
-      const payload = {
-        email: form.email,
-        password: form.password,
-        username: form.username.toLowerCase().replace(/\s+/g, ''),
-        full_name: form.full_name,
-        phone: uniquePhone,
-        is_ghost_mode: form.ghostMode,
-      };
-
-      const response = await api.post('/users', payload);
-      let { access_token, user } = response.data;
-
-      // Handle Avatar Upload if selected
-      if (form.avatar && access_token) {
-        try {
-          const formData = new FormData();
-          formData.append('file', form.avatar);
-          
-          const uploadRes = await api.post('/upload', formData, {
-            headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'multipart/form-data' }
-          });
-          
-          const avatarUrl = uploadRes.data.url;
-
-          const profileRes = await api.put('/profile', { avatar_url: avatarUrl }, {
-            headers: { 'Authorization': `Bearer ${access_token}` }
-          });
-          
-          if (profileRes.data) {
-             user = { ...user, avatar_url: avatarUrl };
-          }
-        } catch (uploadErr) {
-          console.error('Avatar upload/update failed:', uploadErr);
-        }
-      }
-
-      if (access_token && user) {
-        login(access_token, user, false);
-        // Redirect to phone verification (mandatory for all users)
-        navigate('/verify-phone');
+      const res = await authService.sendEmailOTP(sessionId, email.trim().toLowerCase());
+      setEmailOtpSent(true);
+      if (res.data?.dev_otp) {
+        setEmailOTP(res.data.dev_otp);
       }
     } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || 'Registration failed.';
-      setError(msg);
+      const status = err?.response?.status;
+      if (status === 429) {
+        setError('Too many attempts. Please wait a moment and try again.');
+      } else {
+        setError(err?.response?.data?.error || 'Unable to send email OTP');
+      }
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const verifyEmailOTP = async () => {
+    if (!emailOTP || emailOTP.length !== 6) {
+      setError('Please enter the 6-digit code');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await authService.verifyEmailOTP(sessionId, emailOTP);
+      setEmailToken(res.data.email_verification_token);
+      setStep(2);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Invalid email verification code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendPhoneOTP = async () => {
+    if (!phone.trim() || phone.length < 10) {
+      setError('Please enter a valid phone number');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await authService.sendPhoneOTP(sessionId, phone.trim(), emailToken);
+      setPhoneOtpSent(true);
+      if (res.data?.dev_otp) {
+        // Automatically fill the OTP in development mode so user doesn't have to check terminal
+        setPhoneOTP(res.data.dev_otp);
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Unable to send phone OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyPhoneOTP = async () => {
+    if (!phoneOTP || phoneOTP.length !== 6) {
+      setError('Please enter the 6-digit code');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await authService.verifyPhoneOTP(sessionId, phoneOTP, emailToken);
+      setPhoneToken(res.data.phone_verification_token);
+      setStep(3);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Invalid phone verification code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goToProfileStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    setError('');
+    setStep(4);
+  };
+
+  const submitSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim() || !fullName.trim()) {
+      setError('Please fill in all fields');
+      return;
+    }
+    if (usernameStatus !== 'available') {
+      setError('Please choose an available username');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const res = await authService.signup({
+        signup_session_id: sessionId,
+        email_verification_token: emailToken,
+        phone_verification_token: phoneToken,
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        password,
+        username: username.trim(),
+        full_name: fullName.trim(),
+        is_ghost_mode: false,
+      });
+
+      const { access_token, user } = res.data;
+      login(access_token, user, false);
+      localStorage.removeItem(SESSION_KEY);
+      navigate('/dashboard/home');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Registration failed');
+    } finally {
+      setLoading(false);
     }
   };
 
   const slideVariants = {
-    enter: { x: 40, opacity: 0 },
+    enter: { x: 20, opacity: 0 },
     center: { x: 0, opacity: 1 },
-    exit: { x: -40, opacity: 0 },
+    exit: { x: -20, opacity: 0 },
   };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden font-sans transition-colors duration-300">
-      <SEOHead title="Create Account" description="Join Locolive — the location-based social platform to discover people and stories around you." url="https://locolive.appnity.co.in/signup" />
-      {/* Background glow */}
+      <SEOHead title="Create Account | Locolive" description="Join Locolive — the location-based social platform." />
+      
+      {/* Background glow elements */}
       <div className="absolute top-[-300px] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[130px] pointer-events-none" />
       <div className="absolute bottom-[-300px] right-0 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Back button */}
-      {onBack && (
-        <button
-          onClick={onBack}
-          className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-text-muted hover:text-primary transition-colors cursor-pointer"
-          aria-label="Back to previous page"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-      )}
+      <div className="w-full h-screen sm:h-auto sm:max-w-md sm:glass sm:rounded-[28px] p-8 sm:shadow-2xl relative z-10 sm:border sm:border-white/60 flex flex-col justify-center bg-bg-base/40 sm:bg-transparent overflow-y-auto">
+        
+        {/* Header with Back and Sign In */}
+        <div className="flex items-center justify-between mb-8">
+          <button 
+            onClick={() => step > 1 ? setStep((step - 1) as Step) : onBack?.()} 
+            className="flex items-center gap-1.5 text-sm text-text-muted hover:text-primary transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          
+          <div className="flex items-center gap-2">
+             <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+               <MapPin className="w-4 h-4 text-primary" />
+             </div>
+             <span className="text-sm font-black text-text-base">Locolive</span>
+          </div>
 
-      <div className="w-full h-screen sm:h-auto sm:max-w-md sm:glass sm:rounded-[28px] p-8 sm:shadow-2xl relative z-10 sm:border sm:border-white/60 flex flex-col justify-center bg-bg-base/40 sm:bg-transparent">
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-8">
-          <img 
-            src={logo} 
-            alt="Locolive" 
-            className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary/10 border border-white/50"
-          />
-          <span className="text-xl font-black tracking-tight text-text-base leading-none">Locolive</span>
+          <button 
+            onClick={onToggle} 
+            className="text-sm font-bold text-primary hover:text-accent transition-colors"
+          >
+            Sign in
+          </button>
         </div>
 
         {/* Stepper */}
         <Stepper step={step} />
 
-        {/* Error */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-black text-text-base tracking-tight">
+            {step === 1 && "Verify your email"}
+            {step === 2 && "Verify your phone"}
+            {step === 3 && "Set your password"}
+            {step === 4 && "Complete profile"}
+          </h1>
+          <p className="text-sm text-text-muted mt-1">
+            {step === 1 && "We'll send a code to confirm your email"}
+            {step === 2 && "Almost there! Now confirm your phone"}
+            {step === 3 && "Choose a secure password for your account"}
+            {step === 4 && "Tell us a bit about yourself"}
+          </p>
+        </div>
+
+        {/* Error message */}
         <AnimatePresence>
           {error && (
             <motion.div
-              key="error"
-              initial={{ opacity: 0, y: -6 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center"
+              className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-medium text-center"
             >
               {error}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Google Signup Button */}
-        {step === 1 && (
-          <div className="mb-6">
-            <button
-              type="button"
-              onClick={handleGoogleSignup}
-              disabled={isLoading}
-              className="w-full h-12 flex items-center justify-center gap-3 bg-bg-card/40 hover:bg-bg-card/60 border border-border-base rounded-2xl transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
-            >
-              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              <span className="text-sm font-bold text-text-base">Sign up with Google</span>
-            </button>
-
-            <div className="flex items-center gap-4 my-5">
-              <div className="h-[1px] flex-1 bg-border-base" />
-              <span className="text-[10px] font-bold text-text-muted uppercase">or</span>
-              <div className="h-[1px] flex-1 bg-border-base" />
-            </div>
-          </div>
-        )}
-
         <AnimatePresence mode="wait">
-          {/* ─── STEP 1: Account ─── */}
+          {/* STEP 1: EMAIL */}
           {step === 1 && (
-            <motion.form
+            <motion.div
               key="step1"
               variants={slideVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.25 }}
-              onSubmit={handleStep1}
-              className="space-y-5"
+              transition={{ duration: 0.2 }}
+              className="space-y-4"
             >
-              <div>
-                <h2 className="text-2xl font-black text-text-base">Create your account</h2>
-                <p className="text-sm text-text-muted mt-1">Start discovering your neighborhood</p>
-              </div>
-
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Email</label>
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type="email"
-                    required
-                    autoComplete="email"
-                    value={form.email}
-                    onChange={(e) => set('email', e.target.value)}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className={`w-full h-12 glass-input border rounded-xl pl-11 pr-10 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none transition-all shadow-sm ${
-                      (emailStatus === 'invalid' || emailStatus === 'taken' || emailStatus === 'error') ? 'border-red-500/50 focus:border-red-500' :
-                      emailStatus === 'available' ? 'border-green-500/50 focus:border-green-500' :
-                      'border-border-base focus:border-primary/50'
-                    }`}
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
-                    {emailStatus === 'checking' && <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
-                    {emailStatus === 'available' && <Check className="w-4 h-4 text-green-500" />}
-                  </div>
                 </div>
-                {emailMsg && (
-                  <p className={`text-[10px] font-bold px-1 ${emailStatus === 'available' ? 'text-green-500' : 'text-red-500'}`}>
-                    {emailMsg}
-                  </p>
-                )}
               </div>
 
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={sendEmailOTP}
+                  disabled={loading || emailOtpSent}
+                  className={`w-full h-12 flex items-center justify-center gap-2 font-bold rounded-xl transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${
+                    emailOtpSent
+                      ? 'bg-green-500/20 border border-green-500/40 text-green-600'
+                      : 'bg-bg-card/40 hover:bg-bg-card/60 border border-border-base text-text-base'
+                  }`}
+                >
+                  {loading ? "Sending..." : emailOtpSent ? "Code Sent ✓" : "Send Verification Code"}
+                </button>
+
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">6-Digit Code</label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={emailOTP}
+                    onChange={(e) => setEmailOTP(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl px-4 text-center text-lg font-bold tracking-[0.5em] focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                  />
+                </div>
+
+                <button
+                  onClick={verifyEmailOTP}
+                  disabled={loading || emailOTP.length !== 6}
+                  className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm mt-2 cursor-pointer disabled:opacity-50"
+                >
+                  Verify & Continue <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 2: PHONE */}
+          {step === 2 && (
+            <motion.div
+              key="step2"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2 }}
+              className="space-y-4"
+            >
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Password</label>
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">Phone Number</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={sendPhoneOTP}
+                  disabled={loading || phoneOtpSent}
+                  className={`w-full h-12 flex items-center justify-center gap-2 font-bold rounded-xl transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${
+                    phoneOtpSent
+                      ? 'bg-green-500/20 border border-green-500/40 text-green-600'
+                      : 'bg-bg-card/40 hover:bg-bg-card/60 border border-border-base text-text-base'
+                  }`}
+                >
+                  {loading ? "Sending..." : phoneOtpSent ? "Code Sent ✓" : "Send OTP to Phone"}
+                </button>
+
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">6-Digit OTP</label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={phoneOTP}
+                    onChange={(e) => setPhoneOTP(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl px-4 text-center text-lg font-bold tracking-[0.5em] focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                  />
+                </div>
+
+                <button
+                  onClick={verifyPhoneOTP}
+                  disabled={loading || phoneOTP.length !== 6}
+                  className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm mt-2 cursor-pointer disabled:opacity-50"
+                >
+                  Verify Phone <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 3: PASSWORD */}
+          {step === 3 && (
+            <motion.form
+              key="step3"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2 }}
+              onSubmit={goToProfileStep}
+              className="space-y-4"
+            >
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type={showPass ? 'text' : 'password'}
                     required
-                    autoComplete="new-password"
-                    value={form.password}
-                    onChange={(e) => set('password', e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 8 characters"
                     className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-11 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPass(v => !v)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted/40 hover:text-text-base transition-colors cursor-pointer"
-                    aria-label={showPass ? "Hide password" : "Show password"}
+                    onClick={() => setShowPass(!showPass)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted/40 hover:text-text-base cursor-pointer"
                   >
                     {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">Confirm Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat password"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                  />
                 </div>
               </div>
 
@@ -465,51 +540,51 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                 type="submit"
                 className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm mt-2 cursor-pointer"
               >
-                Continue <ArrowRight className="w-4 h-4" />
+                Set Password <ArrowRight className="w-4 h-4" />
               </button>
-
-              <p className="text-center text-xs text-text-muted/40 pt-1">
-                Already have an account?{' '}
-                <button type="button" onClick={onToggle} className="text-primary font-bold hover:text-accent transition-colors">
-                  Sign in
-                </button>
-              </p>
             </motion.form>
           )}
 
-          {/* ─── STEP 2: Profile ─── */}
-          {step === 2 && (
+          {/* STEP 4: PROFILE */}
+          {step === 4 && (
             <motion.form
-              key="step2"
+              key="step4"
               variants={slideVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.25 }}
-              onSubmit={handleStep2}
-              className="space-y-5"
+              transition={{ duration: 0.2 }}
+              onSubmit={submitSignup}
+              className="space-y-4"
             >
-              <div>
-                <h2 className="text-2xl font-black text-text-base">Set up your profile</h2>
-                <p className="text-sm text-text-muted mt-1">How should others see you?</p>
-              </div>
-
-
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Username</label>
-
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">Full Name</label>
                 <div className="relative">
-                  <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type="text"
                     required
-                    autoComplete="username"
-                    value={form.username}
-                    onChange={(e) => set('username', e.target.value)}
-                    placeholder="yourhandle"
-                    className={`w-full h-12 glass-input border rounded-xl pl-11 pr-10 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none transition-all shadow-sm ${
-                      (usernameStatus === 'invalid' || usernameStatus === 'taken' || usernameStatus === 'error') ? 'border-red-500/50 focus:border-red-500' :
-                      usernameStatus === 'available' ? 'border-green-500/50 focus:border-green-500' :
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">Username</label>
+                <div className="relative">
+                  <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
+                  <input
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Choose a handle"
+                    className={`w-full h-12 glass-input border rounded-xl pl-11 pr-11 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none transition-all shadow-sm ${
+                      usernameStatus === 'available' ? 'border-green-500/50 focus:border-green-500' : 
+                      (usernameStatus === 'taken' || usernameStatus === 'invalid') ? 'border-red-500/50 focus:border-red-500' : 
                       'border-border-base focus:border-primary/50'
                     }`}
                   />
@@ -518,229 +593,36 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                     {usernameStatus === 'available' && <Check className="w-4 h-4 text-green-500" />}
                   </div>
                 </div>
-                {usernameMsg && (
+                {usernameMessage && (
                   <p className={`text-[10px] font-bold px-1 ${usernameStatus === 'available' ? 'text-green-500' : 'text-red-500'}`}>
-                    {usernameMsg}
-                  </p>
-                )}
-                {suggestions.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {suggestions.map((sug) => (
-                      <button
-                        key={sug}
-                        type="button"
-                        onClick={() => set('username', sug)}
-                        className="px-2 py-1 text-[10px] font-bold bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors cursor-pointer"
-                      >
-                        @{sug}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Display Name</label>
-
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    autoComplete="name"
-                    value={form.full_name}
-                    onChange={(e) => set('full_name', e.target.value)}
-                    placeholder="Your Name"
-                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
-                  />
-
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Phone Number <span className="text-text-muted/30 normal-case font-normal">(optional)</span></label>
-
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="tel"
-                    autoComplete="tel"
-                    value={form.phone}
-                    onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    placeholder="10-digit mobile number"
-                    maxLength={10}
-                    className={`w-full h-12 glass-input border rounded-xl pl-11 pr-10 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none transition-all shadow-sm ${
-                      (phoneStatus === 'invalid' || phoneStatus === 'taken' || phoneStatus === 'error') ? 'border-red-500/50 focus:border-red-500' :
-                      phoneStatus === 'available' ? 'border-green-500/50 focus:border-green-500' :
-                      'border-border-base focus:border-primary/50'
-                    }`}
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center">
-                    {phoneStatus === 'checking' && <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />}
-                    {phoneStatus === 'available' && <Check className="w-4 h-4 text-green-500" />}
-                  </div>
-                </div>
-                {phoneMsg && (
-                  <p className={`text-[10px] font-bold px-1 ${phoneStatus === 'available' ? 'text-green-500' : 'text-red-500'}`}>
-                    {phoneMsg}
+                    {usernameMessage}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Profile Photo</label>
-
-                <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-text-base opacity-60 hover:bg-primary/20 transition-all overflow-hidden"
-
-                  >
-                    {avatarPreview
-                      ? <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
-                      : <User className="w-6 h-6" />
-                    }
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 text-sm font-semibold text-text-base bg-primary/5 border border-primary/10 rounded-xl hover:bg-primary/10 transition-all"
-
-                  >
-                    Upload Photo
-                  </button>
-                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="h-12 w-12 flex items-center justify-center bg-primary/5 border border-primary/10 rounded-xl text-text-muted/40 hover:text-text-base hover:bg-primary/10 transition-all"
-                >
-
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm"
-
-                >
-                  Continue <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm mt-4 cursor-pointer disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  <>Create Account <Zap className="w-4 h-4" /></>
+                )}
+              </button>
             </motion.form>
           )}
-
-          {/* ─── STEP 3: Privacy ─── */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.25 }}
-              className="space-y-5"
-            >
-              <div>
-                <h2 className="text-2xl font-black text-text-base">Privacy Settings</h2>
-                <p className="text-sm text-text-muted mt-1">You control your data, always.</p>
-              </div>
-
-              {/* Ghost Mode Toggle */}
-              <div className="p-4 rounded-2xl bg-primary/5 border border-border-base flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-xl">
-                    <motion.div animate={{ opacity: form.ghostMode ? 1 : 0.5 }}>
-                      <Zap className={`w-5 h-5 ${form.ghostMode ? 'text-primary' : 'text-text-muted'}`} />
-                    </motion.div>
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold text-text-base">Ghost Mode</p>
-                    <p className="text-xs text-text-muted/60 mt-0.5">Hide your location from everyone. You can still browse the map.</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => set('ghostMode', !form.ghostMode)}
-                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 cursor-pointer ${form.ghostMode ? 'bg-primary' : 'bg-border-base'}`}
-                  aria-label="Toggle Ghost Mode"
-                >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${form.ghostMode ? 'left-6' : 'left-1'}`} />
-                </button>
-              </div>
-
-              {/* Allow Crossings Toggle */}
-              <div className="p-4 rounded-2xl bg-primary/5 border border-border-base flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-xl">
-                    <Footprints className={`w-5 h-5 ${form.allowCrossings ? 'text-primary' : 'text-text-muted'}`} />
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold text-text-base">Allow Crossings</p>
-                    <p className="text-xs text-text-muted/60 mt-0.5">Let the app notify you when you cross paths with someone.</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => set('allowCrossings', !form.allowCrossings)}
-                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 cursor-pointer ${form.allowCrossings ? 'bg-primary' : 'bg-border-base'}`}
-                  aria-label="Toggle Crossings"
-                >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${form.allowCrossings ? 'left-6' : 'left-1'}`} />
-                </button>
-              </div>
-
-              {/* Panic Mode (info only) */}
-              <div className="p-4 rounded-2xl bg-primary/5 border border-border-base">
-                <div className="flex items-start gap-3">
-                  <span className="text-xl">
-                    <Check className="w-5 h-5 text-primary" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold text-text-base">Panic Mode</p>
-                    <p className="text-xs text-text-muted/60 mt-0.5">Triple-tap the screen to instantly delete all your data and go offline. Always available in Settings.</p>
-                  </div>
-                </div>
-              </div>
-
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-medium text-center"
-                >
-                  {error}
-                </motion.div>
-              )}
-
-              <div className="flex gap-3 mt-2">
-                <button
-                  onClick={() => setStep(2)}
-                  className="h-12 w-12 flex items-center justify-center bg-primary/5 border border-border-base rounded-xl text-text-muted/40 hover:text-text-base hover:bg-primary/10 transition-all cursor-pointer"
-                  aria-label="Go back to step 2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleFinalSubmit}
-                  disabled={isLoading}
-                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm cursor-pointer"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Creating account...
-                    </>
-                  ) : (
-                    <>Join Locolive <Zap className="w-4 h-4" /></>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          )}
         </AnimatePresence>
+
+        <p className="text-center text-xs text-text-muted/40 mt-8">
+          By joining, you agree to our{' '}
+          <button className="text-primary font-bold hover:underline">Terms</button> &{' '}
+          <button className="text-primary font-bold hover:underline">Privacy Policy</button>
+        </p>
       </div>
     </div>
   );

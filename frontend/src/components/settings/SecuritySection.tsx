@@ -1,15 +1,18 @@
 import { type FC, useState } from 'react';
-import { Shield, Key, Smartphone, Loader2 } from 'lucide-react';
+import { Shield, Key, Smartphone, Loader2, AlertCircle } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
+import { toast } from 'react-hot-toast';
 
 const SecuritySection: FC = () => {
   const { mutations } = useSettings();
   const [passwords, setPasswords] = useState({ old: '', new: '', confirm: '' });
   const [step, setStep] = useState(1); // 1: Verify Old, 2: Enter New
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [error, setError] = useState('');
 
   const handleVerifyOld = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     try {
       await mutations.verifyPassword.mutateAsync(passwords.old);
       setStep(2);
@@ -20,10 +23,20 @@ const SecuritySection: FC = () => {
 
   const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    
     if (passwords.new !== passwords.confirm) {
-      import('react-hot-toast').then(({ toast }) => toast.error('Passwords do not match'));
+      setError('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
+    
+    if (passwords.new.length < 6) {
+      setError('Password must be at least 6 characters');
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
     mutations.changePassword.mutate({
       old_password: passwords.old,
       new_password: passwords.new
@@ -31,6 +44,7 @@ const SecuritySection: FC = () => {
       onSuccess: () => {
         setStep(1);
         setPasswords({ old: '', new: '', confirm: '' });
+        toast.success('Password updated successfully');
       }
     });
   };
@@ -55,6 +69,13 @@ const SecuritySection: FC = () => {
               </h3>
             </div>
             
+            {error && (
+              <div className="flex items-center gap-2 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold animate-in fade-in slide-in-from-top-1">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </div>
+            )}
+
             {step === 1 ? (
               <form onSubmit={handleVerifyOld} className="space-y-6 max-w-md">
                 <div className="space-y-2">
@@ -107,7 +128,7 @@ const SecuritySection: FC = () => {
                     placeholder="Confirm password"
                   />
                 </div>
-                <div className="md:col-span-2 flex flex-col sm:flex-row gap-3">
+                <div className="md:col-span-2 flex flex-col sm:flex-row gap-3 pt-2">
                   <button 
                     type="submit"
                     disabled={mutations.changePassword.isPending}
