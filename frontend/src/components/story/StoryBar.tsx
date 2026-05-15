@@ -46,7 +46,7 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary font-black text-lg uppercase italic">
-                  {user?.username?.charAt(0) || 'Y'}
+                  {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'Y'}
                 </div>
               )}
             </div>

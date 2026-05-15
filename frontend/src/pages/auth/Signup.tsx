@@ -382,6 +382,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type="email"
+                    name="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
@@ -407,6 +409,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">6-Digit Code</label>
                   <input
                     type="text"
+                    name="emailOTP"
+                    autoComplete="one-time-code"
                     maxLength={6}
                     value={emailOTP}
                     onChange={(e) => setEmailOTP(e.target.value.replace(/\D/g, ''))}
@@ -443,6 +447,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type="tel"
+                    name="phone"
+                    autoComplete="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+91 98765 43210"
@@ -468,6 +474,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest ml-1">6-Digit OTP</label>
                   <input
                     type="text"
+                    name="phoneOTP"
+                    autoComplete="one-time-code"
                     maxLength={6}
                     value={phoneOTP}
                     onChange={(e) => setPhoneOTP(e.target.value.replace(/\D/g, ''))}
@@ -505,6 +513,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type={showPass ? 'text' : 'password'}
+                    name="password"
+                    autoComplete="new-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -527,6 +537,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type={showPass ? 'text' : 'password'}
+                    name="confirmPassword"
+                    autoComplete="new-password"
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -563,6 +575,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type="text"
+                    name="fullName"
+                    autoComplete="name"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -578,6 +592,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type="text"
+                    name="username"
+                    autoComplete="username"
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}

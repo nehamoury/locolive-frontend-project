@@ -150,7 +150,9 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                         disabled={profile.connection_status === 'pending' || profile.requested}
                         className="px-10 py-4 bg-gray-900 text-white rounded-[24px] font-black uppercase tracking-[2px] text-xs shadow-2xl disabled:opacity-50"
                     >
-                        {profile.connection_status === 'pending' || profile.requested ? 'Request Sent' : 'Send Connection Request'}
+                        {profile.connection_status === 'pending' || profile.requested 
+                            ? 'Request Sent' 
+                            : (profile.follows_you ? 'Follow Back' : 'Send Connection Request')}
                     </button>
                 </div>
             </div>
@@ -266,7 +268,9 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                                             : 'bg-gray-900 text-white shadow-black/20 hover:scale-105'}`}
                                 >
-                                    {profile.connection_status === 'pending' || profile.requested ? 'Requested' : 'Connect'}
+                                    {profile.connection_status === 'pending' || profile.requested 
+                                        ? 'Requested' 
+                                        : (profile.follows_you ? 'Follow Back' : 'Connect')}
                                 </button>
                             )}
                             <button 

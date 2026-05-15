@@ -59,6 +59,28 @@ const RightSidebar: FC<RightSidebarProps> = ({
 
   return (
     <aside className="h-full flex flex-col overflow-y-auto no-scrollbar pt-6 pb-8 px-6 gap-8 bg-bg-sidebar/30 backdrop-blur-sm">
+      
+      {/* ── User Profile Header ── */}
+      <div 
+        onClick={() => navigate(`/dashboard/profile/${profile?.id}`)}
+        className="flex items-center gap-4 p-3 rounded-[24px] hover:bg-white dark:hover:bg-bg-base/40 border border-transparent hover:border-border-base transition-all cursor-pointer group"
+      >
+        <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-primary/20 group-hover:border-primary/50 transition-all shadow-lg shadow-primary/10">
+          <img 
+            src={getMediaUrl(profile?.avatar_url, FALLBACKS.AVATAR(profile?.username))} 
+            alt="" 
+            className="w-full h-full object-cover" 
+          />
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-[15px] font-black text-text-base leading-tight truncate">
+            {profile?.full_name || 'Set your name'}
+          </span>
+          <span className="text-[12px] font-bold text-text-muted mt-0.5 truncate opacity-70">
+            @{profile?.username || 'user'}
+          </span>
+        </div>
+      </div>
 
       {/* ── Suggested for you (Functional) ── */}
       <div className="flex flex-col gap-5">

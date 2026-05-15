@@ -411,7 +411,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
                     animate={{ opacity: 1, y: 0 }}
                     className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse self-end' : 'flex-row self-start'}`}
                   >
-                    {!isMe && (
+                    {!isMe && isGroup && (
                       <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0 mb-1">
                         <img
                           src={getMediaUrl(senderAvatar, FALLBACKS.AVATAR(senderName || 'user'))}

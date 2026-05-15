@@ -195,6 +195,7 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] ml-1">Identity</label>
             <Input
+              name="identity"
               placeholder="Email, username or phone"
               type="text"
               required
@@ -217,6 +218,7 @@ const Login: React.FC<LoginProps> = ({ onToggle }) => {
             </div>
             <div className="relative">
               <Input
+                name="password"
                 placeholder="••••••••"
                 type={showPassword ? "text" : "password"}
                 required
