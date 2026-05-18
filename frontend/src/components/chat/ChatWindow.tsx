@@ -50,12 +50,13 @@ interface ApiError {
   };
 }
 
-const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onViewProfile }: ChatWindowProps) => {
+const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: ChatWindowProps) => {
   const { user } = useAuth();
   const { messages, sendMessage, sendTyping, isTyping, isForbidden } = useChat(receiverId, isGroup);
   const { playSendSound } = useNotifications();
   const [content, setContent] = useState('');
   const [recipient, setRecipient] = useState<Recipient | null>(null);
+  const [groupMembers, setGroupMembers] = useState<{ user_id: string; username: string; avatar_url: string }[]>([]);
   const [loadingRecipient, setLoadingRecipient] = useState(true);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [icebreakers, setIcebreakers] = useState<string[]>([]);
@@ -70,6 +71,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
     scrollToBottom();
   }, [messages, isTyping]);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [shouldDeleteChatOnBlock, setShouldDeleteChatOnBlock] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -113,6 +115,20 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
       }
     };
     fetchRecipient();
+  }, [receiverId, isGroup]);
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (isGroup && receiverId && receiverId !== 'undefined' && receiverId.length >= 32) {
+        try {
+          const res = await api.get(`/groups/${receiverId}/members`);
+          setGroupMembers(res.data || []);
+        } catch (err) {
+          console.error('Failed to fetch group members:', err);
+        }
+      }
+    };
+    fetchMembers();
   }, [receiverId, isGroup]);
 
   useEffect(() => {
@@ -177,6 +193,19 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
     } finally {
       setShowBlockConfirm(false);
       setShouldDeleteChatOnBlock(false);
+    }
+  };
+
+  const confirmLeaveGroup = async () => {
+    try {
+      await api.post(`/groups/${receiverId}/leave`);
+      toast.success('Successfully left the group');
+      window.location.href = '/dashboard/messages';
+    } catch (err) {
+      toast.error('Failed to leave the group');
+      console.error(err);
+    } finally {
+      setShowLeaveConfirm(false);
     }
   };
 
@@ -270,9 +299,17 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
                   recipient?.full_name || recipient?.username || 'Locolive User'
                 )}
               </h2>
-              <span className="text-[12px] font-medium text-emerald-500">
-                {isTyping ? 'typing...' : 'online'}
-              </span>
+              {isGroup ? (
+                <span className="text-[11px] font-bold text-gray-500 dark:text-text-muted truncate max-w-[200px] md:max-w-[300px]">
+                  {groupMembers.length > 0
+                    ? groupMembers.map(m => m.username).join(', ')
+                    : 'Group Chat'}
+                </span>
+              ) : (
+                <span className="text-[12px] font-medium text-emerald-500">
+                  {isTyping ? 'typing...' : 'online'}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -310,8 +347,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
                 >
                   <button
                     onClick={() => {
-                      if (onViewProfile) onViewProfile(receiverId);
-                      else onToggleProfile?.();
+                      onToggleProfile?.();
                       setShowMoreMenu(false);
                     }}
                     className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-text-base dark:text-text-base hover:bg-gray-50 dark:hover:bg-bg-base transition-colors group"
@@ -319,7 +355,7 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
                     <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-bg-base group-hover:bg-primary/20 flex items-center justify-center transition-colors">
                       <User className="w-4 h-4 text-gray-400 dark:text-text-muted group-hover:text-primary" />
                     </div>
-                    View Profile
+                    {isGroup ? 'Group Members' : 'View Profile'}
                   </button>
 
                   <button
@@ -337,15 +373,30 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
 
                   <div className="h-px bg-border-base/50 my-1 mx-4" />
 
-                  <button
-                    onClick={handleBlockAction}
-                    className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-red-500 hover:bg-red-50 transition-colors group"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center transition-colors">
-                      <Slash className="w-4 h-4 text-red-500" />
-                    </div>
-                    {recipient?.is_blocked ? 'Unblock User' : 'Block User'}
-                  </button>
+                  {isGroup ? (
+                    <button
+                      onClick={() => {
+                        setShowLeaveConfirm(true);
+                        setShowMoreMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-red-500 hover:bg-red-50 transition-colors group"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center transition-colors">
+                        <Slash className="w-4 h-4 text-red-500" />
+                      </div>
+                      Leave Group
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleBlockAction}
+                      className="w-full flex items-center gap-3 px-5 py-3 text-[13px] font-bold text-red-500 hover:bg-red-50 transition-colors group"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center transition-colors">
+                        <Slash className="w-4 h-4 text-red-500" />
+                      </div>
+                      {recipient?.is_blocked ? 'Unblock User' : 'Block User'}
+                    </button>
+                  )}
 
                   <button
                     onClick={handleClearChat}
@@ -400,8 +451,19 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
             <>
               {messages.map((msg, idx) => {
                 const isMe = msg.sender_id === user?.id;
-                const senderName = isMe ? user?.full_name || `@${user?.username}` : recipient?.full_name || `@${recipient?.username}`;
-                const senderAvatar = isMe ? user?.avatar_url : recipient?.avatar_url;
+                let senderName = isMe ? user?.full_name || `@${user?.username}` : recipient?.full_name || `@${recipient?.username}`;
+                let senderAvatar = isMe ? user?.avatar_url : recipient?.avatar_url;
+
+                if (!isMe && isGroup) {
+                  const member = groupMembers.find(m => m.user_id === msg.sender_id);
+                  if (member) {
+                    senderName = `@${member.username}`;
+                    senderAvatar = member.avatar_url;
+                  } else {
+                    senderName = 'Group Member';
+                    senderAvatar = '';
+                  }
+                }
 
                 return (
                   <motion.div
@@ -591,6 +653,16 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile, onVi
           </div>
         )}
       </ConfirmationModal>
+
+      <ConfirmationModal
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        onConfirm={confirmLeaveGroup}
+        title="Leave Group"
+        message={`Are you sure you want to leave ${recipient?.full_name || 'this group'}? You will no longer receive messages or access member actions.`}
+        confirmText="Leave Group"
+        type="danger"
+      />
     </div>
   );
 };

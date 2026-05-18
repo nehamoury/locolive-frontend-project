@@ -33,7 +33,7 @@ const CreateGroupModal = ({ isOpen, onClose, onSuccess }: CreateGroupModalProps)
         try {
           const res = await api.get('/connections');
           // Only friends (accepted connections) can be added to groups
-          setFriends(((res.data || []) as FriendConnection[]).filter((c) => c.status === 'accepted'));
+          setFriends((res.data || []) as FriendConnection[]);
         } catch (err) {
           console.error('Failed to fetch friends:', err);
         }

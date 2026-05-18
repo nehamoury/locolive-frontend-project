@@ -38,9 +38,9 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       requiresProfileCompletion: false,
 
-      login: (token, user, requiresProfileCompletion = false) =>
+      login: (_token, user, requiresProfileCompletion = false) =>
         set({
-          token,
+          token: 'cookies_active',
           user,
           isAuthenticated: true,
           requiresProfileCompletion,

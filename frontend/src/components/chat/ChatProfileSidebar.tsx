@@ -18,6 +18,7 @@ import ConfirmationModal from '../ui/ConfirmationModal';
 
 interface ChatProfileSidebarProps {
   userId: string;
+  isGroup?: boolean;
   onViewFullProfile?: (userId: string) => void;
 }
 
@@ -32,6 +33,7 @@ interface ChatProfile {
   email?: string;
   phone?: string;
   created_at?: string;
+  is_group?: boolean;
 }
 
 interface SharedMediaItem {
@@ -52,35 +54,56 @@ interface InfoItemProps {
   icon: React.ReactNode;
 }
 
-const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullProfile }) => {
+const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, isGroup = false, onViewFullProfile }) => {
   const [profile, setProfile] = useState<ChatProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedSections, setExpandedSections] = useState<string[]>(['general', 'media']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['general', 'media', 'members']);
   const [sharedMedia, setSharedMedia] = useState<SharedMediaItem[]>([]);
+  const [groupMembers, setGroupMembers] = useState<{ user_id: string; username: string; avatar_url: string; role: string }[]>([]);
   const [isMuted, setIsMuted] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch Profile
-      const profileRes = await api.get(`/users/${userId}`);
-      setProfile(profileRes.data);
+      if (isGroup) {
+        // Fetch Group Details
+        const res = await api.get(`/groups/${userId}`);
+        const groupData = res.data.data;
 
-      // Fetch Chat History to extract media
-      const historyRes = await api.get('/messages', { params: { user_id: userId } });
-      const media = ((historyRes.data || []) as SharedMediaItem[])
-        .filter((msg) => msg.media_url)
-        .slice(-9) // Get last 9 media items
-        .reverse();
-      setSharedMedia(media);
+        setProfile({
+          username: 'group',
+          full_name: groupData.name,
+          avatar_url: '',
+          bio: groupData.description || 'Welcome to our Group Chat!',
+          created_at: groupData.created_at,
+          is_group: true,
+        });
 
+        // Fetch Group Members
+        const membersRes = await api.get(`/groups/${userId}/members`);
+        setGroupMembers(membersRes.data || []);
+        setSharedMedia([]);
+      } else {
+        // Fetch Profile
+        const profileRes = await api.get(`/users/${userId}`);
+        setProfile(profileRes.data);
+
+        // Fetch Chat History to extract media
+        const historyRes = await api.get('/messages', { params: { user_id: userId } });
+        const media = ((historyRes.data || []) as SharedMediaItem[])
+          .filter((msg) => msg.media_url)
+          .slice(-9) // Get last 9 media items
+          .reverse();
+        setSharedMedia(media);
+      }
     } catch (err) {
-      console.error('Failed to fetch user data for sidebar:', err);
+      console.error('Failed to fetch user/group data for sidebar:', err);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, isGroup]);
 
   useEffect(() => {
     fetchData();
@@ -118,6 +141,19 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
     }
   };
 
+  const confirmLeaveGroup = async () => {
+    try {
+      await api.post(`/groups/${userId}/leave`);
+      toast.success('Successfully left the group');
+      window.location.href = '/dashboard/messages';
+    } catch (err) {
+      toast.error('Failed to leave the group');
+      console.error(err);
+    } finally {
+      setShowLeaveConfirm(false);
+    }
+  };
+
   const handleMute = () => {
     setIsMuted(!isMuted);
     toast.success(isMuted ? 'Notifications unmuted' : 'Notifications muted for this chat');
@@ -143,13 +179,13 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
           <div className="w-28 h-28 rounded-[32px] p-1 bg-brand-gradient shadow-xl shadow-primary/20">
             <div className="w-full h-full rounded-[28px] bg-white flex items-center justify-center overflow-hidden border-4 border-white">
               <img 
-                src={getMediaUrl(profile.avatar_url, FALLBACKS.AVATAR(profile.username))} 
+                src={getMediaUrl(profile.avatar_url, FALLBACKS.AVATAR(profile.is_group ? profile.full_name : profile.username))} 
                 alt="" 
                 className="w-full h-full object-cover" 
               />
             </div>
           </div>
-          {profile.is_online && !profile.is_blocked && (
+          {profile.is_online && !profile.is_blocked && !profile.is_group && (
             <div className="absolute bottom-1 right-1 p-1 bg-emerald-500 border-4 border-white rounded-full shadow-lg w-6 h-6" />
           )}
         </div>
@@ -165,14 +201,20 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
               </span>
             )}
           </div>
-          <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
-            @{profile.username}
-          </p>
+          {!profile.is_group ? (
+            <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
+              @{profile.username}
+            </p>
+          ) : (
+            <p className="text-[11px] font-bold text-primary uppercase tracking-wider mb-2">
+              Group Chat
+            </p>
+          )}
           <div className="flex items-center justify-center gap-1.5">
             <span className="text-[10px] text-primary uppercase tracking-[0.2em] font-black italic">
-              {profile.bio ? 'Creative Soul' : 'Locolive Member'}
+              {profile.is_group ? 'COMMUNITY SPACE' : (profile.bio ? 'Creative Soul' : 'Locolive Member')}
             </span>
-            {profile.is_verified && <ShieldCheck className="w-3 h-3 text-primary" />}
+            {!profile.is_group && profile.is_verified && <ShieldCheck className="w-3 h-3 text-primary" />}
           </div>
         </div>
       </div>
@@ -186,93 +228,146 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
           </div>
         )}
         <div className="flex items-center justify-center gap-4">
-          <button 
-            onClick={() => onViewFullProfile?.(userId)}
-            className="p-3.5 bg-white border border-border-base rounded-2xl text-text-muted hover:text-primary hover:border-primary/40 shadow-sm transition-all active:scale-95"
-            title="View Profile"
-          >
-              <User className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={handleMute}
-            className={`p-3.5 bg-white border border-border-base rounded-2xl shadow-sm transition-all active:scale-95 ${isMuted ? 'text-secondary border-secondary/40' : 'text-text-muted hover:text-primary hover:border-primary/40'}`}
-            title={isMuted ? "Unmute" : "Mute Notifications"}
-          >
-              {isMuted ? <VolumeX className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
-          </button>
-          <button 
-            onClick={handleBlockAction}
-            className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl shadow-sm transition-all active:scale-95 border ${
-              profile.is_blocked 
-                ? 'bg-red-500 text-white border-red-600 font-black text-[10px] uppercase tracking-widest' 
-                : 'bg-white text-text-muted border-border-base hover:text-red-500 hover:border-red-200'
-            }`} 
-            title={profile.is_blocked ? "Unblock User" : "Block User"}
-          >
+          {profile.is_group ? (
+            <button 
+              onClick={() => setShowLeaveConfirm(true)}
+              className="flex items-center gap-2 px-6 py-3.5 bg-red-500 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-md hover:bg-red-600 transition-all active:scale-95 border border-red-600" 
+              title="Leave Group"
+            >
               <Slash className="w-4 h-4" />
-              {profile.is_blocked && <span>Unblock</span>}
-          </button>
+              <span>Leave Group</span>
+            </button>
+          ) : (
+            <>
+              <button 
+                onClick={() => onViewFullProfile?.(userId)}
+                className="p-3.5 bg-white border border-border-base rounded-2xl text-text-muted hover:text-primary hover:border-primary/40 shadow-sm transition-all active:scale-95"
+                title="View Profile"
+              >
+                  <User className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={handleMute}
+                className={`p-3.5 bg-white border border-border-base rounded-2xl shadow-sm transition-all active:scale-95 ${isMuted ? 'text-secondary border-secondary/40' : 'text-text-muted hover:text-primary hover:border-primary/40'}`}
+                title={isMuted ? "Unmute" : "Mute Notifications"}
+              >
+                  {isMuted ? <VolumeX className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+              </button>
+              <button 
+                onClick={handleBlockAction}
+                className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl shadow-sm transition-all active:scale-95 border ${
+                  profile.is_blocked 
+                    ? 'bg-red-500 text-white border-red-600 font-black text-[10px] uppercase tracking-widest' 
+                    : 'bg-white text-text-muted border-border-base hover:text-red-500 hover:border-red-200'
+                }`} 
+                title={profile.is_blocked ? "Unblock User" : "Block User"}
+              >
+                  <Slash className="w-4 h-4" />
+                  {profile.is_blocked && <span>Unblock</span>}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       <div className="space-y-6 pt-2 overflow-y-auto no-scrollbar">
-        {/* General Info */}
-        <SidebarSection 
-          title="General Info" 
-          isOpen={expandedSections.includes('general')} 
-          onToggle={() => toggleSection('general')}
-        >
-          <div className="space-y-4 pt-4 bg-bg-card/50 rounded-2xl p-4 mt-2 border border-border-base shadow-sm">
-            <InfoItem 
-              icon={<Mail className="w-3 h-3" />} 
-              label="Email Address" 
-              value={profile.email || 'Private'} 
-            />
-            <InfoItem 
-              icon={<Phone className="w-3 h-3" />} 
-              label="Phone" 
-              value={profile.phone || 'Not shared'} 
-            />
-              <InfoItem 
-                icon={<Calendar className="w-3 h-3" />} 
-                label="Joined" 
-                value={profile.created_at
-                  ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                  : 'Unknown'} 
-              />
-          </div>
-        </SidebarSection>
+        {profile.is_group ? (
+          /* Group Members Section */
+          <SidebarSection 
+            title="Group Members" 
+            isOpen={expandedSections.includes('members')} 
+            onToggle={() => toggleSection('members')}
+          >
+            <div className="space-y-3 pt-4 mt-2 max-h-[350px] overflow-y-auto no-scrollbar">
+              {groupMembers.map((member) => (
+                <div 
+                  key={member.user_id} 
+                  className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/50 hover:bg-gray-50 border border-gray-100/50 hover:border-gray-200/50 transition-all cursor-pointer group/item"
+                  onClick={() => onViewFullProfile?.(member.user_id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200">
+                      <img 
+                        src={getMediaUrl(member.avatar_url, FALLBACKS.AVATAR(member.username))} 
+                        alt="" 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[12px] font-bold text-gray-800 group-hover/item:text-primary transition-colors">
+                        @{member.username}
+                      </span>
+                      <span className="text-[10px] text-gray-400 capitalize">
+                        {member.role || 'Member'}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-400 opacity-0 group-hover/item:opacity-100 transition-all" />
+                </div>
+              ))}
+            </div>
+          </SidebarSection>
+        ) : (
+          <>
+            {/* General Info */}
+            <SidebarSection 
+              title="General Info" 
+              isOpen={expandedSections.includes('general')} 
+              onToggle={() => toggleSection('general')}
+            >
+              <div className="space-y-4 pt-4 bg-bg-card/50 rounded-2xl p-4 mt-2 border border-border-base shadow-sm">
+                <InfoItem 
+                  icon={<Mail className="w-3 h-3" />} 
+                  label="Email Address" 
+                  value={profile.email || 'Private'} 
+                />
+                <InfoItem 
+                  icon={<Phone className="w-3 h-3" />} 
+                  label="Phone" 
+                  value={profile.phone || 'Not shared'} 
+                />
+                  <InfoItem 
+                    icon={<Calendar className="w-3 h-3" />} 
+                    label="Joined" 
+                    value={profile.created_at
+                      ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      : 'Unknown'} 
+                  />
+              </div>
+            </SidebarSection>
 
-        {/* Shared Media */}
-        <SidebarSection 
-          title="Shared Media" 
-          isOpen={expandedSections.includes('media')} 
-          onToggle={() => toggleSection('media')}
-        >
-           {sharedMedia.length > 0 ? (
-             <div className="grid grid-cols-3 gap-2 pt-4">
-               {sharedMedia.map((msg, i) => (
-                 <div key={msg.id || i} className="aspect-square rounded-xl bg-bg-card overflow-hidden relative group cursor-pointer border border-border-base">
-                   <img 
-                    src={getMediaUrl(msg.media_url)} 
-                    alt="" 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                   />
+            {/* Shared Media */}
+            <SidebarSection 
+              title="Shared Media" 
+              isOpen={expandedSections.includes('media')} 
+              onToggle={() => toggleSection('media')}
+            >
+               {sharedMedia.length > 0 ? (
+                 <div className="grid grid-cols-3 gap-2 pt-4">
+                   {sharedMedia.map((msg, i) => (
+                     <div key={msg.id || i} className="aspect-square rounded-xl bg-bg-card overflow-hidden relative group cursor-pointer border border-border-base">
+                       <img 
+                        src={getMediaUrl(msg.media_url)} 
+                        alt="" 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                       />
+                     </div>
+                   ))}
                  </div>
-               ))}
-             </div>
-           ) : (
-             <div className="pt-6 pb-2 text-center">
-                <p className="text-[10px] font-black text-text-muted uppercase tracking-widest italic opacity-50">No media shared yet</p>
-             </div>
-           )}
-           
-           {sharedMedia.length > 0 && (
-             <button className="w-full mt-4 py-2 text-[10px] font-black text-primary hover:text-primary/80 transition-colors uppercase tracking-[0.2em] italic text-right">
-                View All Media →
-             </button>
-           )}
-        </SidebarSection>
+               ) : (
+                 <div className="pt-6 pb-2 text-center">
+                    <p className="text-[10px] font-black text-text-muted uppercase tracking-widest italic opacity-50">No media shared yet</p>
+                 </div>
+               )}
+               
+               {sharedMedia.length > 0 && (
+                 <button className="w-full mt-4 py-2 text-[10px] font-black text-primary hover:text-primary/80 transition-colors uppercase tracking-[0.2em] italic text-right">
+                    View All Media →
+                 </button>
+               )}
+            </SidebarSection>
+          </>
+        )}
       </div>
 
       <ConfirmationModal
@@ -283,6 +378,16 @@ const ChatProfileSidebar: FC<ChatProfileSidebarProps> = ({ userId, onViewFullPro
         message={`Are you sure you want to ${profile.is_blocked ? 'unblock' : 'block'} ${profile.full_name || profile.username}?`}
         confirmText={profile.is_blocked ? "Unblock" : "Block"}
         type={profile.is_blocked ? "info" : "danger"}
+      />
+
+      <ConfirmationModal
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        onConfirm={confirmLeaveGroup}
+        title="Leave Group"
+        message={`Are you sure you want to leave ${profile.full_name || 'this group'}? You will no longer receive messages or access member actions.`}
+        confirmText="Leave Group"
+        type="danger"
       />
     </div>
   );

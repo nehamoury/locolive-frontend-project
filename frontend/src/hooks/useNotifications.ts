@@ -12,6 +12,18 @@ const WS_RECONNECT_BASE_MS = 3000;
 const WS_RECONNECT_MAX_MS = 30000;
 const UNREAD_POLL_INTERVAL = 180000; // Poll unread counts every 3 minutes as fallback
 
+const globalSeenNotifIds: string[] = [];
+const checkAndAddGlobalEvent = (id: string): boolean => {
+  if (globalSeenNotifIds.includes(id)) {
+    return true; // Already seen
+  }
+  globalSeenNotifIds.push(id);
+  if (globalSeenNotifIds.length > 200) {
+    globalSeenNotifIds.shift(); // Keep size capped at 200
+  }
+  return false; // New event
+};
+
 interface Notification {
   id: string;
   type: string;
@@ -55,7 +67,6 @@ export const useNotifications = () => {
   );
 
   const socketRef = useRef<WebSocket | null>(null);
-  const seenNotifIds = useRef<Set<string>>(new Set());
   const reconnectAttemptRef = useRef(0);
   const activeChatUserId = useRef<string | null>(null);
 
@@ -322,12 +333,14 @@ export const useNotifications = () => {
       const data = payload.data || {};
 
       // If it's a message and we are already in that chat, don't show toast
-      if (data.type === 'new_message' && activeChatUserId.current === data.sender_id) {
+      const isActive = (data.type === 'new_message' && activeChatUserId.current === data.sender_id) || 
+                       (data.type === 'new_group_message' && activeChatUserId.current === data.group_id);
+      if (isActive) {
         return;
       }
 
       // Refresh relevant counts based on notification type
-      if (data.type === 'new_message') {
+      if (data.type === 'new_message' || data.type === 'new_group_message') {
         fetchUnreadMessagesCount();
       } else if (data.type === 'connection_request' || data.type === 'connection_accepted') {
         fetchPendingRequestsCount();
@@ -390,10 +403,9 @@ export const useNotifications = () => {
           
           // Universal Event Deduplication
           const eventId = data.msg_id || data.id || data.payload?.id || `${data.type}_${data.created_at}`;
-          if (seenNotifIds.current.has(eventId)) return;
-          seenNotifIds.current.add(eventId);
+          if (checkAndAddGlobalEvent(eventId)) return;
 
-          if (data.type === 'new_message') {
+          if (data.type === 'new_message' || data.type === 'new_group_message') {
             fetchUnreadMessagesCount();
 
             let isMe = false;
@@ -410,7 +422,8 @@ export const useNotifications = () => {
             if (isMe) return;
 
             // Skip sound and toast if user is already looking at this chat
-            if (activeChatUserId.current === data.sender_id) {
+            const activeId = data.type === 'new_group_message' ? data.group_id : data.sender_id;
+            if (activeChatUserId.current === activeId) {
               console.log('[Notifications] Skipping alert - chat is active');
               return;
             }
@@ -418,7 +431,7 @@ export const useNotifications = () => {
             // Play the sound from backend or fallback to chat_pop.wav
             playSound(data.sound || 'chat_pop.wav', 'high');
             
-            toast(`New message received! 💬`, {
+            toast(data.type === 'new_group_message' ? `New group message! 👥` : `New message received! 💬`, {
               duration: 3000,
               style: {
                 borderRadius: '20px',
@@ -429,7 +442,7 @@ export const useNotifications = () => {
               },
             });
 
-            showSystemNotification('New Message', {
+            showSystemNotification(data.type === 'new_group_message' ? 'New Group Message' : 'New Message', {
               body: data.content || 'You have a new message on Locolive',
               tag: 'new-message'
             });
@@ -440,8 +453,7 @@ export const useNotifications = () => {
           if (data.type === 'crossing_detected') {
             const notif = data.payload;
             const notifId = notif?.id || notif?.message;
-            if (notifId && seenNotifIds.current.has(notifId)) return;
-            if (notifId) seenNotifIds.current.add(notifId);
+            if (notifId && checkAndAddGlobalEvent(notifId)) return;
 
             // Extract related user ID for deduplication
             const relUserId = typeof notif.related_user_id === 'string'
@@ -450,8 +462,7 @@ export const useNotifications = () => {
 
             // Use crossing + related_user as the dedup key so the same person's crossing only shows once
             const crossingDedup = `crossing_${relUserId}`;
-            if (seenNotifIds.current.has(crossingDedup)) return;
-            seenNotifIds.current.add(crossingDedup);
+            if (checkAndAddGlobalEvent(crossingDedup)) return;
 
             toast(notif.message, {
               id: crossingDedup, // prevents duplicate toasts for same person

@@ -90,6 +90,7 @@ const MessageThreadWrapper = ({
           >
             <ChatProfileSidebar
               userId={userId}
+              isGroup={isGroup}
               onViewFullProfile={onViewFullProfile}
             />
           </motion.div>
@@ -217,6 +218,9 @@ const Dashboard = () => {
 
 
   const handleStoryClick = (userStories: any[], index: number) => {
+    if (!userStories || userStories.length === 0) return;
+    // Safety check: ensure first story has an actual media_url or ID (not a user marker)
+    if (!userStories[0]?.media_url && !userStories[0]?.id) return;
     setViewingStories(userStories);
     setViewingStoryIndex(index);
   };

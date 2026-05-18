@@ -88,10 +88,14 @@ const NotifCard = ({
   notif,
   onRead,
   onDelete,
+  activeConnections,
+  onAcceptConnection,
 }: {
   notif: Notification;
   onRead: (id: string) => void;
   onDelete: (id: string) => void;
+  activeConnections: Set<string>;
+  onAcceptConnection: (userId: string) => void;
 }) => {
   const [status, setStatus] = useState<null | 'accepted' | 'declined' | 'connecting'>(null);
   const cfg = getTypeConfig(notif.type);
@@ -170,6 +174,7 @@ const NotifCard = ({
                       .then(() => {
                         toast.success('Connection request accepted');
                         setStatus('accepted');
+                        onAcceptConnection(reqId);
                         onRead(notif.id);
                       })
                       .catch(err => {
@@ -219,10 +224,13 @@ const NotifCard = ({
         {(notif.type === 'crossing_detected') && notif.related_user_id && (() => {
           const title = nullString(notif.title || '').toLowerCase();
           const isAlreadyConnected = title.includes('crossed again') || title.includes('again');
-          const isSuggestion = title.includes('suggestion') || title.includes('path crossed');
+          
+          const rawId = notif.related_user_id;
+          const targetId = typeof rawId === 'string' ? rawId : (rawId?.UUID || rawId?.uuid || rawId?.String || rawId?.string || null);
+          const isUserConnected = isAlreadyConnected || (targetId && activeConnections.has(targetId));
 
           // Already connected — show a subtle "Connected" badge
-          if (isAlreadyConnected && !isSuggestion) {
+          if (isUserConnected) {
             return (
               <div className="mt-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-emerald-100">
@@ -241,8 +249,6 @@ const NotifCard = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      const rawId = notif.related_user_id;
-                      const targetId = typeof rawId === 'string' ? rawId : (rawId?.UUID || rawId?.uuid || rawId?.String || rawId?.string || null);
                       if (!targetId) {
                         toast.error('Invalid user ID');
                         return;
@@ -253,6 +259,7 @@ const NotifCard = ({
                           const data = res.data?.data || res.data;
                           if (data?.status === 'accepted') {
                             toast.success('Connected! 🤝');
+                            onAcceptConnection(targetId);
                           } else {
                             toast.success('Follow request sent! ✨');
                           }
@@ -312,9 +319,16 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
   const { notifications, markRead, markAllRead, unreadCount, deleteNotification, deleteAllNotifications } = useNotifications();
   const [loading, setLoading] = useState(false);
   const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
+  const [activeConnections, setActiveConnections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setLoading(false);
+    api.get('/connections')
+      .then(res => {
+        const ids = new Set((res.data || []).map((c: any) => c.id).filter(Boolean));
+        setActiveConnections(ids as Set<string>);
+      })
+      .catch(err => console.error('Failed to fetch active connections:', err));
   }, []);
 
   return (
@@ -383,6 +397,14 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
               key={`notification-${notif.id || idx}`}
               notif={notif}
               onDelete={deleteNotification}
+              activeConnections={activeConnections}
+              onAcceptConnection={(userId) => {
+                setActiveConnections(prev => {
+                  const next = new Set(prev);
+                  next.add(userId);
+                  return next;
+                });
+              }}
               onRead={(id) => {
                 const actorId = typeof notif.related_user_id === 'string'
                   ? notif.related_user_id

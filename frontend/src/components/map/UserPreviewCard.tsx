@@ -39,6 +39,7 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
     ? (userData.avatar_url.startsWith('http') ? userData.avatar_url : `${BACKEND}${userData.avatar_url}`) 
     : null;
     
+  const hasStories = user.stories && user.stories.length > 0 && !user.isUserOnly;
 
   return (
     <motion.div
@@ -62,20 +63,22 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
 
         <div className="flex flex-col items-center text-center relative z-10">
           <div 
-            className="relative group px-1 pt-1 pb-1 cursor-pointer"
+            className={`relative group px-1 pt-1 pb-1 ${hasStories ? 'cursor-pointer' : ''}`}
             onClick={() => {
-              if (user.stories && user.stories.length > 0) {
-                onStoryOpen?.(user.stories);
+              if (hasStories) {
+                onStoryOpen?.(user.stories!);
               }
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary to-accent rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity" />
-            <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-primary to-accent mb-5 relative">
+            {hasStories && (
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary to-accent rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity" />
+            )}
+            <div className={`w-24 h-24 rounded-full p-1 bg-gradient-to-tr ${hasStories ? 'from-primary to-accent' : 'from-emerald-400 to-teal-500'} mb-5 relative`}>
               <div className="w-full h-full rounded-full bg-bg-card overflow-hidden flex items-center justify-center border-4 border-bg-card shadow-xl">
                 {avatar ? (
-                  <img src={avatar} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" alt="" />
+                  <img src={avatar} className={`w-full h-full object-cover ${hasStories ? 'transition-transform group-hover:scale-110 duration-500' : ''}`} alt="" />
                 ) : (
-                  <span className="text-3xl font-black text-primary italic">{(userData.username || 'U').charAt(0).toUpperCase()}</span>
+                  <span className={`text-3xl font-black ${hasStories ? 'text-primary' : 'text-emerald-500'} italic`}>{(userData.username || 'U').charAt(0).toUpperCase()}</span>
                 )}
               </div>
               
@@ -83,7 +86,7 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
               <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 border-4 border-bg-card rounded-full shadow-lg" />
               
               {/* Story Pulse Effect */}
-              {user.stories && user.stories.length > 0 && (
+              {hasStories && (
                 <div className="absolute -inset-1 border-2 border-primary rounded-full animate-ping opacity-40" />
               )}
             </div>
@@ -94,17 +97,24 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
             <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
           </div>
 
-          <div 
-            onClick={() => {
-              if (user.stories && user.stories.length > 0) {
-                onStoryOpen?.(user.stories);
-              }
-            }}
-            className="flex items-center gap-1.5 text-[10px] font-black text-white px-3 py-1 bg-primary rounded-full uppercase tracking-widest mb-8 cursor-pointer hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
-          >
-            <PlayCircle className="w-3.5 h-3.5" />
-            {user.isUserOnly ? 'Live Moment' : `${user.count} Stories`}
-          </div>
+          {hasStories ? (
+            <div 
+              onClick={() => {
+                if (hasStories) {
+                  onStoryOpen?.(user.stories!);
+                }
+              }}
+              className="flex items-center gap-1.5 text-[10px] font-black text-white px-3 py-1 bg-primary rounded-full uppercase tracking-widest mb-8 cursor-pointer hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
+            >
+              <PlayCircle className="w-3.5 h-3.5" />
+              {`${user.count} Stories`}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-500 px-3 py-1 bg-emerald-500/10 rounded-full uppercase tracking-widest mb-8 border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Active Nearby
+            </div>
+          )}
           
           <div className="flex gap-4 w-full">
             {isConnection ? (

@@ -39,36 +39,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const authStore = useAuthStore();
 
-  // Sync Zustand store with localStorage
+  // Sync Zustand store with backend on app load (bootstrap verification)
   useEffect(() => {
     const verifyToken = async () => {
-      const storedToken = localStorage.getItem('token');
-      
-      // If no token, we're definitely not logged in
-      if (!storedToken) {
-        setLoading(false);
-        return;
-      }
-
-      // If already in store, we might not need to verify every time on mount
-      if (authStore.isAuthenticated && authStore.user) {
-        setLoading(false);
-        return;
-      }
-      
       try {
-        // Verify token by fetching user profile
-        // The interceptor will handle 401 automatically by trying a refresh
+        // Always verify token with the backend to prevent session bypass/stale cache
         const response = await api.get('/profile/me');
-        
         const user = response.data;
-        authStore.login(storedToken, user, !user.is_profile_complete);
+        authStore.login('cookies_active', user, !user.is_profile_complete);
       } catch (err: unknown) {
-        console.error('Token verification failed:', err);
-        // Note: The api interceptor will have already attempted refresh.
-        // If we get here, it means the session is truly dead.
+        console.error('Auth verification failed on app load:', err);
         authStore.logout();
         localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
         localStorage.removeItem('auth-storage');
       } finally {
         setLoading(false);
@@ -78,14 +61,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     verifyToken();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only run on mount
 
-  const handleLogin = (newToken: string, newUser: User, requiresProfileCompletion = false) => {
-    authStore.login(newToken, newUser, requiresProfileCompletion);
-    localStorage.setItem('token', newToken);
+  const handleLogin = (_newToken: string, newUser: User, requiresProfileCompletion = false) => {
+    authStore.login('cookies_active', newUser, requiresProfileCompletion);
   };
 
   const handleLogout = () => {
     authStore.logout();
     localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('auth-storage');
   };
 
