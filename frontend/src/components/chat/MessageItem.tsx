@@ -2,12 +2,11 @@ import { cn } from '../../utils/helpers';
 
 interface MessageItemProps {
   message: string;
-  sender: string;
   isMe?: boolean;
   timestamp: string;
 }
 
-const MessageItem = ({ message, isMe, timestamp }: Omit<MessageItemProps, 'sender'>) => {
+const MessageItem = ({ message, isMe, timestamp }: MessageItemProps) => {
   return (
     <div className={cn(
       "flex flex-col max-w-[80%]",

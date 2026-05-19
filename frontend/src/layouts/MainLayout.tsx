@@ -1,10 +1,8 @@
-import { type FC } from 'react';
-
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-const MainLayout: FC<LayoutProps> = ({ children }) => {
+const MainLayout = ({ children }: LayoutProps) => {
   return (
     <div className="flex h-[100dvh] bg-black overflow-hidden">
       {/* Sidebar could go here */}

@@ -1,4 +1,3 @@
-import { type FC } from 'react';
 import { Plus } from 'lucide-react';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
@@ -11,7 +10,7 @@ interface StoryBarProps {
 
 
 
-const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStoryClick }) => {
+const StoryBar = ({ stories = [], user, onCreateStory, onStoryClick }: StoryBarProps) => {
   const myStories = (stories || []).filter(s => s && s.username === user?.username);
   const otherStories = (stories || []).filter(s => s && s.username !== user?.username);
   const uniqueOtherStories = Array.from(

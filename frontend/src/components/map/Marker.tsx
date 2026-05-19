@@ -1,4 +1,3 @@
-import { type FC } from 'react';
 import { Marker as LeafletMarker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -16,7 +15,7 @@ const defaultIcon = L.icon({
   iconAnchor: [12, 41]
 });
 
-const Marker: FC<MarkerProps> = ({ position, title, description }) => {
+const Marker = ({ position, title, description }: MarkerProps) => {
   return (
     <LeafletMarker position={position} icon={defaultIcon}>
       {(title || description) && (
