@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Video, MapPin, Sparkles, Loader2, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { getMediaMetadata } from '../../utils/mediaMetadata';
 import UploadComponent from './UploadComponent';
 import UniversalCropModal from '../ui/UniversalCropModal';
 
@@ -64,7 +65,11 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
         setUploadProgress(p => Math.min(p + 15, 90));
       }, 500);
 
+      // Extract Metadata
+      const metadata = await getMediaMetadata(file);
+
       const formData = new FormData();
+
       formData.append('file', file);
       const uploadRes = await api.post('/upload', formData);
       const videoUrl = uploadRes.data.url;
@@ -79,6 +84,12 @@ const CreateReelModal = ({ isOpen, onClose, onSuccess }: CreateReelModalProps) =
         latitude: position?.coords?.latitude || 0,
         longitude: position?.coords?.longitude || 0,
         has_location: !!position,
+        width: metadata.width ? Math.round(metadata.width) : undefined,
+        height: metadata.height ? Math.round(metadata.height) : undefined,
+        aspect_ratio: metadata.aspect_ratio,
+        mime_type: metadata.mime_type,
+        file_size: metadata.file_size ? Math.round(metadata.file_size) : undefined,
+        duration: metadata.duration ? Math.round(metadata.duration) : undefined,
       });
 
       setUploadProgress(100);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Grid3x3, Heart, Bookmark, Star, Plus, Share2, BadgeCheck, Clapperboard, Tags } from 'lucide-react';
+import { Settings, Grid3x3, Heart, Bookmark, Star, Plus, Share2, BadgeCheck, Clapperboard, Tags, Play } from 'lucide-react';
+import { getMediaUrl } from '../../utils/media';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -193,9 +194,20 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white to-slate-100 p-3 border border-white/50">
                           <p className="text-[10px] font-bold text-slate-500 line-clamp-4 text-center italic">{nullString(post.caption)}</p>
                         </div>
+                      ) : post.media_type === 'video' ? (
+                        <div className="w-full h-full bg-slate-900 flex items-center justify-center relative">
+                          <img 
+                            src={getMediaUrl(post.media?.[0]?.thumbnail_url || '')} 
+                            alt="" 
+                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <Play className="w-8 h-8 fill-white/80 text-white/80" />
+                          </div>
+                        </div>
                       ) : (
                         <img 
-                          src={post.media_url?.startsWith('http') ? post.media_url : `${BACKEND}${post.media_url}`} 
+                          src={getMediaUrl(post.media_url)} 
                           alt="" 
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
                         />

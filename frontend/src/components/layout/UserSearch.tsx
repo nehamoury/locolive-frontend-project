@@ -94,7 +94,7 @@ const UserSearch: FC<UserSearchProps> = ({ mode, isOpen, onClose }) => {
     setError(null);
     try {
       const response = await api.get(`/users/search?q=${encodeURIComponent(searchTerm)}`);
-      setResults(response.data || []);
+      setResults(response.data?.users || []);
       setShowDropdown(true);
     } catch (err) {
       console.error('Search failed:', err);

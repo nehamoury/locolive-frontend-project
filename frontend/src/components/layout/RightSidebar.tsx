@@ -44,12 +44,16 @@ const RightSidebar: FC<RightSidebarProps> = ({
     }
   };
 
-  const handleConnect = async (userId: string) => {
+  const handleFollowToggle = async (userId: string, currentlyFollowing: boolean = false) => {
     try {
-      await api.post('/connections/request', { target_user_id: userId });
-      setSuggestions(prev => prev.map(u => u.id === userId ? { ...u, requested: true } : u));
+      if (currentlyFollowing) {
+        await api.post(`/users/${userId}/unfollow`);
+      } else {
+        await api.post(`/users/${userId}/follow`);
+      }
+      setSuggestions(prev => prev.map(u => u.id === userId ? { ...u, you_follow: !currentlyFollowing } : u));
     } catch (err) {
-      console.error('Failed to send request:', err);
+      console.error('Failed to toggle follow:', err);
     }
   };
 
@@ -123,11 +127,16 @@ const RightSidebar: FC<RightSidebarProps> = ({
                       </span>
                     </div>
                   </div>
-                  {u.requested ? (
-                    <div className="px-3 py-1.5 bg-bg-base rounded-xl text-[9px] font-black text-text-muted uppercase tracking-widest border border-border-base">Sent</div>
+                  {u.you_follow ? (
+                    <button
+                      onClick={() => handleFollowToggle(u.id, true)}
+                      className="px-3 py-1.5 bg-bg-base rounded-xl text-[9px] font-black text-text-muted uppercase tracking-widest border border-border-base hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all"
+                    >
+                      Following
+                    </button>
                   ) : (
                     <button
-                      onClick={() => handleConnect(u.id)}
+                      onClick={() => handleFollowToggle(u.id, false)}
                       className="w-10 h-10 bg-primary/5 hover:bg-primary text-primary hover:text-white rounded-xl transition-all active:scale-90 flex items-center justify-center border border-primary/10 shadow-sm"
                     >
                       <UserPlus className="w-4 h-4" />

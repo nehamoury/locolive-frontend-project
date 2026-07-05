@@ -43,7 +43,7 @@ export const useChat = (targetUserId?: string, isGroup: boolean = false) => {
       const response = await api.get(endpoint, {
         params: !isGroup ? { user_id: targetUserId } : {}
       });
-      const responseData = response.data.data || response.data;
+      const responseData = response.data?.data || response.data || [];
       setMessages(Array.isArray(responseData) ? responseData : []);
       
       if (!isGroup) {

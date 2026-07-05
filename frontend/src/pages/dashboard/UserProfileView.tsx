@@ -1,5 +1,5 @@
 import { useState, useEffect, type FC } from 'react';
-import { ArrowLeft, MessageSquare, MessageCircle, MapPin, Grid3x3, Heart, Share2, MoreHorizontal, Zap, Footprints, Users, Film, Shield, Lock } from 'lucide-react';
+import { ArrowLeft, MessageSquare, MessageCircle, MapPin, Grid3x3, Heart, Share2, MoreHorizontal, Zap, Footprints, Users, Film, Shield, Lock, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import StoryViewer from '../../components/story/StoryViewer';
@@ -113,13 +113,41 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
     }
   };
 
-  const handleFollow = async () => {
+  const handleFollowToggle = async () => {
+    if (!profile) return;
+    
+    const isCurrentlyFollowing = profile.you_follow;
+    const previousFollowers = profile.followers_count || 0;
+    
+    // Optimistic Update
+    queryClient.setQueryData(['users', 'profile', userId], (oldData: any) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        you_follow: !isCurrentlyFollowing,
+        followers_count: isCurrentlyFollowing ? Math.max(0, previousFollowers - 1) : previousFollowers + 1
+      };
+    });
+
     try {
-      await api.post('/connections/request', { target_user_id: userId });
-      // Invalidate profile query to refresh connection status
-      queryClient.invalidateQueries({ queryKey: ['users', 'profile', userId] });
+      if (isCurrentlyFollowing) {
+        await api.post(`/users/${userId}/unfollow`);
+      } else {
+        await api.post(`/users/${userId}/follow`);
+      }
     } catch (err) {
-      console.error('Follow request failed:', err);
+      console.error('Follow toggle failed:', err);
+      import('react-hot-toast').then(({ toast }) => toast.error('Failed to update follow status'));
+      
+      // Rollback
+      queryClient.setQueryData(['users', 'profile', userId], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          you_follow: isCurrentlyFollowing,
+          followers_count: previousFollowers
+        };
+      });
     }
   };
 
@@ -165,10 +193,10 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
           <p className="text-sm text-text-muted font-bold max-w-[300px] leading-relaxed mb-10">Follow this account to see their photos, videos and moments on Locolive.</p>
           
           <button 
-            onClick={handleFollow}
+            onClick={handleFollowToggle}
             className="px-10 py-4 bg-text-base text-bg-base rounded-[24px] font-black uppercase tracking-[2px] text-xs shadow-2xl shadow-black/20 hover:scale-105 transition-all active:scale-95 cursor-pointer"
           >
-            Send Connection Request
+            {profile?.you_follow ? 'Unfollow' : 'Follow'}
           </button>
         </div>
       </div>
@@ -273,38 +301,23 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                 >
                   {blocking ? 'Unblocking...' : 'Unblock'}
                 </button>
-              ) : profile?.is_mutual ? (
-                <button
-                  disabled
-                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-purple-50 text-purple-600 border border-purple-100 cursor-default flex items-center gap-2"
-                >
-                  <Users className="w-3 h-3" />
-                  Connected
-                </button>
               ) : profile?.you_follow ? (
                 <button
-                  disabled
-                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-500 border border-pink-100 cursor-default"
+                  onClick={handleFollowToggle}
+                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-500 border border-pink-100 hover:bg-pink-100 transition-all active:scale-95 cursor-pointer"
                 >
                   Following
                 </button>
-              ) : profile?.connection_status === 'pending' || profile?.requested ? (
-                <button
-                  disabled
-                  className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-bg-sidebar text-text-muted cursor-not-allowed"
-                >
-                  Requested
-                </button>
               ) : profile?.follows_you ? (
                 <button
-                  onClick={handleFollow}
+                  onClick={handleFollowToggle}
                   className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-primary text-white shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all cursor-pointer"
                 >
                   Follow Back
                 </button>
               ) : (
                 <button
-                  onClick={handleFollow}
+                  onClick={handleFollowToggle}
                   className="px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest bg-text-base text-bg-base shadow-xl shadow-black/10 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                   Follow
@@ -340,14 +353,17 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-4 py-6 border-y border-border-base mb-8">
+          <div className="grid grid-cols-4 gap-4 py-6 border-y border-border-base mb-8">
             <div onClick={() => setActiveTab('stories')} className="cursor-pointer">
               <QuickStat label="Moments" value={stories.length} icon={<Zap className="w-3.5 h-3.5" />} />
             </div>
-            <div onClick={() => onBack()} className="cursor-pointer">
-              <QuickStat label="Connections" value={profile?.connection_count || 0} icon={<Users className="w-3.5 h-3.5" />} />
+            <div onClick={() => setActiveTab('posts')} className="cursor-pointer">
+              <QuickStat label="Followers" value={profile?.followers_count || 0} icon={<Users className="w-3.5 h-3.5" />} />
             </div>
-            <div onClick={() => setActiveTab('history')} className="cursor-pointer">
+            <div onClick={() => setActiveTab('posts')} className="cursor-pointer">
+              <QuickStat label="Following" value={profile?.following_count || 0} icon={<Users className="w-3.5 h-3.5" />} />
+            </div>
+            <div>
               <QuickStat label="Crossed" value={profile?.crossings_count || 0} icon={<Footprints className="w-3.5 h-3.5" />} />
             </div>
           </div>
@@ -443,7 +459,24 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                             onClick={() => setSelectedPost(post)}
                             className="aspect-square bg-bg-sidebar rounded-[24px] overflow-hidden relative group border border-border-base cursor-pointer"
                           >
-                            <img src={getMediaUrl(post.media_url)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                            {post.media_type === 'text' ? (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white to-slate-100 p-3 border border-white/50">
+                                <p className="text-[10px] font-bold text-slate-500 line-clamp-4 text-center italic">{nullString(post.caption)}</p>
+                              </div>
+                            ) : post.media_type === 'video' ? (
+                              <div className="w-full h-full bg-slate-900 flex items-center justify-center relative">
+                                <img 
+                                  src={getMediaUrl(post.media?.[0]?.thumbnail_url || '')} 
+                                  alt="" 
+                                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <Play className="w-8 h-8 fill-white/80 text-white/80" />
+                                </div>
+                              </div>
+                            ) : (
+                              <img src={getMediaUrl(post.media_url)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                            )}
                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
                                <div className="flex items-center gap-1">
                                   <Heart className="w-4 h-4 fill-white" />

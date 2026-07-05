@@ -125,7 +125,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
     }
     try {
       const response = await api.get(`/users/search?q=${encodeURIComponent(query)}`);
-      setMentionResults(response.data || []);
+      setMentionResults(response.data?.users || []);
       setSelectedIndex(0);
     } catch (err) {
       console.error('Failed to search users', err);

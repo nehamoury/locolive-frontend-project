@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { X, Camera, Edit3, Video, Calendar, Globe, MapPin, Flame, Loader2 } from 'lucide-react';
 import api from '../../services/api';
+import { getMediaMetadata } from '../../utils/mediaMetadata';
 import { useAuth } from '../../context/AuthContext';
 import { BACKEND } from '../../utils/config';
 
@@ -62,6 +63,7 @@ const CreateStoryModal = ({ isOpen, onClose, onSuccess }: CreateStoryModalProps)
       }
 
       let mediaUrl = '';
+      let metadata: any = null;
       let mediaType = 'text';
 
       // 1. Determine MediaType based on tab
@@ -72,6 +74,7 @@ const CreateStoryModal = ({ isOpen, onClose, onSuccess }: CreateStoryModalProps)
 
       // 2. Upload media if present
       if (file) {
+        metadata = await getMediaMetadata(file);
         const formData = new FormData();
         formData.append('file', file);
         const uploadRes = await api.post('/upload', formData);
@@ -87,6 +90,12 @@ const CreateStoryModal = ({ isOpen, onClose, onSuccess }: CreateStoryModalProps)
         is_anonymous: isAnonymous,
         show_location: showLocation,
         caption: caption.trim(),
+        width: metadata?.width || 1080,
+        height: metadata?.height || 1080,
+        aspect_ratio: metadata?.aspect_ratio || 1,
+        mime_type: metadata?.mime_type || 'image/jpeg',
+        file_size: metadata?.file_size || 0,
+        duration: metadata?.duration || null,
       });
 
       // 4. Success cleanup

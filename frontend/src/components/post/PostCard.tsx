@@ -1,12 +1,13 @@
-import { useState, useRef, useEffect, type FC } from 'react';
+import { useState, useRef, type FC } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Send, Bookmark, MapPin, MoreHorizontal, Trash2, Volume2, VolumeX } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MapPin, MoreHorizontal, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
-import { useSound } from '../../context/SoundContext';
+
 import { nullString } from '../../utils/string';
 import { CommentsModal, ReportModal } from '../ui';
+import { MediaRenderer } from '../ui/MediaRenderer';
 import ShareModal from '../share/ShareModal';
 import ConfirmationModal from '../ui/ConfirmationModal';
 
@@ -42,8 +43,6 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isTextOnly = post.media_type === 'text' || (!(post.media_url || post.video_url)) || post.media_url === 'text';
   const isOwner = currentUserID && post.user_id === currentUserID;
-  const { isMuted, toggleMute } = useSound();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
 
   // Normalize NullString objects from Go backend
@@ -66,41 +65,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const secondaryCaption = (hasBody && hasCaption) ? cleanCaption : '';
   const shouldShowSecondary = !!secondaryCaption;
 
-  // Intersection Observer for performance
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (videoRef.current) {
-            if (entry.isIntersecting) {
-              if (!videoRef.current.src) {
-                videoRef.current.src = getMediaUrl(post.media_url || post.video_url);
-              }
-              if (!isMuted) videoRef.current.play().catch(() => {});
-            } else {
-              videoRef.current.pause();
-              videoRef.current.removeAttribute('src'); // Unload to free memory
-              videoRef.current.load();
-            }
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-
-    if (videoRef.current) observer.observe(videoRef.current);
-    return () => observer.disconnect();
-  }, [post.media_url, post.video_url, isMuted]);
-
-  // Sync muted state with DOM element to bypass React reconciliation lag on media tags
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = isMuted;
-      if (!isMuted && videoRef.current.src) {
-        videoRef.current.play().catch(() => { });
-      }
-    }
-  }, [isMuted]);
+  
 
   const isLiking = useRef(false);
   const handleLike = async () => {
@@ -284,37 +249,12 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
         )}
 
         {/* Media Block */}
-        {!isTextOnly && (post.media_url || post.video_url) && (
+        {!isTextOnly && (post.media_url || post.video_url || (post.media && post.media.length > 0)) && (
           <div
-            className="w-full rounded-[16px] overflow-hidden bg-bg-base border border-border-base/50 cursor-pointer relative group/media aspect-auto max-h-[70vh]"
+            className="w-full rounded-[16px] overflow-hidden bg-bg-base border border-border-base/50 cursor-pointer relative group/media aspect-auto max-h-[70vh] flex items-center justify-center"
             onClick={() => onImageClick?.(post)}
           >
-            {(post.media_type === 'video' || post.video_url) ? (
-              <div className="relative h-full w-full">
-                <video
-                  ref={videoRef}
-                  src={getMediaUrl(post.media_url || post.video_url)}
-                  className="w-full h-auto object-contain"
-                  muted={isMuted}
-                  loop
-                  autoPlay
-                  playsInline
-                />
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                  className="absolute bottom-3 right-3 p-2 bg-black/50 backdrop-blur-md rounded-full text-white hover:bg-black/70 transition-all"
-                >
-                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>
-              </div>
-            ) : (
-              <img
-                src={getMediaUrl(post.media_url, FALLBACKS.POST)}
-                alt=""
-                className="w-full h-auto object-contain"
-              />
-            )}
+            <MediaRenderer post={post} mode="feed" />
           </div>
         )}
       </div>

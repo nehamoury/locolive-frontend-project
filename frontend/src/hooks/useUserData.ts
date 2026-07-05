@@ -31,6 +31,8 @@ export interface UserPost {
   avatar_url?: string;
   liked_by_viewer: boolean;
   crop_settings?: any;
+  thumbnail_url?: string;
+  media?: Array<{ thumbnail_url: string }>;
 }
 
 export interface UserProfile {

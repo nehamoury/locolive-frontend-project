@@ -19,7 +19,7 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
     setLoading(true);
     try {
       const res = await api.get('/users/search', { params: { q } });
-      setResults(res.data || []);
+      setResults(res.data?.users || []);
     } catch (err) {
       console.error('Search failed:', err);
     } finally {
@@ -32,12 +32,16 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
     return () => clearTimeout(timer);
   }, [query, search]);
 
-  const handleConnect = async (userId: string) => {
+  const handleFollowToggle = async (userId: string, currentlyFollowing: boolean = false) => {
     try {
-      await api.post('/connections/request', { target_user_id: userId });
-      setResults(prev => prev.map(u => u.id === userId ? { ...u, requested: true } : u));
+      if (currentlyFollowing) {
+        await api.post(`/users/${userId}/unfollow`);
+      } else {
+        await api.post(`/users/${userId}/follow`);
+      }
+      setResults(prev => prev.map(u => u.id === userId ? { ...u, you_follow: !currentlyFollowing } : u));
     } catch (err) {
-      console.error('Failed to send request:', err);
+      console.error('Failed to toggle follow:', err);
     }
   };
 
@@ -187,26 +191,19 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
                       >
                         Unblock
                       </button>
-                    ) : user.connection_status === 'accepted' ? (
+                    ) : user.you_follow ? (
                       <button
-                        disabled
-                        className="px-6 py-2 rounded-full border border-border-base bg-emerald-50 text-emerald-600 text-sm font-bold w-[100px] cursor-default"
+                        onClick={(e) => { e.stopPropagation(); handleFollowToggle(user.id, true); }}
+                        className="px-6 py-2 rounded-full border border-pink-200 bg-pink-50 text-pink-600 text-sm font-bold w-[100px] cursor-pointer hover:bg-pink-100 transition-all"
                       >
-                        Friend
-                      </button>
-                    ) : user.connection_status === 'pending' || user.requested ? (
-                      <button
-                        disabled
-                        className="px-6 py-2 rounded-full border border-border-base bg-bg-sidebar text-text-muted/40 text-sm font-bold w-[100px] cursor-not-allowed"
-                      >
-                        Pending
+                        Following
                       </button>
                     ) : (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleConnect(user.id); }}
+                        onClick={(e) => { e.stopPropagation(); handleFollowToggle(user.id, false); }}
                         className="px-6 py-2 rounded-full border border-primary text-primary text-sm font-bold hover:bg-primary/5 hover:scale-105 active:scale-95 transition-all w-[100px] cursor-pointer"
                       >
-                        Connect
+                        Follow
                       </button>
                     )}
                   </div>

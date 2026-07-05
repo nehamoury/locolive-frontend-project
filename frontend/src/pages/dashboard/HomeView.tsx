@@ -1,9 +1,10 @@
-import { useState, useEffect, type FC, useRef } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { StoryBar } from '../../components/story/StoryBar';
 import PostCard from '../../components/post/PostCard';
 import api from '../../services/api';
+import { useInView } from 'react-intersection-observer';
 
 interface HomeViewProps {
   stories: any[];
@@ -18,20 +19,37 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
   const navigate = useNavigate();
   const [posts, setPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
-  const hasFetched = useRef(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const { ref, inView } = useInView();
 
-  const fetchPosts = async () => {
-    if (hasFetched.current) return; // Prevent duplicate fetches
-    hasFetched.current = true;
-
+  const fetchPosts = async (isLoadMore = false) => {
+    if (loadingPosts || (!hasMore && isLoadMore)) return;
+    
     setLoadingPosts(true);
     try {
-      const res = await api.get('/posts/feed');
-      const postsData = res.data?.posts || [];
-      setPosts(postsData);
+      const endpoint = cursor && isLoadMore ? `/posts/feed?cursor=${encodeURIComponent(cursor)}` : '/posts/feed';
+      const res = await api.get(endpoint);
+      
+      const newPosts = res.data?.posts || [];
+      const nextCursor = res.data?.next_cursor || null;
+
+      if (isLoadMore) {
+        setPosts(prev => {
+          // Remove duplicates
+          const existingIds = new Set(prev.map(p => p.id));
+          const uniqueNewPosts = newPosts.filter((p: any) => !existingIds.has(p.id));
+          return [...prev, ...uniqueNewPosts];
+        });
+      } else {
+        setPosts(newPosts);
+      }
+      
+      setCursor(nextCursor);
+      setHasMore(!!nextCursor);
     } catch (err: any) {
       console.error('[HomeView] Failed to fetch posts:', err.response?.data || err.message);
-      setPosts([]);
+      if (!isLoadMore) setPosts([]);
     } finally {
       setLoadingPosts(false);
     }
@@ -40,6 +58,12 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
   useEffect(() => {
     fetchPosts();
   }, []);
+
+  useEffect(() => {
+    if (inView && hasMore && !loadingPosts) {
+      fetchPosts(true);
+    }
+  }, [inView, hasMore, loadingPosts]);
 
   return (
     <div className="flex flex-col w-full bg-transparent">
@@ -88,14 +112,31 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
                 </button>
               </div>
             ) : (
-              posts.map((post: any, index: number) => (
-                <PostCard
-                  key={post.id || `post-${index}`}
-                  post={post}
-                  currentUserID={user?.id}
-                  onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
-                />
-              ))
+              <>
+                {posts.map((post: any, index: number) => (
+                  <PostCard
+                    key={post.id || `post-${index}`}
+                    post={post}
+                    currentUserID={user?.id}
+                    onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
+                  />
+                ))}
+                
+                {/* Infinite Scroll trigger element */}
+                {hasMore && (
+                  <div ref={ref} className="w-full py-8 flex justify-center items-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 rounded-full border-[3px] border-border-base border-t-primary animate-spin" />
+                      <p className="text-[12px] font-medium text-text-muted">Loading more posts...</p>
+                    </div>
+                  </div>
+                )}
+                {!hasMore && posts.length > 0 && (
+                  <div className="w-full py-12 flex justify-center items-center text-center">
+                    <p className="text-[14px] font-medium text-text-muted italic opacity-60">You're all caught up!</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

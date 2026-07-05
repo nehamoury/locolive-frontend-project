@@ -3,6 +3,8 @@ import { X, Camera, Type, MapPin, Zap, Clock, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import UniversalCropModal from '../ui/UniversalCropModal';
+import { uploadManager } from '../../sdk/UploadSDK';
+import type { UploadState } from '../../sdk/UploadSDK/Types';
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -30,6 +32,8 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadState, setUploadState] = useState<UploadState>("preparing");
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [cropSettings, setCropSettings] = useState<any>({ ratio: 'original', zoom: 1, position: { x: 0, y: 0 } });
@@ -74,30 +78,26 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
         // Apply crop if it's an image and not original
         if (mediaType === 'image' && mediaPreview && (cropSettings.ratio !== 'original' || cropSettings.zoom !== 1)) {
           try {
-            // In a real production app, we'd calculate precise pixel coordinates.
-            // For now, we'll use a simplified approach or just pass the settings.
-            // Since implementing a full pixel-perfect cropper from scratch is complex,
-            // we will notify the user we are applying the frame.
             console.log('Applying crop settings:', cropSettings);
           } catch (err) {
             console.error('Crop failed, using original', err);
           }
         }
 
-        const formData = new FormData();
-        formData.append('file', fileToUpload);
+        const result = await uploadManager.startUpload(
+          fileToUpload,
+          mediaType as "image" | "video",
+          { context: postType === "story" ? "story" : "feed" },
+          (event) => {
+            setUploadState(event.state);
+            if (event.percent !== undefined) {
+               setUploadProgress(event.percent);
+            }
+          }
+        );
 
-        // Add crop settings if available
-        if (mediaType === 'image' && cropSettings.pixelCrop) {
-          formData.append('cropX', String(Math.round(cropSettings.pixelCrop.x)));
-          formData.append('cropY', String(Math.round(cropSettings.pixelCrop.y)));
-          formData.append('cropWidth', String(Math.round(cropSettings.pixelCrop.width)));
-          formData.append('cropHeight', String(Math.round(cropSettings.pixelCrop.height)));
-          formData.append('aspectRatio', cropSettings.ratio);
-        }
-
-        const uploadRes = await api.post('/upload', formData);
-        mediaUrl = uploadRes.data.url;
+        mediaUrl = result.url;
+        // Optional: you can extract blurhash, width, height from result.metadata here
       }
 
       // Get current location for stories
@@ -350,8 +350,19 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
                 disabled={uploading}
                 className="w-full py-4 bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] text-white rounded-full font-bold text-base shadow-lg shadow-pink-100 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {uploading
-                  ? 'Sharing...'
+                {uploading ? (
+                  <span className="flex items-center gap-2 justify-center">
+                    <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                    {uploadState === "preparing" && "Preparing media..."}
+                    {uploadState === "validating" && "Validating..."}
+                    {uploadState === "compressing" && "Optimizing for faster upload..."}
+                    {uploadState === "extracting_thumbnail" && "Extracting thumbnail..."}
+                    {uploadState === "generating_blurhash" && "Generating blurhash..."}
+                    {uploadState === "uploading" && `Uploading ${uploadProgress}%...`}
+                    {uploadState === "processing" && "Finishing up..."}
+                    {!["preparing", "validating", "compressing", "extracting_thumbnail", "generating_blurhash", "uploading", "processing"].includes(uploadState) && "Publishing..."}
+                  </span>
+                )
                   : postType === 'story'
                     ? '⚡ Share Story'
                     : '📌 Share Post'}

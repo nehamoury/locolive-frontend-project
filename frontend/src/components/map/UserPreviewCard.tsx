@@ -122,7 +122,7 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
                 className="flex-1 py-4 bg-bg-sidebar text-text-muted font-black italic rounded-[24px] flex items-center justify-center gap-2 group cursor-default"
               >
                 <Heart className="w-4 h-4 fill-primary text-primary" /> 
-                <span>Connected</span>
+                <span>Following</span>
               </div>
             ) : (
               <motion.button 
@@ -132,7 +132,7 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
                 className="flex-1 py-4 bg-primary text-white font-black italic rounded-[24px] shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2 group cursor-pointer"
               >
                 <Heart className="w-4 h-4 transition-transform group-hover:scale-125" /> 
-                <span>Like</span>
+                <span>Follow</span>
               </motion.button>
             )}
             <motion.button 

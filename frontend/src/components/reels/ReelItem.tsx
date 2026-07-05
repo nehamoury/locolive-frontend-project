@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Volume2, VolumeX, Sparkles, Play, Pause } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Volume2, VolumeX, Sparkles, Play, Pause, Music } from 'lucide-react';
 import { useSound } from '../../context/SoundContext';
 import api from '../../services/api';
 import { getMediaUrl, FALLBACKS } from '../../utils/media';
@@ -275,7 +275,11 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
     navigate(`/dashboard/user/${reel.user_id}`);
   };
 
-  const togglePlay = () => {
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     const video = videoRef.current;
     if (!video) return;
 
@@ -427,6 +431,22 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
               </AnimatePresence>
             </motion.button>
           </div>
+
+          {/* Mute/Unmute */}
+          <div className="flex flex-col items-center gap-0.5 mt-2">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleMute();
+              }}
+              aria-label={isMuted ? "Unmute" : "Mute"}
+              className="flex items-center justify-center w-10 h-10 text-white transition-all"
+            >
+              {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+            </motion.button>
+          </div>
         </div>
 
         <motion.button
@@ -539,7 +559,7 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
         {/* Audio Layer - Directly below username/caption */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-md border border-white/5">
-            <Volume2 className="w-3 h-3 text-white/70" />
+            <Music className="w-3 h-3 text-white/70" />
             <div className="text-[10px] font-black  tracking-widest text-white/70 whitespace-nowrap overflow-hidden max-w-[140px]">
               Original Audio
             </div>
@@ -563,17 +583,6 @@ const ReelItem = ({ reel, isActive, onToggleComments, currentUserID }: ReelItemP
           transition={{ type: 'tween', ease: 'linear' }}
         />
       </div>
-
-      {/* Minimal Mute/Unmute Notch: Top-Right focused to avoid HUD overlap */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleMute();
-        }}
-        className="absolute bottom-6 right-4 z-30 w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl flex items-center justify-center text-white shadow-2xl hover:bg-black/60 transition-all border border-white/20 active:scale-90"
-      >
-        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-      </button>
 
     </div>
   );

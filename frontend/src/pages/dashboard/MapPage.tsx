@@ -199,7 +199,7 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
     const [userPosition, setUserPosition] = useState<[number, number] | null>(externalPosition || null);
     const [nearbyUsers, setNearbyUsers] = useState<NearbyUser[]>([]);
     const [flyTo, setFlyTo] = useState<[number, number] | null>(null);
-    const [connectionIds, setConnectionIds] = useState<Set<string>>(new Set());
+    const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
     const [selectedUser, setSelectedUser] = useState<MapClusterItem | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [heatmap, setHeatmap] = useState<{latitude?: number; longitude?: number; lat?: number; lng?: number; intensity?: number; count?: number}[]>([]);
@@ -227,6 +227,25 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
 
     const latestPositionRef = useRef<[number, number] | null>(externalPosition || null);
 
+    const handleFollow = async (userId: string) => {
+        if (!userId) return;
+        const userInSelected = selectedUser?.stories?.find((s: MapStory) => (s.user_id || s.id || (s as Record<string, unknown>).userId) === userId);
+        const name = userInSelected?.username || selectedUser?.username || 'User';
+
+        try {
+            showDiscoveryToast(`Followed ${name}!`, 'like');
+            
+            if (onConnect) {
+                await onConnect(userId);
+            } else {
+                await api.post(`/users/${userId}/follow`);
+            }
+            setFollowingIds(prev => new Set([...prev, userId]));
+        } catch (err) {
+            console.error('[Map] Follow failed:', err);
+        }
+    };
+
     // Throttling Refs
     const lastNearbyFetchRef = useRef<{time: number, coords: [number, number]} | null>(null);
     const lastCityFetchRef = useRef<{time: number, coords: [number, number]} | null>(null);
@@ -234,26 +253,6 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
     const showDiscoveryToast = (message: string, type: 'like' | 'superlike') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 2500);
-    };
-
-    const handleConnect = async (userId: string) => {
-        if (!userId) return;
-        const userInSelected = selectedUser?.stories?.find((s: MapStory) => (s.user_id || s.id || (s as Record<string, unknown>).userId) === userId);
-        const name = userInSelected?.username || selectedUser?.username || 'User';
-
-        try {
-            showDiscoveryToast(`Liked ${name}!`, 'like');
-            
-            if (onConnect) {
-                await onConnect(userId);
-            } else {
-                await api.post('/connections/request', { target_user_id: userId });
-            }
-            
-            if (selectedUser) setSelectedUser(null);
-        } catch (err) {
-            console.error('[Map] Failed to send connection request:', err);
-        }
     };
 
     const fetchNearbyUsers = async (lat: number, lng: number) => {
@@ -448,7 +447,7 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
         
         api.get('/connections').then(res => {
             const ids = new Set((res.data || []).map((c: any) => c.status === 'accepted' ? c.id : c.id).filter(Boolean));
-            setConnectionIds(ids as Set<string>);
+            setFollowingIds(ids as Set<string>);
         }).catch(() => {});
     }, []);
 
@@ -531,7 +530,7 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
                             <Popup className="custom-popup">
                                 <div className="font-bold text-text-base leading-tight">@{u.username}</div>
                                 <div className="text-[10px] text-text-muted uppercase">{u.distance ? `${Number(u.distance).toFixed(1)} km` : 'Nearby'}</div>
-                                {connectionIds.has(u.id) && <div className="text-[10px] text-primary font-bold mt-1 uppercase">Connection</div>}
+                                {followingIds.has(u.id) && <div className="text-[10px] text-primary font-bold mt-1 uppercase">Following</div>}
                             </Popup>
                         </Marker>
                     ))}
@@ -631,9 +630,9 @@ const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externa
                     <UserPreviewCard 
                         key={selectedUser.id || selectedUser.geohash || 'user-preview'}
                         user={selectedUser} 
-                        isConnection={connectionIds.has(selectedUser?.stories?.[0]?.user_id || selectedUser?.stories?.[0]?.id || selectedUser?.id || '')}
+                        isConnection={followingIds.has(selectedUser?.stories?.[0]?.user_id || selectedUser?.stories?.[0]?.id || selectedUser?.id || '')}
                         onClose={() => setSelectedUser(null)}
-                        onConnect={handleConnect}
+                        onConnect={handleFollow}
                         onProfileOpen={onUserSelect!}
                         onStoryOpen={(stories) => onStorySelect?.(stories as MapStory[], 0)}
                     />

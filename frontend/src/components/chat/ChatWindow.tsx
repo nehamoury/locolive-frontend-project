@@ -145,6 +145,8 @@ const ChatWindow = ({ receiverId, isGroup = false, onBack, onToggleProfile }: Ch
     };
     if (messages.length === 0 && !isGroup) {
       fetchIcebreakers();
+    } else {
+      setIcebreakers([]);
     }
   }, [receiverId, messages.length, isGroup]);
 
